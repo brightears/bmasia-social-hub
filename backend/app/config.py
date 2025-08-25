@@ -1,8 +1,7 @@
 """Application Configuration"""
 
 from typing import List, Optional
-from pydantic_settings import BaseSettings
-from pydantic import Field, validator
+from pydantic import BaseSettings, Field, validator
 import os
 from functools import lru_cache
 
