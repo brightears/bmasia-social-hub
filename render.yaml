@@ -93,12 +93,15 @@ services:
   - type: redis
     name: bma-social-redis
     region: singapore
+    plan: free
     ipAllowList: []
+    maxmemoryPolicy: noeviction
 
 databases:
   # PostgreSQL Database
   - name: bma-social-db
     region: singapore
+    plan: free
     databaseName: bma_social
     user: bma_user
 
