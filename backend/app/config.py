@@ -23,7 +23,7 @@ class Settings(BaseSettings):
     
     # Database - Render provides DATABASE_URL automatically
     database_url: str = Field(
-        default="postgresql+asyncpg://localhost:5432/bma_social",
+        default="postgresql://localhost:5432/bma_social",
         env="DATABASE_URL"
     )
     database_pool_size: int = Field(default=50, env="DATABASE_POOL_SIZE")
