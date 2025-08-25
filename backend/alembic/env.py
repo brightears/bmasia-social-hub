@@ -11,7 +11,7 @@ from pathlib import Path
 
 from sqlalchemy import pool
 from sqlalchemy.engine import Connection
-from sqlalchemy.ext.asyncio import async_engine_from_config
+from sqlalchemy import engine_from_config
 from alembic import context
 
 # Add parent directory to path to import app modules
@@ -51,14 +51,21 @@ def get_database_url():
     db_url = os.getenv("DATABASE_URL")
     
     if db_url:
-        # Convert postgres:// to postgresql+asyncpg:// for async support
-        if db_url.startswith("postgres://"):
-            db_url = db_url.replace("postgres://", "postgresql+asyncpg://", 1)
-        elif db_url.startswith("postgresql://"):
-            db_url = db_url.replace("postgresql://", "postgresql+asyncpg://", 1)
+        # Convert async URLs to sync URLs for standard SQLAlchemy
+        if db_url.startswith("postgresql+asyncpg://"):
+            db_url = db_url.replace("postgresql+asyncpg://", "postgresql://", 1)
+        elif db_url.startswith("asyncpg://"):
+            db_url = db_url.replace("asyncpg://", "postgresql://", 1)
+        elif db_url.startswith("postgres://"):
+            db_url = db_url.replace("postgres://", "postgresql://", 1)
     else:
         # Fallback to settings
         db_url = settings.database_url
+        # Also convert from async to sync
+        if "postgresql+asyncpg://" in db_url:
+            db_url = db_url.replace("postgresql+asyncpg://", "postgresql://")
+        elif "asyncpg://" in db_url:
+            db_url = db_url.replace("asyncpg://", "postgresql://")
     
     return db_url
 
@@ -103,9 +110,9 @@ def do_run_migrations(connection: Connection) -> None:
         context.run_migrations()
 
 
-async def run_async_migrations() -> None:
+def run_sync_migrations() -> None:
     """
-    Run migrations in 'online' mode with async support.
+    Run migrations in 'online' mode with synchronous connection.
     
     In this scenario we need to create an Engine
     and associate a connection with the context.
@@ -119,21 +126,21 @@ async def run_async_migrations() -> None:
     else:
         configuration["poolclass"] = "StaticPool"
     
-    connectable = async_engine_from_config(
+    connectable = engine_from_config(
         configuration,
         prefix="sqlalchemy.",
         poolclass=pool.NullPool if settings.is_production else pool.StaticPool,
     )
 
-    async with connectable.connect() as connection:
-        await connection.run_sync(do_run_migrations)
+    with connectable.connect() as connection:
+        do_run_migrations(connection)
 
-    await connectable.dispose()
+    connectable.dispose()
 
 
 def run_migrations_online() -> None:
     """Run migrations in 'online' mode"""
-    asyncio.run(run_async_migrations())
+    run_sync_migrations()
 
 
 # Determine which mode to run in

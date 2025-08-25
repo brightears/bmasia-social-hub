@@ -13,7 +13,7 @@ from sqlalchemy import select, update
 from sqlalchemy.orm import selectinload
 
 from app.workers.celery_app import celery_app
-from app.core.database import get_async_session
+from app.core.database import db_manager
 from app.core.redis import redis_manager
 from app.models.zone import Zone, ZoneStatus
 from app.models.venue import Venue
@@ -29,18 +29,18 @@ def check_all_zones():
     Periodic task to check status of all active zones.
     Runs every 5 minutes via Celery beat.
     """
-    asyncio.run(_check_all_zones())
+    _check_all_zones()
 
 
-async def _check_all_zones():
+def _check_all_zones():
     """Async implementation of zone checking"""
     logger.info("Starting zone monitoring check")
     
     start_time = datetime.utcnow()
     
-    async with get_async_session() as session:
+    with db_manager.get_session() as session:
         # Get all active zones grouped by venue
-        result = await session.execute(
+        result = session.execute(
             select(Zone)
             .options(selectinload(Zone.venue))
             .where(Zone.is_active == True)
@@ -59,27 +59,28 @@ async def _check_all_zones():
             zone_ids = [str(zone.soundtrack_device_id) for zone in batch]
             
             # Get status for batch
-            statuses = await soundtrack_client.batch_get_device_status(zone_ids)
+            # Note: Soundtrack client operations may still be async, check client implementation
+            statuses = soundtrack_client.batch_get_device_status(zone_ids)
             
             # Process results
             for zone, status in zip(batch, statuses):
                 if isinstance(status, dict) and not status.get("error"):
                     # Update zone status
-                    await _update_zone_status(session, zone, status)
+                    _update_zone_status(session, zone, status)
                     
                     # Check for issues
                     if not status.get("is_playing") and zone.should_be_playing:
-                        await _handle_zone_issue(session, zone, "not_playing")
+                        _handle_zone_issue(session, zone, "not_playing")
                         total_issues += 1
                     elif status.get("volume", 0) == 0 and zone.should_be_playing:
-                        await _handle_zone_issue(session, zone, "muted")
+                        _handle_zone_issue(session, zone, "muted")
                         total_issues += 1
                 else:
                     # Device offline or error
-                    await _handle_zone_issue(session, zone, "offline")
+                    _handle_zone_issue(session, zone, "offline")
                     total_issues += 1
         
-        await session.commit()
+        session.commit()
     
     # Log monitoring completion
     duration = (datetime.utcnow() - start_time).total_seconds()
@@ -97,9 +98,9 @@ async def _check_all_zones():
     logger.info(f"Zone monitoring completed: {len(zones)} zones, {total_issues} issues, {duration:.2f}s")
 
 
-async def _update_zone_status(session, zone: Zone, status: Dict[str, Any]):
+def _update_zone_status(session, zone: Zone, status: Dict[str, Any]):
     """Update zone status in database"""
-    await session.execute(
+    session.execute(
         update(Zone)
         .where(Zone.id == zone.id)
         .values(
@@ -119,7 +120,7 @@ async def _update_zone_status(session, zone: Zone, status: Dict[str, Any]):
     )
 
 
-async def _handle_zone_issue(session, zone: Zone, issue_type: str):
+def _handle_zone_issue(session, zone: Zone, issue_type: str):
     """Handle detected zone issue"""
     # Check if alert already exists
     cooldown_key = f"alert:cooldown:{zone.id}:{issue_type}"

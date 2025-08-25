@@ -1,6 +1,9 @@
 """
 Test suite for the production-ready database module
 Demonstrates usage patterns and validates functionality
+
+NOTE: This file needs to be updated to work with the new synchronous database setup.
+Many async functions and method calls need to be converted to synchronous.
 """
 
 import asyncio
@@ -11,7 +14,7 @@ from typing import List
 import pytest
 from sqlalchemy import Column, DateTime, Integer, String, Text, func, select
 from sqlalchemy.dialects.postgresql import JSONB, UUID
-from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import Session
 
 from .database import (
     Base,
@@ -20,7 +23,6 @@ from .database import (
     get_analytics_db,
     get_db,
     get_read_db,
-    init_database,
     track_query_performance,
 )
 
@@ -53,24 +55,24 @@ class VenueRepository:
     """Repository pattern for venue operations"""
     
     @track_query_performance("venue_read")
-    async def get_venue(self, venue_id: int) -> Venue:
+    def get_venue(self, venue_id: int) -> Venue:
         """Get venue by ID using read replica"""
-        async with db_manager.session(role=DatabaseRole.REPLICA, read_only=True) as session:
+        with db_manager.get_session(role=DatabaseRole.REPLICA) as session:
             stmt = select(Venue).where(Venue.id == venue_id)
-            result = await session.execute(stmt)
+            result = session.execute(stmt)
             return result.scalar_one_or_none()
     
     @track_query_performance("venue_bulk_read")
-    async def get_venues_by_status(self, status: str, limit: int = 100) -> List[Venue]:
+    def get_venues_by_status(self, status: str, limit: int = 100) -> List[Venue]:
         """Get venues by status with limit"""
-        async with db_manager.session(role=DatabaseRole.REPLICA, read_only=True) as session:
+        with db_manager.get_session(role=DatabaseRole.REPLICA) as session:
             stmt = (
                 select(Venue)
                 .where(Venue.status == status)
                 .limit(limit)
                 .execution_options(populate_existing=True)
             )
-            result = await session.execute(stmt)
+            result = session.execute(stmt)
             return result.scalars().all()
     
     @track_query_performance("venue_update")

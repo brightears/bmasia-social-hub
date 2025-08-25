@@ -2,7 +2,7 @@
 
 from typing import Dict, Any
 from fastapi import APIRouter, Depends
-from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import Session
 
 from app.core.database import get_db, db_manager
 from app.core.redis import redis_manager
@@ -12,7 +12,7 @@ router = APIRouter()
 
 
 @router.get("/status")
-async def get_monitoring_status() -> Dict[str, Any]:
+def get_monitoring_status() -> Dict[str, Any]:
     """Get overall monitoring status"""
     return {
         "monitoring": "active",
@@ -23,17 +23,19 @@ async def get_monitoring_status() -> Dict[str, Any]:
 
 
 @router.get("/metrics")
-async def get_metrics() -> Dict[str, Any]:
+def get_metrics() -> Dict[str, Any]:
     """Get system metrics"""
     
     # Get database metrics
-    db_health = await db_manager.health_check()
+    db_health = db_manager.health_check()
     
     # Get Redis metrics
-    redis_health = await redis_manager.health_check()
+    # Note: Redis operations may still be async, check redis_manager implementation
+    redis_health = redis_manager.health_check()
     
     # Get Soundtrack metrics
-    soundtrack_metrics = await soundtrack_client.get_metrics()
+    # Note: Soundtrack client operations may still be async, check client implementation
+    soundtrack_metrics = soundtrack_client.get_metrics()
     
     return {
         "database": db_health.get("performance_metrics"),

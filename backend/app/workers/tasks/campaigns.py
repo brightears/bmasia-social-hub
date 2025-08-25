@@ -10,7 +10,7 @@ from datetime import datetime
 from typing import Dict, Any, List
 
 from app.workers.celery_app import celery_app
-from app.core.database import get_async_session
+from app.core.database import db_manager
 from app.models.campaign import Campaign, CampaignStatus
 
 logger = logging.getLogger(__name__)
@@ -19,10 +19,10 @@ logger = logging.getLogger(__name__)
 @celery_app.task(name="app.workers.tasks.campaigns.process_scheduled_campaigns")
 def process_scheduled_campaigns():
     """Process scheduled campaigns - runs every minute"""
-    asyncio.run(_process_scheduled_campaigns())
+    _process_scheduled_campaigns()
 
 
-async def _process_scheduled_campaigns():
+def _process_scheduled_campaigns():
     """Check and execute scheduled campaigns"""
     logger.debug("Processing scheduled campaigns")
     

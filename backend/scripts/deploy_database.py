@@ -13,13 +13,13 @@ from pathlib import Path
 sys.path.append(str(Path(__file__).parent.parent))
 
 from sqlalchemy import text
-from sqlalchemy.ext.asyncio import create_async_engine
-import asyncpg
+from sqlalchemy import create_engine
+import psycopg2
 
 from app.config import settings
 
 
-async def create_database_if_not_exists():
+def create_database_if_not_exists():
     """Create database if it doesn't exist"""
     
     # Parse database URL to get components
@@ -34,8 +34,11 @@ async def create_database_if_not_exists():
         db_name = parts[-1].split("?")[0]
     
     # Create connection to postgres database (not the target database)
-    if db_url.startswith("postgresql+asyncpg://"):
-        postgres_url = db_url.replace(f"/{db_name}", "/postgres")
+    # Convert async URL to sync URL
+    if "postgresql+asyncpg://" in db_url:
+        postgres_url = db_url.replace("postgresql+asyncpg://", "postgresql://").replace(f"/{db_name}", "/postgres")
+    elif "asyncpg://" in db_url:
+        postgres_url = db_url.replace("asyncpg://", "postgresql://").replace(f"/{db_name}", "/postgres")
     else:
         postgres_url = db_url
     
@@ -43,30 +46,30 @@ async def create_database_if_not_exists():
     
     try:
         # Connect to postgres database
-        engine = create_async_engine(postgres_url, isolation_level="AUTOCOMMIT")
+        engine = create_engine(postgres_url, isolation_level="AUTOCOMMIT")
         
-        async with engine.connect() as conn:
+        with engine.connect() as conn:
             # Check if database exists
-            result = await conn.execute(
+            result = conn.execute(
                 text(f"SELECT 1 FROM pg_database WHERE datname = '{db_name}'")
             )
             exists = result.scalar()
             
             if not exists:
                 print(f"Creating database '{db_name}'...")
-                await conn.execute(text(f"CREATE DATABASE {db_name}"))
+                conn.execute(text(f"CREATE DATABASE {db_name}"))
                 print(f"✅ Database '{db_name}' created successfully!")
             else:
                 print(f"✅ Database '{db_name}' already exists")
         
-        await engine.dispose()
+        engine.dispose()
         
     except Exception as e:
         print(f"Note: Could not check/create database: {e}")
         print("This is normal on Render.com as the database is pre-created")
 
 
-async def run_migrations():
+def run_migrations():
     """Run alembic migrations"""
     import subprocess
     
@@ -92,16 +95,16 @@ async def run_migrations():
         sys.exit(1)
 
 
-async def verify_tables():
+def verify_tables():
     """Verify that tables were created"""
     from app.core.database import db_manager
     
     print("\nVerifying database tables...")
     
     try:
-        await db_manager.initialize()
+        db_manager.initialize()
         
-        async with db_manager.get_session() as session:
+        with db_manager.get_session() as session:
             # Check for key tables
             tables_to_check = [
                 "venues",
@@ -114,7 +117,7 @@ async def verify_tables():
             ]
             
             for table_name in tables_to_check:
-                result = await session.execute(
+                result = session.execute(
                     text(f"SELECT COUNT(*) FROM information_schema.tables WHERE table_name = :table"),
                     {"table": table_name}
                 )
@@ -125,13 +128,13 @@ async def verify_tables():
                 else:
                     print(f"  ❌ Table '{table_name}' NOT FOUND")
         
-        await db_manager.close()
+        db_manager.close()
         
     except Exception as e:
         print(f"❌ Error verifying tables: {e}")
 
 
-async def main():
+def main():
     """Main deployment function"""
     
     print("="*60)
@@ -139,13 +142,13 @@ async def main():
     print("="*60)
     
     # Step 1: Create database if needed
-    await create_database_if_not_exists()
+    create_database_if_not_exists()
     
     # Step 2: Run migrations
-    await run_migrations()
+    run_migrations()
     
     # Step 3: Verify tables
-    await verify_tables()
+    verify_tables()
     
     print("\n" + "="*60)
     print("✅ Database deployment complete!")
@@ -157,4 +160,4 @@ async def main():
 
 
 if __name__ == "__main__":
-    asyncio.run(main())
+    main()

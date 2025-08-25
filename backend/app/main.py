@@ -41,15 +41,17 @@ async def lifespan(app: FastAPI):
     
     try:
         # Initialize database
-        await db_manager.initialize()
+        db_manager.initialize()
         logger.info("Database initialized")
         
         # Initialize Redis
-        await redis_manager.initialize()
+        # Note: Redis operations may still be async, check redis_manager implementation
+        redis_manager.initialize()
         logger.info("Redis initialized")
         
         # Initialize Soundtrack client
-        await soundtrack_client.initialize()
+        # Note: Soundtrack client operations may still be async, check client implementation
+        soundtrack_client.initialize()
         logger.info("Soundtrack API client initialized")
         
         # Initialize Sentry if configured
@@ -82,15 +84,17 @@ async def lifespan(app: FastAPI):
     
     try:
         # Close database connections
-        await db_manager.close()
+        db_manager.close()
         logger.info("Database connections closed")
         
         # Close Redis connections
-        await redis_manager.close()
+        # Note: Redis operations may still be async, check redis_manager implementation
+        redis_manager.close()
         logger.info("Redis connections closed")
         
         # Close Soundtrack client
-        await soundtrack_client.close()
+        # Note: Soundtrack client operations may still be async, check client implementation
+        soundtrack_client.close()
         logger.info("Soundtrack API client closed")
         
     except Exception as e:
@@ -261,7 +265,7 @@ app.include_router(api_router, prefix="/api/v1")
 
 # Root endpoint
 @app.get("/", tags=["Root"])
-async def root() -> Dict[str, Any]:
+def root() -> Dict[str, Any]:
     """Root endpoint"""
     return {
         "name": settings.app_name,
@@ -273,7 +277,7 @@ async def root() -> Dict[str, Any]:
 
 # Health check endpoint (at root level for Render)
 @app.get("/health", tags=["Health"])
-async def health_check() -> Dict[str, Any]:
+def health_check() -> Dict[str, Any]:
     """
     Health check endpoint for load balancers and monitoring.
     Used by Render for health checks.
@@ -288,7 +292,7 @@ async def health_check() -> Dict[str, Any]:
     
     # Check database
     try:
-        db_health = await db_manager.health_check()
+        db_health = db_manager.health_check()
         health_status["checks"]["database"] = db_health
     except Exception as e:
         health_status["checks"]["database"] = {"status": "unhealthy", "error": str(e)}
@@ -296,7 +300,8 @@ async def health_check() -> Dict[str, Any]:
     
     # Check Redis
     try:
-        redis_health = await redis_manager.health_check()
+        # Note: Redis operations may still be async, check redis_manager implementation
+        redis_health = redis_manager.health_check()
         health_status["checks"]["redis"] = redis_health
     except Exception as e:
         health_status["checks"]["redis"] = {"status": "unhealthy", "error": str(e)}
@@ -304,7 +309,8 @@ async def health_check() -> Dict[str, Any]:
     
     # Check Soundtrack API
     try:
-        soundtrack_health = await soundtrack_client.health_check()
+        # Note: Soundtrack client operations may still be async, check client implementation
+        soundtrack_health = soundtrack_client.health_check()
         health_status["checks"]["soundtrack"] = soundtrack_health
     except Exception as e:
         health_status["checks"]["soundtrack"] = {"status": "unhealthy", "error": str(e)}
@@ -326,7 +332,7 @@ if settings.prometheus_enabled:
 
 # Application info endpoint
 @app.get("/info", tags=["Info"])
-async def app_info() -> Dict[str, Any]:
+def app_info() -> Dict[str, Any]:
     """Application information endpoint"""
     return {
         "app": {

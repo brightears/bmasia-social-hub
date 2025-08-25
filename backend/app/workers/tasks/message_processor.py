@@ -23,11 +23,11 @@ from dataclasses import dataclass, asdict
 import traceback
 
 from celery import Task
-from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import Session
 from sqlalchemy import select, update
 
 from app.workers.celery_app import celery_app
-from app.core.database import get_async_session
+from app.core.database import db_manager
 from app.core.redis import redis_manager, CacheKeyBuilder
 from app.models.conversation import (
     Conversation, Message, ConversationStatus, 
@@ -131,7 +131,7 @@ class MessageProcessor(Task):
             "errors": 0,
         }
     
-    async def run(self, message_data: Dict[str, Any]) -> Dict[str, Any]:
+    def run(self, message_data: Dict[str, Any]) -> Dict[str, Any]:
         """
         Main processing pipeline for incoming messages.
         
@@ -145,11 +145,11 @@ class MessageProcessor(Task):
         
         try:
             # 1. Load context and validate
-            context = await self._load_context(message_data)
+            context = self._load_context(message_data)
             
             # 2. Check SLA status immediately
-            if await self._check_sla_breach(context):
-                await self._handle_sla_breach(context)
+            if self._check_sla_breach(context):
+                self._handle_sla_breach(context)
             
             # 3. Classify intent and extract entities
             classification = self.intent_classifier.classify(
@@ -159,31 +159,31 @@ class MessageProcessor(Task):
             
             # 4. Check if escalation is needed
             if classification.escalation_recommended or context.is_vip:
-                return await self._escalate_to_human(context, classification)
+                return self._escalate_to_human(context, classification)
             
             # 5. Process based on intent
-            action_results = await self._execute_actions(context, classification)
+            action_results = self._execute_actions(context, classification)
             
             # 6. Generate response
-            response = await self._generate_response(
+            response = self._generate_response(
                 context, classification, action_results
             )
             
             # 7. Send response to customer
-            await self._send_response(context, response)
+            self._send_response(context, response)
             
             # 8. Update conversation state
-            await self._update_conversation_state(
+            self._update_conversation_state(
                 context, classification, action_results, response
             )
             
             # 9. Check if satisfaction survey should be triggered
-            if await self._should_trigger_satisfaction(context, classification):
-                await self._trigger_satisfaction_survey(context)
+            if self._should_trigger_satisfaction(context, classification):
+                self._trigger_satisfaction_survey(context)
             
             # 10. Log metrics
             processing_time = int((time.time() - start_time) * 1000)
-            await self._log_metrics(context, classification, processing_time)
+            self._log_metrics(context, classification, processing_time)
             
             return {
                 "status": "completed",
@@ -202,21 +202,22 @@ class MessageProcessor(Task):
                 raise self.retry(exc=e, countdown=self.default_retry_delay * (2 ** self.request.retries))
             else:
                 # Move to DLQ after max retries
-                await self._move_to_dlq(message_data, str(e))
+                self._move_to_dlq(message_data, str(e))
                 return {
                     "status": "failed",
                     "error": str(e),
                     "moved_to_dlq": True,
                 }
     
-    async def _load_context(self, message_data: Dict[str, Any]) -> MessageContext:
+    def _load_context(self, message_data: Dict[str, Any]) -> MessageContext:
         """
         Load complete context for message processing.
         Includes conversation history, venue info, and session data.
         """
-        async with get_async_session() as session:
+        with db_manager.get_session() as session:
             # Load conversation
-            conversation = await session.execute(
+            from sqlalchemy.orm import selectinload
+            conversation = session.execute(
                 select(Conversation)
                 .options(selectinload(Conversation.venue))
                 .where(Conversation.id == message_data["conversation_id"])
@@ -224,7 +225,7 @@ class MessageProcessor(Task):
             conversation = conversation.scalar_one()
             
             # Load recent messages for context
-            recent_messages = await session.execute(
+            recent_messages = session.execute(
                 select(Message)
                 .where(Message.conversation_id == conversation.id)
                 .order_by(Message.created_at.desc())
@@ -233,7 +234,7 @@ class MessageProcessor(Task):
             recent_messages = recent_messages.scalars().all()
             
             # Load venue zones
-            zones = await session.execute(
+            zones = session.execute(
                 select(Zone)
                 .where(Zone.venue_id == conversation.venue_id)
                 .where(Zone.is_active == True)

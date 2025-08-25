@@ -144,28 +144,29 @@ SAMPLE_TEAM_MEMBERS = [
 ]
 
 
-async def clear_existing_data():
+def clear_existing_data():
     """Clear existing data from tables"""
     print("Clearing existing data...")
     
-    async with db_manager.get_session() as session:
+    with db_manager.get_session() as session:
         # Clear in order due to foreign keys
-        await session.execute("DELETE FROM zones")
-        await session.execute("DELETE FROM venues")
-        await session.execute("DELETE FROM team_members")
-        await session.commit()
+        from sqlalchemy import text
+        session.execute(text("DELETE FROM zones"))
+        session.execute(text("DELETE FROM venues"))
+        session.execute(text("DELETE FROM team_members"))
+        session.commit()
     
     print("✅ Existing data cleared")
 
 
-async def seed_team_members():
+def seed_team_members():
     """Create team members"""
     print("\nCreating team members...")
     
-    async with db_manager.get_session() as session:
+    with db_manager.get_session() as session:
         for member_data in SAMPLE_TEAM_MEMBERS:
             # Check if already exists
-            result = await session.execute(
+            result = session.execute(
                 select(TeamMember).where(TeamMember.email == member_data["email"])
             )
             existing = result.scalar_one_or_none()
@@ -188,17 +189,17 @@ async def seed_team_members():
             else:
                 print(f"  ⏭️  Team member already exists: {existing.name}")
         
-        await session.commit()
+        session.commit()
 
 
-async def seed_venues():
+def seed_venues():
     """Create sample venues with zones"""
     print("\nCreating sample venues...")
     
-    async with db_manager.get_session() as session:
+    with db_manager.get_session() as session:
         for venue_data in SAMPLE_VENUES:
             # Check if venue already exists
-            result = await session.execute(
+            result = session.execute(
                 select(Venue).where(Venue.code == venue_data["code"])
             )
             existing = result.scalar_one_or_none()
@@ -246,26 +247,27 @@ async def seed_venues():
             else:
                 print(f"  ⏭️  Venue already exists: {existing.name}")
         
-        await session.commit()
+        session.commit()
 
 
-async def print_summary():
+def print_summary():
     """Print summary of seeded data"""
     print("\n" + "="*60)
     print("Seed Data Summary")
     print("="*60)
     
-    async with db_manager.get_session() as session:
+    with db_manager.get_session() as session:
         # Count venues
-        venue_count = await session.execute("SELECT COUNT(*) FROM venues")
+        from sqlalchemy import text
+        venue_count = session.execute(text("SELECT COUNT(*) FROM venues"))
         venues = venue_count.scalar()
         
         # Count zones
-        zone_count = await session.execute("SELECT COUNT(*) FROM zones")
+        zone_count = session.execute(text("SELECT COUNT(*) FROM zones"))
         zones = zone_count.scalar()
         
         # Count team members
-        team_count = await session.execute("SELECT COUNT(*) FROM team_members")
+        team_count = session.execute(text("SELECT COUNT(*) FROM team_members"))
         team = team_count.scalar()
         
         print(f"✅ Venues created: {venues}")
@@ -273,7 +275,7 @@ async def print_summary():
         print(f"✅ Team members created: {team}")
 
 
-async def main():
+def main():
     """Main seed function"""
     print("="*60)
     print("BMA Social - Seed Data Script")
@@ -281,19 +283,19 @@ async def main():
     
     try:
         # Initialize database connection
-        await db_manager.initialize()
+        db_manager.initialize()
         
         # Ask user if they want to clear existing data
         response = input("\nClear existing data before seeding? (y/N): ")
         if response.lower() == 'y':
-            await clear_existing_data()
+            clear_existing_data()
         
         # Seed data
-        await seed_team_members()
-        await seed_venues()
+        seed_team_members()
+        seed_venues()
         
         # Print summary
-        await print_summary()
+        print_summary()
         
         print("\n✅ Seed data creation complete!")
         print("\nYou can now:")
@@ -305,8 +307,8 @@ async def main():
         print(f"❌ Error seeding data: {e}")
         sys.exit(1)
     finally:
-        await db_manager.close()
+        db_manager.close()
 
 
 if __name__ == "__main__":
-    asyncio.run(main())
+    main()
