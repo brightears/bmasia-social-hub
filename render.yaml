@@ -6,7 +6,7 @@ services:
     region: singapore
     plan: free
     buildCommand: |
-      cd backend && pip install -r requirements.txt
+      cd backend && python --version && pip install -r requirements.txt
     startCommand: |
       cd backend && uvicorn app.main:app --host 0.0.0.0 --port $PORT --workers 4
     healthCheckPath: /health
@@ -35,7 +35,6 @@ services:
     runtime: python
     region: singapore
     plan: free
-    pythonVersion: "3.11"
     buildCommand: |
       cd backend && pip install -r requirements.txt
     startCommand: |
@@ -66,7 +65,6 @@ services:
     runtime: python
     region: singapore
     plan: free
-    pythonVersion: "3.11"
     buildCommand: |
       cd backend && pip install -r requirements.txt
     startCommand: |
