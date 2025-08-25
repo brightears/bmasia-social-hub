@@ -4,7 +4,7 @@ services:
     name: bma-social-api
     runtime: python
     region: singapore
-    plan: free
+    plan: free  # or "starter" for $7/month (512MB RAM)
     buildCommand: |
       cd backend && pip install -r requirements.txt
     startCommand: |
@@ -34,7 +34,7 @@ services:
     name: bma-social-worker
     runtime: python
     region: singapore
-    plan: free
+    plan: free  # or "starter" for $7/month
     buildCommand: |
       cd backend && pip install -r requirements.txt
     startCommand: |
@@ -93,13 +93,15 @@ services:
   - type: redis
     name: bma-social-redis
     region: singapore
-    plan: free
+    plan: free  # or "starter" for $7/month (25MB)
     ipAllowList: []
 
 databases:
   # PostgreSQL Database
   - name: bma-social-db
     region: singapore
+    # Remove plan line to use free tier
+    # Or add: plan: standard  # for $7/month (1GB RAM, 4GB storage)
     databaseName: bma_social
     user: bma_user
 
