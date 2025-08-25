@@ -4,7 +4,7 @@ services:
     name: bma-social-api
     runtime: python
     region: singapore
-    plan: standard
+    plan: starter
     buildCommand: |
       cd backend && pip install -r requirements.txt
     startCommand: |
@@ -34,7 +34,7 @@ services:
     name: bma-social-worker
     runtime: python
     region: singapore
-    plan: standard
+    plan: starter
     buildCommand: |
       cd backend && pip install -r requirements.txt
     startCommand: |
@@ -93,17 +93,16 @@ services:
   - type: redis
     name: bma-social-redis
     region: singapore
-    plan: standard
+    plan: starter
     ipAllowList: []
 
 databases:
   # PostgreSQL Database
   - name: bma-social-db
     region: singapore
-    plan: standard
+    plan: starter
     databaseName: bma_social
     user: bma_user
-    postgresMajorVersion: 15
 
 envVarGroups:
   - name: bma-social-secrets
@@ -127,8 +126,8 @@ envVarGroups:
         sync: false
       - key: LINE_CHANNEL_SECRET
         sync: false
-      # Claude API
-      - key: CLAUDE_API_KEY
+      # Google Gemini API
+      - key: GEMINI_API_KEY
         sync: false
       # Optional Services
       - key: SENTRY_DSN
