@@ -1,7 +1,8 @@
 """Application Configuration"""
 
 from typing import List, Optional
-from pydantic import BaseSettings, Field, validator
+from pydantic import Field, field_validator
+from pydantic_settings import BaseSettings
 import os
 from functools import lru_cache
 
@@ -110,13 +111,15 @@ class Settings(BaseSettings):
     celery_task_always_eager: bool = Field(default=False, env="CELERY_TASK_ALWAYS_EAGER")
     celery_task_eager_propagates: bool = Field(default=False, env="CELERY_TASK_EAGER_PROPAGATES")
     
-    @validator("cors_origins", pre=True)
+    @field_validator("cors_origins", mode='before')
+    @classmethod
     def parse_cors_origins(cls, v):
         if isinstance(v, str):
             return [origin.strip() for origin in v.split(",")]
         return v
     
-    @validator("environment")
+    @field_validator("environment")
+    @classmethod
     def validate_environment(cls, v):
         allowed = {"development", "staging", "production", "testing"}
         if v not in allowed:
@@ -135,10 +138,11 @@ class Settings(BaseSettings):
     def is_testing(self) -> bool:
         return self.environment == "testing"
     
-    class Config:
-        env_file = ".env"
-        env_file_encoding = "utf-8"
-        case_sensitive = False
+    model_config = {
+        "env_file": ".env",
+        "env_file_encoding": "utf-8",
+        "case_sensitive": False
+    }
 
 
 @lru_cache()
