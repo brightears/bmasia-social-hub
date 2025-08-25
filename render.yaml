@@ -1,0 +1,137 @@
+services:
+  # Main API Service
+  - type: web
+    name: bma-social-api
+    runtime: python
+    region: singapore
+    plan: standard
+    buildCommand: |
+      cd backend && pip install -r requirements.txt
+    startCommand: |
+      cd backend && uvicorn app.main:app --host 0.0.0.0 --port $PORT --workers 4
+    healthCheckPath: /health
+    envVars:
+      - key: ENVIRONMENT
+        value: production
+      - key: DATABASE_URL
+        fromDatabase:
+          name: bma-social-db
+          property: connectionString
+      - key: REDIS_URL
+        fromService:
+          type: redis
+          name: bma-social-redis
+          property: connectionString
+      - key: SECRET_KEY
+        generateValue: true
+      - key: JWT_SECRET_KEY
+        generateValue: true
+      - fromGroup: bma-social-secrets
+    autoDeploy: true
+
+  # Background Worker for Celery
+  - type: worker
+    name: bma-social-worker
+    runtime: python
+    region: singapore
+    plan: standard
+    buildCommand: |
+      cd backend && pip install -r requirements.txt
+    startCommand: |
+      cd backend && celery -A app.workers.celery_app worker --loglevel=info --concurrency=4
+    envVars:
+      - key: ENVIRONMENT
+        value: production
+      - key: DATABASE_URL
+        fromDatabase:
+          name: bma-social-db
+          property: connectionString
+      - key: REDIS_URL
+        fromService:
+          type: redis
+          name: bma-social-redis
+          property: connectionString
+      - key: CELERY_BROKER_URL
+        fromService:
+          type: redis
+          name: bma-social-redis
+          property: connectionString
+      - fromGroup: bma-social-secrets
+    autoDeploy: true
+
+  # Celery Beat Scheduler
+  - type: worker
+    name: bma-social-scheduler
+    runtime: python
+    region: singapore
+    plan: starter
+    buildCommand: |
+      cd backend && pip install -r requirements.txt
+    startCommand: |
+      cd backend && celery -A app.workers.celery_app beat --loglevel=info
+    envVars:
+      - key: ENVIRONMENT
+        value: production
+      - key: DATABASE_URL
+        fromDatabase:
+          name: bma-social-db
+          property: connectionString
+      - key: REDIS_URL
+        fromService:
+          type: redis
+          name: bma-social-redis
+          property: connectionString
+      - key: CELERY_BROKER_URL
+        fromService:
+          type: redis
+          name: bma-social-redis
+          property: connectionString
+      - fromGroup: bma-social-secrets
+    autoDeploy: true
+
+  # Redis Cache
+  - type: redis
+    name: bma-social-redis
+    region: singapore
+    plan: standard
+    ipAllowList: []
+
+databases:
+  # PostgreSQL Database
+  - name: bma-social-db
+    region: singapore
+    plan: standard
+    databaseName: bma_social
+    user: bma_user
+    postgresMajorVersion: 15
+
+envVarGroups:
+  - name: bma-social-secrets
+    envVars:
+      # Soundtrack Your Brand API
+      - key: SOUNDTRACK_CLIENT_ID
+        sync: false
+      - key: SOUNDTRACK_CLIENT_SECRET
+        sync: false
+      # WhatsApp Business API
+      - key: WHATSAPP_ACCESS_TOKEN
+        sync: false
+      - key: WHATSAPP_VERIFY_TOKEN
+        sync: false
+      - key: WHATSAPP_PHONE_NUMBER_ID
+        sync: false
+      - key: WHATSAPP_WEBHOOK_SECRET
+        sync: false
+      # Line Business API
+      - key: LINE_CHANNEL_ACCESS_TOKEN
+        sync: false
+      - key: LINE_CHANNEL_SECRET
+        sync: false
+      # Claude API
+      - key: CLAUDE_API_KEY
+        sync: false
+      # Optional Services
+      - key: SENTRY_DSN
+        sync: false
+      - key: OPENWEATHERMAP_API_KEY
+        sync: false
