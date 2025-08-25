@@ -20,7 +20,7 @@ services:
       - key: REDIS_URL
         fromService:
           type: redis
-          name: bma-social-redis-v2
+          name: bma-social-redis
           property: connectionString
       - key: SECRET_KEY
         generateValue: true
@@ -49,12 +49,12 @@ services:
       - key: REDIS_URL
         fromService:
           type: redis
-          name: bma-social-redis-v2
+          name: bma-social-redis
           property: connectionString
       - key: CELERY_BROKER_URL
         fromService:
           type: redis
-          name: bma-social-redis-v2
+          name: bma-social-redis
           property: connectionString
       - fromGroup: bma-social-secrets
     autoDeploy: true
@@ -79,21 +79,20 @@ services:
       - key: REDIS_URL
         fromService:
           type: redis
-          name: bma-social-redis-v2
+          name: bma-social-redis
           property: connectionString
       - key: CELERY_BROKER_URL
         fromService:
           type: redis
-          name: bma-social-redis-v2
+          name: bma-social-redis
           property: connectionString
       - fromGroup: bma-social-secrets
     autoDeploy: true
 
   # Redis Cache
   - type: redis
-    name: bma-social-redis-v2
+    name: bma-social-redis
     region: singapore
-    plan: free
     ipAllowList: []
 
 databases:
