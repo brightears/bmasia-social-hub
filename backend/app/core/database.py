@@ -1,28 +1,25 @@
 """
 Database connection and session management with optimizations for scale.
 Designed for 10,000+ zones and 120,000+ API calls/hour.
+Using psycopg2 with optimized connection pooling for Render deployment.
 """
 
-import asyncio
 import logging
 import time
-from contextlib import asynccontextmanager
+from contextlib import contextmanager
 from enum import Enum
-from typing import Any, AsyncGenerator, Dict, Optional, List
+from typing import Any, Generator, Dict, Optional, List
 from datetime import datetime, timedelta
 import random
+import threading
 
 from sqlalchemy import create_engine, event, pool, text
-from sqlalchemy.ext.asyncio import (
-    AsyncEngine,
-    AsyncSession,
-    async_sessionmaker,
-    create_async_engine,
-)
-from sqlalchemy.orm import declarative_base, sessionmaker
-from sqlalchemy.pool import NullPool, QueuePool
+from sqlalchemy.orm import declarative_base, sessionmaker, Session, scoped_session
+from sqlalchemy.pool import QueuePool, NullPool, StaticPool
 from sqlalchemy.exc import OperationalError, DBAPIError
-import asyncpg
+import psycopg2
+from psycopg2 import pool as pg_pool
+from psycopg2.extras import RealDictCursor, execute_batch
 
 from app.config import settings
 
@@ -72,15 +69,16 @@ class DatabaseManager:
     """
     Manages database connections with optimizations for high-volume operations.
     Supports connection pooling, read/write splitting, and performance monitoring.
+    Uses psycopg2 with SQLAlchemy for optimal performance on Render.
     """
     
     def __init__(self):
-        self.engines: Dict[DatabaseRole, Optional[AsyncEngine]] = {
+        self.engines: Dict[DatabaseRole, Optional[Any]] = {
             DatabaseRole.PRIMARY: None,
             DatabaseRole.REPLICA: None,
             DatabaseRole.ANALYTICS: None,
         }
-        self.session_makers: Dict[DatabaseRole, Optional[async_sessionmaker]] = {
+        self.session_makers: Dict[DatabaseRole, Optional[scoped_session]] = {
             DatabaseRole.PRIMARY: None,
             DatabaseRole.REPLICA: None,
             DatabaseRole.ANALYTICS: None,
@@ -93,59 +91,82 @@ class DatabaseManager:
             "connection_errors": 0,
             "last_health_check": None,
         }
+        self._lock = threading.Lock()
     
-    async def initialize(self):
+    def initialize(self):
         """Initialize database connections with proper pooling for Render deployment"""
         
-        # Primary database configuration (writes)
+        # Primary database configuration optimized for BMA Social scale
+        # Using QueuePool for better connection management with high concurrency
         primary_config = {
-            "pool_size": settings.database_pool_size,
-            "max_overflow": settings.database_max_overflow,
-            "pool_timeout": settings.database_pool_timeout,
-            "pool_recycle": settings.database_pool_recycle,
-            "pool_pre_ping": True,
+            "poolclass": QueuePool,
+            "pool_size": settings.database_pool_size,  # Base number of connections
+            "max_overflow": settings.database_max_overflow,  # Additional connections when needed
+            "pool_timeout": settings.database_pool_timeout,  # Timeout waiting for connection
+            "pool_recycle": settings.database_pool_recycle,  # Recycle connections after this time
+            "pool_pre_ping": True,  # Test connections before using
             "echo": settings.debug and settings.environment != "production",
             "echo_pool": settings.debug and settings.environment != "production",
             "connect_args": {
-                "server_settings": {
-                    "application_name": f"bma_social_{settings.environment}",
-                    "jit": "off",
-                },
-                "command_timeout": 60,
-                "prepared_statement_cache_size": 0,  # For pgbouncer compatibility
-                "ssl": "require" if settings.is_production else "prefer",
+                "connect_timeout": 10,
+                "application_name": f"bma_social_{settings.environment}",
+                "options": "-c statement_timeout=60000 -c lock_timeout=10000",  # 60s statement, 10s lock timeout
+                "keepalives": 1,
+                "keepalives_idle": 30,
+                "keepalives_interval": 10,
+                "keepalives_count": 5,
+                "sslmode": "require" if settings.is_production else "prefer",
+            },
+            "execution_options": {
+                "isolation_level": "READ_COMMITTED",  # Default isolation level
+                "postgresql_readonly": False,
+                "postgresql_deferrable": False,
             },
         }
         
-        # Create primary engine
-        self.engines[DatabaseRole.PRIMARY] = create_async_engine(
-            self._get_database_url(DatabaseRole.PRIMARY),
-            **primary_config
-        )
+        # Create primary engine with psycopg2
+        db_url = self._get_database_url(DatabaseRole.PRIMARY)
+        if db_url:
+            # Convert async URL format to sync format if needed
+            db_url = db_url.replace("postgresql+asyncpg://", "postgresql://")
+            db_url = db_url.replace("asyncpg://", "postgresql://")
+            
+            self.engines[DatabaseRole.PRIMARY] = create_engine(
+                db_url,
+                **primary_config
+            )
         
         # Create replica engine if URL is available (future scaling)
         replica_url = self._get_database_url(DatabaseRole.REPLICA)
         if replica_url:
+            replica_url = replica_url.replace("postgresql+asyncpg://", "postgresql://")
+            replica_url = replica_url.replace("asyncpg://", "postgresql://")
+            
             replica_config = primary_config.copy()
             replica_config["pool_size"] = settings.database_pool_size * 2  # More connections for reads
-            self.engines[DatabaseRole.REPLICA] = create_async_engine(
+            replica_config["connect_args"]["application_name"] = f"bma_social_{settings.environment}_read"
+            self.engines[DatabaseRole.REPLICA] = create_engine(
                 replica_url,
                 **replica_config
             )
         
-        # Create session makers
+        # Create scoped session makers for thread safety
         for role, engine in self.engines.items():
             if engine:
-                self.session_makers[role] = async_sessionmaker(
-                    engine,
-                    class_=AsyncSession,
+                session_factory = sessionmaker(
+                    bind=engine,
                     expire_on_commit=False,
                     autoflush=False,
                     autocommit=False,
                 )
+                # Use scoped_session for thread-local sessions
+                self.session_makers[role] = scoped_session(session_factory)
+        
+        # Set up connection pool logging and optimization
+        self._setup_pool_listeners()
         
         # Verify connections
-        await self._verify_connections()
+        self._verify_connections()
         
         logger.info(f"Database initialized for environment: {settings.environment}")
     
@@ -163,24 +184,59 @@ class DatabaseManager:
             return getattr(settings, "database_analytics_url", None)
         return None
     
-    async def _verify_connections(self):
+    def _setup_pool_listeners(self):
+        """Set up connection pool event listeners for monitoring and optimization"""
+        for role, engine in self.engines.items():
+            if engine:
+                # Log connection checkout/checkin for monitoring
+                @event.listens_for(engine, "connect")
+                def receive_connect(dbapi_conn, connection_record):
+                    # Set performance-related parameters on each new connection
+                    with dbapi_conn.cursor() as cursor:
+                        # Optimize for BMA Social's workload
+                        cursor.execute("SET work_mem = '32MB'")
+                        cursor.execute("SET effective_cache_size = '4GB'")
+                        cursor.execute("SET random_page_cost = 1.1")  # For SSD storage
+                        cursor.execute("SET effective_io_concurrency = 200")  # For SSD
+                        cursor.execute("SET max_parallel_workers_per_gather = 2")
+                        cursor.execute("SET max_parallel_workers = 8")
+                        
+                        # Set application name for monitoring
+                        app_name = f"bma_{role.value}_{settings.environment}"
+                        cursor.execute(f"SET application_name = '{app_name}'")
+                
+                @event.listens_for(engine, "checkout")
+                def receive_checkout(dbapi_conn, connection_record, connection_proxy):
+                    # Track connection age for recycling
+                    connection_record.info['checkout_time'] = time.time()
+                
+                @event.listens_for(engine, "checkin")
+                def receive_checkin(dbapi_conn, connection_record):
+                    # Log long-held connections
+                    if 'checkout_time' in connection_record.info:
+                        duration = time.time() - connection_record.info['checkout_time']
+                        if duration > 5.0:  # Connections held longer than 5 seconds
+                            logger.warning(f"Long connection hold time: {duration:.2f}s for {role.value}")
+    
+    def _verify_connections(self):
         """Verify all database connections are working"""
         for role, engine in self.engines.items():
             if engine:
                 try:
-                    async with engine.connect() as conn:
-                        result = await conn.execute(text("SELECT 1"))
-                        await conn.commit()
+                    with engine.connect() as conn:
+                        result = conn.execute(text("SELECT 1"))
+                        conn.commit()
                     logger.info(f"Database connection verified for role: {role.value}")
                 except Exception as e:
                     logger.error(f"Failed to verify connection for role {role.value}: {e}")
                     if role == DatabaseRole.PRIMARY:
                         raise  # Primary connection is critical
     
-    async def get_session(
+    @contextmanager
+    def get_session(
         self,
         role: DatabaseRole = DatabaseRole.PRIMARY
-    ) -> AsyncGenerator[AsyncSession, None]:
+    ) -> Generator[Session, None, None]:
         """
         Get a database session with automatic retry logic.
         
@@ -188,7 +244,7 @@ class DatabaseManager:
             role: Database role (PRIMARY for writes, REPLICA for reads)
         
         Yields:
-            AsyncSession: Database session
+            Session: Database session
         """
         session_maker = self.session_makers.get(role)
         
@@ -203,12 +259,15 @@ class DatabaseManager:
         last_error = None
         
         while attempt < self.retry_policy.max_retries:
+            session = None
             try:
-                async with session_maker() as session:
-                    yield session
-                    await session.commit()
-                    return
+                session = session_maker()
+                yield session
+                session.commit()
+                return
             except (OperationalError, DBAPIError) as e:
+                if session:
+                    session.rollback()
                 last_error = e
                 attempt += 1
                 self._performance_metrics["connection_errors"] += 1
@@ -219,16 +278,20 @@ class DatabaseManager:
                         f"Database connection error (attempt {attempt}), "
                         f"retrying in {delay:.2f}s: {e}"
                     )
-                    await asyncio.sleep(delay)
+                    time.sleep(delay)
                 else:
                     logger.error(f"Max retries reached for database connection: {e}")
                     raise
             except Exception as e:
-                await session.rollback()
+                if session:
+                    session.rollback()
                 raise
+            finally:
+                if session:
+                    session.close()
     
-    @asynccontextmanager
-    async def transaction(
+    @contextmanager
+    def transaction(
         self,
         isolation_level: Optional[str] = None,
         read_only: bool = False
@@ -242,23 +305,23 @@ class DatabaseManager:
         """
         role = DatabaseRole.REPLICA if read_only else DatabaseRole.PRIMARY
         
-        async with self.get_session(role) as session:
+        with self.get_session(role) as session:
             if isolation_level:
-                await session.execute(
+                session.execute(
                     text(f"SET TRANSACTION ISOLATION LEVEL {isolation_level}")
                 )
             
             if read_only:
-                await session.execute(text("SET TRANSACTION READ ONLY"))
+                session.execute(text("SET TRANSACTION READ ONLY"))
             
             try:
                 yield session
-                await session.commit()
+                session.commit()
             except Exception:
-                await session.rollback()
+                session.rollback()
                 raise
     
-    async def execute_query(
+    def execute_query(
         self,
         query: str,
         params: Optional[Dict[str, Any]] = None,
@@ -268,33 +331,36 @@ class DatabaseManager:
         start_time = time.time()
         
         try:
-            async with self.get_session(role) as session:
-                result = await session.execute(text(query), params or {})
-                await session.commit()
+            with self.get_session(role) as session:
+                result = session.execute(text(query), params or {})
+                session.commit()
                 
-                self._performance_metrics["queries_executed"] += 1
+                with self._lock:
+                    self._performance_metrics["queries_executed"] += 1
                 
                 # Track slow queries
                 execution_time = time.time() - start_time
                 if execution_time > 1.0:  # Log queries slower than 1 second
-                    self._performance_metrics["slow_queries"].append({
-                        "query": query[:100],  # First 100 chars
-                        "execution_time": execution_time,
-                        "timestamp": datetime.utcnow().isoformat()
-                    })
-                    
-                    # Keep only last 100 slow queries
-                    if len(self._performance_metrics["slow_queries"]) > 100:
-                        self._performance_metrics["slow_queries"] = \
-                            self._performance_metrics["slow_queries"][-100:]
+                    with self._lock:
+                        self._performance_metrics["slow_queries"].append({
+                            "query": query[:100],  # First 100 chars
+                            "execution_time": execution_time,
+                            "timestamp": datetime.utcnow().isoformat()
+                        })
+                        
+                        # Keep only last 100 slow queries
+                        if len(self._performance_metrics["slow_queries"]) > 100:
+                            self._performance_metrics["slow_queries"] = \
+                                self._performance_metrics["slow_queries"][-100:]
                 
                 return result
         except Exception as e:
-            self._performance_metrics["queries_failed"] += 1
+            with self._lock:
+                self._performance_metrics["queries_failed"] += 1
             logger.error(f"Query execution failed: {e}")
             raise
     
-    async def bulk_insert(
+    def bulk_insert(
         self,
         table_name: str,
         records: List[Dict[str, Any]],
@@ -302,6 +368,7 @@ class DatabaseManager:
     ):
         """
         Perform bulk insert with batching for optimal performance.
+        Uses psycopg2's execute_batch for maximum efficiency.
         
         Args:
             table_name: Name of the table to insert into
@@ -311,27 +378,39 @@ class DatabaseManager:
         if not records:
             return
         
-        async with self.get_session() as session:
-            # Process in batches to avoid memory issues
-            for i in range(0, len(records), batch_size):
-                batch = records[i:i + batch_size]
-                
-                # Build insert statement
-                columns = list(batch[0].keys())
-                placeholders = ", ".join([f":{col}" for col in columns])
-                insert_query = f"""
-                    INSERT INTO {table_name} ({', '.join(columns)})
-                    VALUES ({placeholders})
-                    ON CONFLICT DO NOTHING
-                """
-                
-                # Execute batch insert
-                await session.execute(text(insert_query), batch)
+        with self.get_session() as session:
+            # Get raw psycopg2 connection for bulk operations
+            raw_conn = session.connection().connection
             
-            await session.commit()
+            with raw_conn.cursor() as cursor:
+                # Process in batches to avoid memory issues
+                for i in range(0, len(records), batch_size):
+                    batch = records[i:i + batch_size]
+                    
+                    # Build insert statement
+                    columns = list(batch[0].keys())
+                    placeholders = ', '.join(['%s'] * len(columns))
+                    insert_query = f"""
+                        INSERT INTO {table_name} ({', '.join(columns)})
+                        VALUES ({placeholders})
+                        ON CONFLICT DO NOTHING
+                    """
+                    
+                    # Convert dict records to tuples for execute_batch
+                    values = [tuple(record[col] for col in columns) for record in batch]
+                    
+                    # Use execute_batch for optimal performance
+                    execute_batch(
+                        cursor,
+                        insert_query,
+                        values,
+                        page_size=min(100, batch_size)  # Optimize page size
+                    )
+            
+            session.commit()
             logger.info(f"Bulk inserted {len(records)} records into {table_name}")
     
-    async def health_check(self) -> Dict[str, Any]:
+    def health_check(self) -> Dict[str, Any]:
         """Perform database health check and return metrics"""
         health_status = {
             "status": "healthy",
@@ -344,16 +423,18 @@ class DatabaseManager:
         for role, engine in self.engines.items():
             if engine:
                 try:
-                    async with engine.connect() as conn:
+                    with engine.connect() as conn:
                         start = time.time()
-                        await conn.execute(text("SELECT 1"))
+                        conn.execute(text("SELECT 1"))
                         latency = (time.time() - start) * 1000  # ms
                         
                         # Get pool stats
+                        pool = engine.pool
                         pool_stats = {
-                            "size": engine.pool.size(),
-                            "checked_in": engine.pool.checkedin(),
-                            "overflow": engine.pool.overflow(),
+                            "size": pool.size(),
+                            "checked_in": pool.checkedin(),
+                            "overflow": pool.overflow(),
+                            "total": pool.size() + pool.overflow(),
                             "latency_ms": round(latency, 2),
                         }
                         
@@ -368,15 +449,22 @@ class DatabaseManager:
                         "error": str(e),
                     }
         
-        self._performance_metrics["last_health_check"] = datetime.utcnow().isoformat()
+        with self._lock:
+            self._performance_metrics["last_health_check"] = datetime.utcnow().isoformat()
+        
         return health_status
     
-    async def close(self):
+    def close(self):
         """Close all database connections"""
         for role, engine in self.engines.items():
             if engine:
-                await engine.dispose()
+                engine.dispose()
                 logger.info(f"Closed database connection for role: {role.value}")
+        
+        # Remove scoped sessions
+        for role, session_maker in self.session_makers.items():
+            if session_maker:
+                session_maker.remove()
 
 
 # Create global database manager instance
@@ -384,23 +472,23 @@ db_manager = DatabaseManager()
 
 
 # FastAPI dependency functions
-async def get_db() -> AsyncGenerator[AsyncSession, None]:
+def get_db() -> Generator[Session, None, None]:
     """Get primary database session for FastAPI dependency injection"""
-    async with db_manager.get_session(DatabaseRole.PRIMARY) as session:
+    with db_manager.get_session(DatabaseRole.PRIMARY) as session:
         yield session
 
 
-async def get_read_db() -> AsyncGenerator[AsyncSession, None]:
+def get_read_db() -> Generator[Session, None, None]:
     """Get read-only database session for FastAPI dependency injection"""
     role = DatabaseRole.REPLICA if db_manager.engines[DatabaseRole.REPLICA] else DatabaseRole.PRIMARY
-    async with db_manager.get_session(role) as session:
+    with db_manager.get_session(role) as session:
         yield session
 
 
-async def get_analytics_db() -> AsyncGenerator[AsyncSession, None]:
+def get_analytics_db() -> Generator[Session, None, None]:
     """Get analytics database session for FastAPI dependency injection"""
     role = DatabaseRole.ANALYTICS if db_manager.engines[DatabaseRole.ANALYTICS] else DatabaseRole.PRIMARY
-    async with db_manager.get_session(role) as session:
+    with db_manager.get_session(role) as session:
         yield session
 
 
@@ -408,10 +496,10 @@ async def get_analytics_db() -> AsyncGenerator[AsyncSession, None]:
 def track_query_performance(operation_name: str):
     """Decorator to track query performance metrics"""
     def decorator(func):
-        async def wrapper(*args, **kwargs):
+        def wrapper(*args, **kwargs):
             start_time = time.time()
             try:
-                result = await func(*args, **kwargs)
+                result = func(*args, **kwargs)
                 execution_time = time.time() - start_time
                 
                 # Log slow operations
@@ -427,3 +515,41 @@ def track_query_performance(operation_name: str):
         
         return wrapper
     return decorator
+
+
+# Utility function for high-performance batch operations
+def execute_batch_optimized(
+    session: Session,
+    query: str,
+    data: List[tuple],
+    page_size: int = 100
+) -> None:
+    """
+    Execute batch operations with optimal performance using psycopg2's execute_batch.
+    
+    Args:
+        session: SQLAlchemy session
+        query: SQL query with placeholders
+        data: List of tuples containing values
+        page_size: Number of records per batch page
+    """
+    raw_conn = session.connection().connection
+    with raw_conn.cursor() as cursor:
+        execute_batch(cursor, query, data, page_size=page_size)
+
+
+# Connection pool monitoring function
+def get_pool_stats() -> Dict[str, Any]:
+    """Get current connection pool statistics for monitoring"""
+    stats = {}
+    for role, engine in db_manager.engines.items():
+        if engine and engine.pool:
+            pool = engine.pool
+            stats[role.value] = {
+                "size": pool.size(),
+                "checked_in": pool.checkedin(),
+                "checked_out": pool.checkedout(),
+                "overflow": pool.overflow(),
+                "total": pool.size() + pool.overflow(),
+            }
+    return stats
