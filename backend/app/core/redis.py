@@ -90,8 +90,12 @@ class RedisManager:
     
     async def initialize(self):
         """Initialize Redis connection pool"""
+        logger.info("Starting Redis initialization...")
+        
         try:
             # Parse Redis URL
+            logger.info(f"Connecting to Redis: {settings.redis_url.split('@')[1] if '@' in settings.redis_url else 'local'}")
+            
             self.pool = ConnectionPool.from_url(
                 settings.redis_url,
                 max_connections=settings.redis_max_connections,
@@ -104,21 +108,31 @@ class RedisManager:
                 },
                 retry_on_timeout=True,
                 retry_on_error=[ConnectionError, TimeoutError],
+                socket_connect_timeout=5,  # 5 second connection timeout
+                socket_timeout=5,  # 5 second socket timeout
             )
             
             self.redis = redis.Redis(connection_pool=self.pool)
             
-            # Test connection
-            await self.redis.ping()
+            # Test connection with timeout
+            import asyncio
+            await asyncio.wait_for(self.redis.ping(), timeout=5.0)
             
             # Initialize pub/sub
             self.pubsub = self.redis.pubsub()
             
             logger.info("Redis initialized successfully")
             
+        except asyncio.TimeoutError:
+            logger.error("Redis ping timed out after 5 seconds")
+            # Don't raise - allow app to start without Redis
+            self.redis = None
+            self.pool = None
         except Exception as e:
             logger.error(f"Failed to initialize Redis: {e}")
-            raise
+            # Don't raise - allow app to start without Redis
+            self.redis = None
+            self.pool = None
     
     async def close(self):
         """Close Redis connections"""
@@ -133,6 +147,10 @@ class RedisManager:
     
     async def get(self, key: str) -> Optional[str]:
         """Get value from cache"""
+        if not self.redis:
+            self._stats["errors"] += 1
+            return None
+            
         try:
             value = await self.redis.get(key)
             if value:
@@ -140,13 +158,17 @@ class RedisManager:
             else:
                 self._stats["misses"] += 1
             return value
-        except RedisError as e:
+        except (RedisError, AttributeError) as e:
             self._stats["errors"] += 1
             logger.error(f"Redis GET error for key {key}: {e}")
             return None
     
     async def set(self, key: str, value: Union[str, Dict, List], ttl: Optional[int] = None) -> bool:
         """Set value in cache"""
+        if not self.redis:
+            self._stats["errors"] += 1
+            return False
+            
         try:
             if isinstance(value, (dict, list)):
                 value = json.dumps(value)
@@ -157,7 +179,7 @@ class RedisManager:
                 await self.redis.set(key, value)
             
             return True
-        except RedisError as e:
+        except (RedisError, AttributeError) as e:
             self._stats["errors"] += 1
             logger.error(f"Redis SET error for key {key}: {e}")
             return False
@@ -453,6 +475,13 @@ class RedisManager:
     
     async def health_check(self) -> Dict[str, Any]:
         """Check Redis health"""
+        if not self.redis:
+            return {
+                "status": "not_initialized",
+                "error": "Redis client not initialized",
+                "stats": self._stats.copy(),
+            }
+            
         try:
             start = asyncio.get_event_loop().time()
             await self.redis.ping()

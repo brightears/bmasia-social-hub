@@ -172,35 +172,54 @@ class SoundtrackClient:
     
     async def initialize(self):
         """Initialize HTTP session with connection pooling"""
-        connector = TCPConnector(
-            limit=settings.soundtrack_max_connections,
-            limit_per_host=30,
-            ttl_dns_cache=300,
-            keepalive_timeout=30,
-            force_close=False,
-            enable_cleanup_closed=True,
-        )
+        logger.info("Starting Soundtrack API client initialization...")
         
-        timeout = ClientTimeout(
-            total=30,
-            connect=5,
-            sock_connect=5,
-            sock_read=25,
-        )
-        
-        self.session = aiohttp.ClientSession(
-            connector=connector,
-            timeout=timeout,
-            headers={
-                "User-Agent": "BMA-Social/2.0",
-                "Accept": "application/json",
-            },
-        )
-        
-        # Get initial access token
-        await self._ensure_authenticated()
-        
-        logger.info("Soundtrack API client initialized")
+        try:
+            connector = TCPConnector(
+                limit=settings.soundtrack_max_connections,
+                limit_per_host=30,
+                ttl_dns_cache=300,
+                keepalive_timeout=30,
+                force_close=False,
+                enable_cleanup_closed=True,
+            )
+            
+            timeout = ClientTimeout(
+                total=10,  # Reduced from 30 to prevent hanging
+                connect=5,
+                sock_connect=5,
+                sock_read=5,  # Reduced from 25 to prevent hanging
+            )
+            
+            self.session = aiohttp.ClientSession(
+                connector=connector,
+                timeout=timeout,
+                headers={
+                    "User-Agent": "BMA-Social/2.0",
+                    "Accept": "application/json",
+                },
+            )
+            
+            # Skip initial authentication if credentials not configured
+            if self.client_id and self.client_secret:
+                try:
+                    # Get initial access token with timeout
+                    import asyncio
+                    await asyncio.wait_for(self._ensure_authenticated(), timeout=5.0)
+                    logger.info("Soundtrack API client authenticated successfully")
+                except asyncio.TimeoutError:
+                    logger.warning("Soundtrack authentication timed out - will retry on first request")
+                except Exception as e:
+                    logger.warning(f"Soundtrack authentication failed - will retry on first request: {e}")
+            else:
+                logger.warning("Soundtrack API credentials not configured - authentication skipped")
+            
+            logger.info("Soundtrack API client initialized")
+            
+        except Exception as e:
+            logger.error(f"Failed to initialize Soundtrack client: {e}")
+            # Don't raise - allow app to start without Soundtrack client
+            self.session = None
     
     async def close(self):
         """Close HTTP session"""
@@ -511,9 +530,20 @@ class SoundtrackClient:
     
     async def health_check(self) -> Dict[str, Any]:
         """Check API health and connection status"""
+        if not self.session:
+            return {
+                "status": "not_initialized",
+                "error": "Soundtrack client not initialized",
+            }
+            
         try:
+            import asyncio
             start = time.time()
-            result = await self._make_request("GET", "/health")
+            # Add timeout to prevent hanging
+            result = await asyncio.wait_for(
+                self._make_request("GET", "/health"),
+                timeout=5.0
+            )
             latency = (time.time() - start) * 1000
             
             return {
@@ -522,6 +552,12 @@ class SoundtrackClient:
                 "circuit_breaker": self.circuit_breaker.state.value,
                 "rate_limit_tokens": self.rate_limiter.tokens,
                 "authenticated": self._is_token_valid(),
+            }
+        except asyncio.TimeoutError:
+            return {
+                "status": "timeout",
+                "error": "Health check timed out after 5 seconds",
+                "circuit_breaker": self.circuit_breaker.state.value,
             }
         except Exception as e:
             return {

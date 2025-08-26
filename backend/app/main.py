@@ -4,8 +4,12 @@ Main entry point for the AI-powered music operations platform
 """
 
 import logging
+import os
+import signal
+import sys
 from contextlib import asynccontextmanager
 from typing import Dict, Any
+from datetime import datetime, timedelta
 
 from fastapi import FastAPI, Request, status
 from fastapi.middleware.cors import CORSMiddleware
@@ -38,26 +42,55 @@ async def lifespan(app: FastAPI):
     """
     # Startup
     logger.info(f"Starting BMA Social API - Environment: {settings.environment}")
+    logger.info(f"Binding to port: {settings.port}")
+    logger.info(f"Database URL configured: {bool(settings.database_url)}")
+    logger.info(f"Redis URL configured: {bool(settings.redis_url)}")
+    
+    # Set up signal handlers for graceful shutdown
+    def signal_handler(sig, frame):
+        logger.info(f"Received signal {sig}, initiating graceful shutdown...")
+        sys.exit(0)
+    
+    signal.signal(signal.SIGTERM, signal_handler)
+    signal.signal(signal.SIGINT, signal_handler)
     
     try:
-        # Initialize database with error handling
+        # Initialize database with timeout and error handling
         try:
-            db_manager.initialize()
-            logger.info("Database initialized")
+            logger.info("Attempting to initialize database...")
+            import asyncio
+            # Use timeout for database initialization to prevent hanging
+            db_init_task = asyncio.create_task(
+                asyncio.to_thread(db_manager.initialize)
+            )
+            await asyncio.wait_for(db_init_task, timeout=30.0)
+            logger.info("Database initialized successfully")
+        except asyncio.TimeoutError:
+            logger.warning("Database initialization timed out after 30s - will retry on first request")
         except Exception as e:
             logger.warning(f"Database initialization failed (will retry on first request): {e}")
         
-        # Initialize Redis with error handling
+        # Initialize Redis with timeout and error handling (async)
         try:
-            redis_manager.initialize()
-            logger.info("Redis initialized")
+            logger.info("Attempting to initialize Redis...")
+            import asyncio
+            # Redis initialize is async, so await it directly with timeout
+            await asyncio.wait_for(redis_manager.initialize(), timeout=10.0)
+            logger.info("Redis initialized successfully")
+        except asyncio.TimeoutError:
+            logger.warning("Redis initialization timed out after 10s - will retry on first request")
         except Exception as e:
             logger.warning(f"Redis initialization failed (will retry on first request): {e}")
         
-        # Initialize Soundtrack client with error handling
+        # Initialize Soundtrack client with timeout and error handling
         try:
-            soundtrack_client.initialize()
-            logger.info("Soundtrack API client initialized")
+            logger.info("Attempting to initialize Soundtrack client...")
+            import asyncio
+            # Soundtrack initialize is async, so await it directly with timeout
+            await asyncio.wait_for(soundtrack_client.initialize(), timeout=10.0)
+            logger.info("Soundtrack API client initialized successfully")
+        except asyncio.TimeoutError:
+            logger.warning("Soundtrack client initialization timed out after 10s - will retry on first request")
         except Exception as e:
             logger.warning(f"Soundtrack API client initialization failed (will retry on first request): {e}")
         
@@ -95,22 +128,34 @@ async def lifespan(app: FastAPI):
     try:
         # Close database connections
         try:
-            db_manager.close()
+            import asyncio
+            close_db_task = asyncio.create_task(
+                asyncio.to_thread(db_manager.close)
+            )
+            await asyncio.wait_for(close_db_task, timeout=5.0)
             logger.info("Database connections closed")
+        except asyncio.TimeoutError:
+            logger.warning("Database close timed out after 5s")
         except Exception as e:
             logger.warning(f"Error closing database connections: {e}")
         
-        # Close Redis connections
+        # Close Redis connections (async)
         try:
-            redis_manager.close()
+            import asyncio
+            await asyncio.wait_for(redis_manager.close(), timeout=5.0)
             logger.info("Redis connections closed")
+        except asyncio.TimeoutError:
+            logger.warning("Redis close timed out after 5s")
         except Exception as e:
             logger.warning(f"Error closing Redis connections: {e}")
         
-        # Close Soundtrack client
+        # Close Soundtrack client (async)
         try:
-            soundtrack_client.close()
+            import asyncio
+            await asyncio.wait_for(soundtrack_client.close(), timeout=5.0)
             logger.info("Soundtrack API client closed")
+        except asyncio.TimeoutError:
+            logger.warning("Soundtrack client close timed out after 5s")
         except Exception as e:
             logger.warning(f"Error closing Soundtrack API client: {e}")
         
@@ -209,7 +254,6 @@ async def log_requests(request: Request, call_next):
 
 # Rate limiting middleware (basic implementation)
 from collections import defaultdict
-from datetime import datetime, timedelta
 
 rate_limit_storage = defaultdict(list)
 
@@ -312,7 +356,7 @@ def root() -> Dict[str, Any]:
 # Basic health check endpoint (at root level for Render)
 # This endpoint is designed to respond quickly without checking dependencies
 @app.get("/health", tags=["Health"])
-def health_check() -> Dict[str, str]:
+async def health_check() -> Dict[str, str]:
     """
     Basic health check endpoint for load balancers and monitoring.
     Used by Render for health checks. Returns quickly without checking dependencies.
@@ -321,11 +365,12 @@ def health_check() -> Dict[str, str]:
         "status": "healthy",
         "version": settings.app_version,
         "environment": settings.environment,
+        "timestamp": datetime.utcnow().isoformat(),
     }
 
 # Liveness check endpoint - simple check that the app is alive
 @app.get("/health/live", tags=["Health"])
-def liveness_check() -> Dict[str, str]:
+async def liveness_check() -> Dict[str, str]:
     """
     Liveness check endpoint for container orchestration.
     Returns immediately to indicate the application process is alive.
@@ -353,23 +398,29 @@ async def readiness_check() -> Dict[str, Any]:
     # Quick database check with timeout
     try:
         from sqlalchemy import text
-        with db_manager.get_session() as session:
-            session.execute(text("SELECT 1"))
+        import asyncio
+        db_check_task = asyncio.create_task(
+            asyncio.to_thread(
+                lambda: db_manager.execute_query("SELECT 1", role=DatabaseRole.PRIMARY)
+            )
+        )
+        await asyncio.wait_for(db_check_task, timeout=3.0)
         ready_status["checks"]["database"] = "ready"
-    except Exception:
+    except (asyncio.TimeoutError, Exception) as e:
         ready_status["checks"]["database"] = "not_ready"
         ready_status["ready"] = False
+        logger.warning(f"Database readiness check failed: {e}")
     
     # Quick Redis check with timeout (if initialized)
     try:
         if hasattr(redis_manager, 'redis') and redis_manager.redis:
             # Create a task with timeout
-            redis_task = asyncio.create_task(redis_manager.redis.ping())
-            await asyncio.wait_for(redis_task, timeout=2.0)
+            await asyncio.wait_for(redis_manager.redis.ping(), timeout=2.0)
             ready_status["checks"]["redis"] = "ready"
-    except (asyncio.TimeoutError, Exception):
+    except (asyncio.TimeoutError, Exception) as e:
         ready_status["checks"]["redis"] = "not_ready"
         # Redis is optional, don't fail readiness
+        logger.warning(f"Redis readiness check failed: {e}")
     
     if ready_status["ready"]:
         return ready_status
@@ -465,11 +516,18 @@ def app_info() -> Dict[str, Any]:
 if __name__ == "__main__":
     import uvicorn
     
+    # Get PORT from environment variable (Render provides this)
+    port = int(os.environ.get("PORT", settings.port))
+    
+    logger.info(f"Starting server on {settings.host}:{port}")
+    
     uvicorn.run(
         "app.main:app",
         host=settings.host,
-        port=settings.port,
+        port=port,
         reload=settings.is_development,
         workers=settings.workers if not settings.is_development else 1,
         log_level=settings.log_level.lower(),
+        access_log=True,
+        timeout_keep_alive=75,  # Render's timeout is 30s, so keep alive longer
     )

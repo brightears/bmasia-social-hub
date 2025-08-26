@@ -93,8 +93,10 @@ class DatabaseManager:
         }
         self._lock = threading.Lock()
     
-    def initialize(self):
+    def initialize(self, timeout: float = 30.0):
         """Initialize database connections with proper pooling for Render deployment"""
+        
+        logger.info("Starting database initialization...")
         
         # Primary database configuration optimized for BMA Social scale
         # Using QueuePool for better connection management with high concurrency
@@ -131,10 +133,16 @@ class DatabaseManager:
             db_url = db_url.replace("postgresql+asyncpg://", "postgresql://")
             db_url = db_url.replace("asyncpg://", "postgresql://")
             
-            self.engines[DatabaseRole.PRIMARY] = create_engine(
-                db_url,
-                **primary_config
-            )
+            logger.info(f"Creating database engine for: {db_url.split('@')[1] if '@' in db_url else 'local'}")
+            
+            try:
+                self.engines[DatabaseRole.PRIMARY] = create_engine(
+                    db_url,
+                    **primary_config
+                )
+            except Exception as e:
+                logger.error(f"Failed to create database engine: {e}")
+                raise
         
         # Create replica engine if URL is available (future scaling)
         replica_url = self._get_database_url(DatabaseRole.REPLICA)
@@ -220,17 +228,27 @@ class DatabaseManager:
     
     def _verify_connections(self):
         """Verify all database connections are working"""
+        import time
         for role, engine in self.engines.items():
             if engine:
                 try:
+                    # Add timeout for connection verification
+                    start_time = time.time()
                     with engine.connect() as conn:
+                        # Set a short statement timeout for the verification query
+                        conn.execute(text("SET statement_timeout = '5000'"))  # 5 seconds
                         result = conn.execute(text("SELECT 1"))
                         conn.commit()
-                    logger.info(f"Database connection verified for role: {role.value}")
+                    
+                    elapsed = time.time() - start_time
+                    logger.info(f"Database connection verified for role: {role.value} (took {elapsed:.2f}s)")
                 except Exception as e:
                     logger.error(f"Failed to verify connection for role {role.value}: {e}")
                     if role == DatabaseRole.PRIMARY:
-                        raise  # Primary connection is critical
+                        # Don't raise immediately - let the app start and retry later
+                        logger.error("Primary database connection failed, but allowing app to start")
+                        # Mark engine as None so it can be retried
+                        self.engines[role] = None
     
     @contextmanager
     def get_session(
@@ -253,7 +271,16 @@ class DatabaseManager:
             session_maker = self.session_makers[DatabaseRole.PRIMARY]
         
         if not session_maker:
-            raise RuntimeError("Database not initialized")
+            # Try to reinitialize if not available
+            logger.warning("Database not initialized, attempting to initialize now...")
+            try:
+                self.initialize(timeout=10.0)
+                session_maker = self.session_makers[DatabaseRole.PRIMARY]
+                if not session_maker:
+                    raise RuntimeError("Database initialization failed")
+            except Exception as e:
+                logger.error(f"Failed to initialize database on demand: {e}")
+                raise RuntimeError(f"Database not available: {e}")
         
         attempt = 0
         last_error = None
