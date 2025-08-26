@@ -40,42 +40,52 @@ async def lifespan(app: FastAPI):
     logger.info(f"Starting BMA Social API - Environment: {settings.environment}")
     
     try:
-        # Initialize database
-        db_manager.initialize()
-        logger.info("Database initialized")
+        # Initialize database with error handling
+        try:
+            db_manager.initialize()
+            logger.info("Database initialized")
+        except Exception as e:
+            logger.warning(f"Database initialization failed (will retry on first request): {e}")
         
-        # Initialize Redis
-        # Note: Redis operations may still be async, check redis_manager implementation
-        redis_manager.initialize()
-        logger.info("Redis initialized")
+        # Initialize Redis with error handling
+        try:
+            redis_manager.initialize()
+            logger.info("Redis initialized")
+        except Exception as e:
+            logger.warning(f"Redis initialization failed (will retry on first request): {e}")
         
-        # Initialize Soundtrack client
-        # Note: Soundtrack client operations may still be async, check client implementation
-        soundtrack_client.initialize()
-        logger.info("Soundtrack API client initialized")
+        # Initialize Soundtrack client with error handling
+        try:
+            soundtrack_client.initialize()
+            logger.info("Soundtrack API client initialized")
+        except Exception as e:
+            logger.warning(f"Soundtrack API client initialization failed (will retry on first request): {e}")
         
         # Initialize Sentry if configured
         if settings.sentry_dsn and settings.is_production:
-            import sentry_sdk
-            from sentry_sdk.integrations.fastapi import FastApiIntegration
-            from sentry_sdk.integrations.sqlalchemy import SqlalchemyIntegration
-            
-            sentry_sdk.init(
-                dsn=settings.sentry_dsn,
-                environment=settings.environment,
-                integrations=[
-                    FastApiIntegration(transaction_style="endpoint"),
-                    SqlalchemyIntegration(),
-                ],
-                traces_sample_rate=0.1,  # 10% of transactions
-            )
-            logger.info("Sentry initialized")
+            try:
+                import sentry_sdk
+                from sentry_sdk.integrations.fastapi import FastApiIntegration
+                from sentry_sdk.integrations.sqlalchemy import SqlalchemyIntegration
+                
+                sentry_sdk.init(
+                    dsn=settings.sentry_dsn,
+                    environment=settings.environment,
+                    integrations=[
+                        FastApiIntegration(transaction_style="endpoint"),
+                        SqlalchemyIntegration(),
+                    ],
+                    traces_sample_rate=0.1,  # 10% of transactions
+                )
+                logger.info("Sentry initialized")
+            except Exception as e:
+                logger.warning(f"Sentry initialization failed: {e}")
         
         logger.info("BMA Social API started successfully")
         
     except Exception as e:
-        logger.error(f"Failed to start application: {e}")
-        raise
+        logger.error(f"Critical error during application startup: {e}")
+        # Don't raise - let the app start even if some services fail
     
     yield
     
@@ -84,18 +94,25 @@ async def lifespan(app: FastAPI):
     
     try:
         # Close database connections
-        db_manager.close()
-        logger.info("Database connections closed")
+        try:
+            db_manager.close()
+            logger.info("Database connections closed")
+        except Exception as e:
+            logger.warning(f"Error closing database connections: {e}")
         
         # Close Redis connections
-        # Note: Redis operations may still be async, check redis_manager implementation
-        redis_manager.close()
-        logger.info("Redis connections closed")
+        try:
+            redis_manager.close()
+            logger.info("Redis connections closed")
+        except Exception as e:
+            logger.warning(f"Error closing Redis connections: {e}")
         
         # Close Soundtrack client
-        # Note: Soundtrack client operations may still be async, check client implementation
-        soundtrack_client.close()
-        logger.info("Soundtrack API client closed")
+        try:
+            soundtrack_client.close()
+            logger.info("Soundtrack API client closed")
+        except Exception as e:
+            logger.warning(f"Error closing Soundtrack API client: {e}")
         
     except Exception as e:
         logger.error(f"Error during shutdown: {e}")
@@ -153,6 +170,11 @@ async def add_request_id(request: Request, call_next):
 async def log_requests(request: Request, call_next):
     """Log all requests and responses"""
     import time
+    
+    # Skip logging for health check endpoints to reduce noise
+    if request.url.path in ["/health", "/health/live", "/ready"]:
+        return await call_next(request)
+    
     start_time = time.time()
     
     # Log request
@@ -161,21 +183,29 @@ async def log_requests(request: Request, call_next):
         f"from {request.client.host if request.client else 'unknown'}"
     )
     
-    response = await call_next(request)
-    
-    # Calculate duration
-    duration = time.time() - start_time
-    
-    # Log response
-    logger.info(
-        f"Response: {response.status_code} for {request.method} {request.url.path} "
-        f"(duration: {duration:.3f}s)"
-    )
-    
-    # Add timing header
-    response.headers["X-Response-Time"] = f"{duration:.3f}"
-    
-    return response
+    try:
+        response = await call_next(request)
+        
+        # Calculate duration
+        duration = time.time() - start_time
+        
+        # Log response
+        logger.info(
+            f"Response: {response.status_code} for {request.method} {request.url.path} "
+            f"(duration: {duration:.3f}s)"
+        )
+        
+        # Add timing header
+        response.headers["X-Response-Time"] = f"{duration:.3f}"
+        
+        return response
+    except Exception as e:
+        duration = time.time() - start_time
+        logger.error(
+            f"Error processing {request.method} {request.url.path} "
+            f"(duration: {duration:.3f}s): {e}"
+        )
+        raise
 
 # Rate limiting middleware (basic implementation)
 from collections import defaultdict
@@ -186,6 +216,10 @@ rate_limit_storage = defaultdict(list)
 @app.middleware("http")
 async def rate_limit_middleware(request: Request, call_next):
     """Basic rate limiting middleware"""
+    # Skip rate limiting for health check endpoints
+    if request.url.path in ["/health", "/health/live", "/ready", "/health/detailed"]:
+        return await call_next(request)
+    
     if not settings.rate_limit_enabled:
         return await call_next(request)
     
@@ -275,12 +309,82 @@ def root() -> Dict[str, Any]:
         "message": "BMA Social API - AI-powered music operations platform",
     }
 
-# Health check endpoint (at root level for Render)
+# Basic health check endpoint (at root level for Render)
+# This endpoint is designed to respond quickly without checking dependencies
 @app.get("/health", tags=["Health"])
-def health_check() -> Dict[str, Any]:
+def health_check() -> Dict[str, str]:
     """
-    Health check endpoint for load balancers and monitoring.
-    Used by Render for health checks.
+    Basic health check endpoint for load balancers and monitoring.
+    Used by Render for health checks. Returns quickly without checking dependencies.
+    """
+    return {
+        "status": "healthy",
+        "version": settings.app_version,
+        "environment": settings.environment,
+    }
+
+# Liveness check endpoint - simple check that the app is alive
+@app.get("/health/live", tags=["Health"])
+def liveness_check() -> Dict[str, str]:
+    """
+    Liveness check endpoint for container orchestration.
+    Returns immediately to indicate the application process is alive.
+    """
+    return {
+        "status": "alive",
+        "timestamp": datetime.utcnow().isoformat()
+    }
+
+# Readiness check endpoint - checks if the app is ready to serve traffic
+@app.get("/ready", tags=["Health"])
+async def readiness_check() -> Dict[str, Any]:
+    """
+    Readiness check endpoint to determine if the application is ready to serve traffic.
+    Checks critical dependencies but with short timeouts.
+    """
+    import asyncio
+    
+    ready_status = {
+        "ready": True,
+        "version": settings.app_version,
+        "checks": {}
+    }
+    
+    # Quick database check with timeout
+    try:
+        from sqlalchemy import text
+        with db_manager.get_session() as session:
+            session.execute(text("SELECT 1"))
+        ready_status["checks"]["database"] = "ready"
+    except Exception:
+        ready_status["checks"]["database"] = "not_ready"
+        ready_status["ready"] = False
+    
+    # Quick Redis check with timeout (if initialized)
+    try:
+        if hasattr(redis_manager, 'redis') and redis_manager.redis:
+            # Create a task with timeout
+            redis_task = asyncio.create_task(redis_manager.redis.ping())
+            await asyncio.wait_for(redis_task, timeout=2.0)
+            ready_status["checks"]["redis"] = "ready"
+    except (asyncio.TimeoutError, Exception):
+        ready_status["checks"]["redis"] = "not_ready"
+        # Redis is optional, don't fail readiness
+    
+    if ready_status["ready"]:
+        return ready_status
+    else:
+        return JSONResponse(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            content=ready_status
+        )
+
+# Detailed health check endpoint with dependency checks
+@app.get("/health/detailed", tags=["Health"])
+async def detailed_health_check() -> Dict[str, Any]:
+    """
+    Detailed health check endpoint that checks all dependencies.
+    This may take longer and is suitable for debugging and detailed monitoring.
     """
     health_status = {
         "status": "healthy",
@@ -298,20 +402,20 @@ def health_check() -> Dict[str, Any]:
         health_status["checks"]["database"] = {"status": "unhealthy", "error": str(e)}
         health_status["status"] = "degraded"
     
-    # Check Redis
+    # Check Redis (async)
     try:
-        # Note: Redis operations may still be async, check redis_manager implementation
-        redis_health = redis_manager.health_check()
-        health_status["checks"]["redis"] = redis_health
+        if hasattr(redis_manager, 'health_check'):
+            redis_health = await redis_manager.health_check()
+            health_status["checks"]["redis"] = redis_health
     except Exception as e:
         health_status["checks"]["redis"] = {"status": "unhealthy", "error": str(e)}
         health_status["status"] = "degraded"
     
-    # Check Soundtrack API
+    # Check Soundtrack API (async)
     try:
-        # Note: Soundtrack client operations may still be async, check client implementation
-        soundtrack_health = soundtrack_client.health_check()
-        health_status["checks"]["soundtrack"] = soundtrack_health
+        if hasattr(soundtrack_client, 'health_check'):
+            soundtrack_health = await soundtrack_client.health_check()
+            health_status["checks"]["soundtrack"] = soundtrack_health
     except Exception as e:
         health_status["checks"]["soundtrack"] = {"status": "unhealthy", "error": str(e)}
         # Don't degrade overall health for external API issues
