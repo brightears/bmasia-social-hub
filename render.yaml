@@ -6,9 +6,9 @@ services:
     region: singapore
     plan: free
     buildCommand: |
-      cd backend && pip install -r requirements-simple.txt
+      cd backend && echo "No dependencies to install"
     startCommand: |
-      cd backend && python simple_app.py
+      cd backend && python bare_minimum.py
     healthCheckPath: /health
     envVars:
       - key: ENVIRONMENT
