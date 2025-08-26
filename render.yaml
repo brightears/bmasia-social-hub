@@ -6,9 +6,9 @@ services:
     region: singapore
     plan: free
     buildCommand: |
-      cd backend && python --version && pip install -r requirements.txt && chmod +x start.sh
+      cd backend && pip install -r requirements.txt
     startCommand: |
-      cd backend && ./start.sh
+      cd backend && python debug_start.py
     healthCheckPath: /health
     envVars:
       - key: ENVIRONMENT
