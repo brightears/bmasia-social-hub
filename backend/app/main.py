@@ -39,12 +39,14 @@ logger = logging.getLogger(__name__)
 async def lifespan(app: FastAPI):
     """
     Manage application lifecycle - startup and shutdown events
+    OPTIMIZED FOR RENDER: Minimal startup, defer initialization
     """
     # Startup
     logger.info(f"Starting BMA Social API - Environment: {settings.environment}")
     logger.info(f"Binding to port: {settings.port}")
     logger.info(f"Database URL configured: {bool(settings.database_url)}")
     logger.info(f"Redis URL configured: {bool(settings.redis_url)}")
+    logger.info("RENDER OPTIMIZATION: Deferring service initialization for fast startup")
     
     # Set up signal handlers for graceful shutdown
     def signal_handler(sig, frame):
@@ -55,46 +57,12 @@ async def lifespan(app: FastAPI):
     signal.signal(signal.SIGINT, signal_handler)
     
     try:
-        # Initialize database with timeout and error handling
-        try:
-            logger.info("Attempting to initialize database...")
-            import asyncio
-            # Use timeout for database initialization to prevent hanging
-            db_init_task = asyncio.create_task(
-                asyncio.to_thread(db_manager.initialize)
-            )
-            await asyncio.wait_for(db_init_task, timeout=30.0)
-            logger.info("Database initialized successfully")
-        except asyncio.TimeoutError:
-            logger.warning("Database initialization timed out after 30s - will retry on first request")
-        except Exception as e:
-            logger.warning(f"Database initialization failed (will retry on first request): {e}")
+        # RENDER OPTIMIZATION: Skip all initialization during startup
+        # Services will be initialized lazily on first use
+        logger.info("Skipping service initialization for fast startup")
+        logger.info("Services will be initialized on first request")
         
-        # Initialize Redis with timeout and error handling (async)
-        try:
-            logger.info("Attempting to initialize Redis...")
-            import asyncio
-            # Redis initialize is async, so await it directly with timeout
-            await asyncio.wait_for(redis_manager.initialize(), timeout=10.0)
-            logger.info("Redis initialized successfully")
-        except asyncio.TimeoutError:
-            logger.warning("Redis initialization timed out after 10s - will retry on first request")
-        except Exception as e:
-            logger.warning(f"Redis initialization failed (will retry on first request): {e}")
-        
-        # Initialize Soundtrack client with timeout and error handling
-        try:
-            logger.info("Attempting to initialize Soundtrack client...")
-            import asyncio
-            # Soundtrack initialize is async, so await it directly with timeout
-            await asyncio.wait_for(soundtrack_client.initialize(), timeout=10.0)
-            logger.info("Soundtrack API client initialized successfully")
-        except asyncio.TimeoutError:
-            logger.warning("Soundtrack client initialization timed out after 10s - will retry on first request")
-        except Exception as e:
-            logger.warning(f"Soundtrack API client initialization failed (will retry on first request): {e}")
-        
-        # Initialize Sentry if configured
+        # Only initialize Sentry if configured (lightweight)
         if settings.sentry_dsn and settings.is_production:
             try:
                 import sentry_sdk
@@ -114,7 +82,7 @@ async def lifespan(app: FastAPI):
             except Exception as e:
                 logger.warning(f"Sentry initialization failed: {e}")
         
-        logger.info("BMA Social API started successfully")
+        logger.info("BMA Social API startup completed (services deferred)")
         
     except Exception as e:
         logger.error(f"Critical error during application startup: {e}")
@@ -353,19 +321,20 @@ def root() -> Dict[str, Any]:
         "message": "BMA Social API - AI-powered music operations platform",
     }
 
-# Basic health check endpoint (at root level for Render)
-# This endpoint is designed to respond quickly without checking dependencies
+# RENDER OPTIMIZED: Ultra-fast health check endpoint
+# This endpoint responds immediately without any dependencies or async operations
 @app.get("/health", tags=["Health"])
-async def health_check() -> Dict[str, str]:
+def health_check() -> Dict[str, str]:
     """
-    Basic health check endpoint for load balancers and monitoring.
-    Used by Render for health checks. Returns quickly without checking dependencies.
+    Ultra-fast health check endpoint for Render deployment.
+    Synchronous function that returns immediately without any dependencies.
     """
     return {
         "status": "healthy",
-        "version": settings.app_version,
-        "environment": settings.environment,
+        "version": "1.0.0",
+        "environment": "production",
         "timestamp": datetime.utcnow().isoformat(),
+        "startup": "optimized"
     }
 
 # Liveness check endpoint - simple check that the app is alive
@@ -398,6 +367,7 @@ async def readiness_check() -> Dict[str, Any]:
     # Quick database check with timeout
     try:
         from sqlalchemy import text
+        from app.core.database import DatabaseRole
         import asyncio
         db_check_task = asyncio.create_task(
             asyncio.to_thread(

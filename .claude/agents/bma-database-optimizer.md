@@ -1,7 +1,7 @@
 ---
 name: bma-database-optimizer
 description: Use this agent when you need to optimize PostgreSQL database performance for BMA Social's high-volume music operations, including schema design, query optimization, index strategies, partitioning schemes, or troubleshooting performance issues. This includes analyzing slow queries, designing efficient table structures, implementing caching strategies, planning for scale, or resolving database bottlenecks. Examples: <example>Context: User needs help optimizing database queries for venue status checks. user: 'Our venue status queries are taking 300ms but we need them under 100ms' assistant: 'I'll use the bma-database-optimizer agent to analyze and optimize these queries for the required performance.' <commentary>The user needs database performance optimization specifically for BMA Social's venue queries, which is this agent's specialty.</commentary></example> <example>Context: User is implementing a new feature requiring database schema changes. user: 'We need to add conversation threading with millions of messages per month' assistant: 'Let me engage the bma-database-optimizer agent to design an efficient schema for this high-volume feature.' <commentary>This requires specialized knowledge of PostgreSQL optimization for BMA Social's scale.</commentary></example>
-model: opus
+model: sonnet
 color: pink
 ---
 
