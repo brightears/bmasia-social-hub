@@ -6,104 +6,105 @@ services:
     region: singapore
     plan: free
     buildCommand: |
-      cd backend && pip install -r requirements.txt
+      cd backend && pip install -r requirements-simple.txt
     startCommand: |
-      cd backend && python minimal_start.py
+      cd backend && python simple_app.py
     healthCheckPath: /health
     envVars:
       - key: ENVIRONMENT
         value: production
-      - key: DATABASE_URL
-        fromDatabase:
-          name: bma-social-db
-          property: connectionString
-      - key: REDIS_URL
-        fromService:
-          type: redis
-          name: bma-social-redis
-          property: connectionString
+      # Database and Redis temporarily disabled for simple deployment
+      # - key: DATABASE_URL
+      #   fromDatabase:
+      #     name: bma-social-db
+      #     property: connectionString
+      # - key: REDIS_URL
+      #   fromService:
+      #     type: redis
+      #     name: bma-social-redis
+      #     property: connectionString
       - key: SECRET_KEY
         generateValue: true
       - key: JWT_SECRET_KEY
         generateValue: true
-      - fromGroup: bma-social-secrets
+      # - fromGroup: bma-social-secrets
     autoDeploy: true
 
-  # Background Worker for Celery
-  - type: worker
-    name: bma-social-worker
-    runtime: python
-    region: singapore
-    plan: free
-    buildCommand: |
-      cd backend && pip install -r requirements.txt
-    startCommand: |
-      cd backend && celery -A app.workers.celery_app worker --loglevel=info --concurrency=4
-    envVars:
-      - key: ENVIRONMENT
-        value: production
-      - key: DATABASE_URL
-        fromDatabase:
-          name: bma-social-db
-          property: connectionString
-      - key: REDIS_URL
-        fromService:
-          type: redis
-          name: bma-social-redis
-          property: connectionString
-      - key: CELERY_BROKER_URL
-        fromService:
-          type: redis
-          name: bma-social-redis
-          property: connectionString
-      - fromGroup: bma-social-secrets
-    autoDeploy: true
+  # Background Worker for Celery - DISABLED FOR SIMPLE DEPLOYMENT
+  # - type: worker
+  #   name: bma-social-worker
+  #   runtime: python
+  #   region: singapore
+  #   plan: free
+  #   buildCommand: |
+  #     cd backend && pip install -r requirements.txt
+  #   startCommand: |
+  #     cd backend && celery -A app.workers.celery_app worker --loglevel=info --concurrency=4
+  #   envVars:
+  #     - key: ENVIRONMENT
+  #       value: production
+  #     - key: DATABASE_URL
+  #       fromDatabase:
+  #         name: bma-social-db
+  #         property: connectionString
+  #     - key: REDIS_URL
+  #       fromService:
+  #         type: redis
+  #         name: bma-social-redis
+  #         property: connectionString
+  #     - key: CELERY_BROKER_URL
+  #       fromService:
+  #         type: redis
+  #         name: bma-social-redis
+  #         property: connectionString
+  #     - fromGroup: bma-social-secrets
+  #   autoDeploy: true
 
-  # Celery Beat Scheduler
-  - type: worker
-    name: bma-social-scheduler
-    runtime: python
-    region: singapore
-    plan: free
-    buildCommand: |
-      cd backend && pip install -r requirements.txt
-    startCommand: |
-      cd backend && celery -A app.workers.celery_app beat --loglevel=info
-    envVars:
-      - key: ENVIRONMENT
-        value: production
-      - key: DATABASE_URL
-        fromDatabase:
-          name: bma-social-db
-          property: connectionString
-      - key: REDIS_URL
-        fromService:
-          type: redis
-          name: bma-social-redis
-          property: connectionString
-      - key: CELERY_BROKER_URL
-        fromService:
-          type: redis
-          name: bma-social-redis
-          property: connectionString
-      - fromGroup: bma-social-secrets
-    autoDeploy: true
+  # Celery Beat Scheduler - DISABLED FOR SIMPLE DEPLOYMENT
+  # - type: worker
+  #   name: bma-social-scheduler
+  #   runtime: python
+  #   region: singapore
+  #   plan: free
+  #   buildCommand: |
+  #     cd backend && pip install -r requirements.txt
+  #   startCommand: |
+  #     cd backend && celery -A app.workers.celery_app beat --loglevel=info
+  #   envVars:
+  #     - key: ENVIRONMENT
+  #       value: production
+  #     - key: DATABASE_URL
+  #       fromDatabase:
+  #         name: bma-social-db
+  #         property: connectionString
+  #     - key: REDIS_URL
+  #       fromService:
+  #         type: redis
+  #         name: bma-social-redis
+  #         property: connectionString
+  #     - key: CELERY_BROKER_URL
+  #       fromService:
+  #         type: redis
+  #         name: bma-social-redis
+  #         property: connectionString
+  #     - fromGroup: bma-social-secrets
+  #   autoDeploy: true
 
-  # Redis Cache
-  - type: redis
-    name: bma-social-redis
-    region: singapore
-    plan: free
-    ipAllowList: []
-    maxmemoryPolicy: noeviction
+  # Redis Cache - DISABLED FOR SIMPLE DEPLOYMENT
+  # - type: redis
+  #   name: bma-social-redis
+  #   region: singapore
+  #   plan: free
+  #   ipAllowList: []
+  #   maxmemoryPolicy: noeviction
 
-databases:
-  # PostgreSQL Database
-  - name: bma-social-db
-    region: singapore
-    plan: free
-    databaseName: bma_social
-    user: bma_user
+# databases:
+  # PostgreSQL Database - DISABLED FOR SIMPLE DEPLOYMENT
+  # - name: bma-social-db
+  #   region: singapore
+  #   plan: free
+  #   databaseName: bma_social
+  #   user: bma_user
 
 envVarGroups:
   - name: bma-social-secrets
