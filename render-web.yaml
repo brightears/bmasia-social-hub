@@ -1,0 +1,15 @@
+services:
+  - type: web
+    name: bma-social-api
+    env: python
+    region: singapore
+    buildCommand: cd backend && pip install -r requirements-with-db.txt
+    startCommand: cd backend && python main_with_db.py
+    healthCheckPath: /health
+    envVars:
+      - key: DATABASE_URL
+        value: postgresql://bma_user:wVLGYkim3mf3qYocucd6IhXjogfLbZAb@dpg-d2m6jrre5dus739fr8p0-a/bma_social_esoq
+      - key: ENVIRONMENT
+        value: production
+      - key: PYTHON_VERSION
+        value: 3.11.13
