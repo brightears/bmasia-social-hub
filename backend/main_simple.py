@@ -11,8 +11,16 @@ from typing import Dict, Any, Optional
 from fastapi import FastAPI, Response, Depends, HTTPException
 from fastapi.responses import JSONResponse
 import uvicorn
-import psycopg2
-from psycopg2.extras import RealDictCursor
+
+# Try to import psycopg2, but make it optional
+try:
+    import psycopg2
+    from psycopg2.extras import RealDictCursor
+    HAS_DATABASE = True
+except ImportError:
+    HAS_DATABASE = False
+    psycopg2 = None
+    RealDictCursor = None
 
 # Configure logging
 logging.basicConfig(
@@ -36,6 +44,10 @@ db_connection = None
 def get_db_connection():
     """Get database connection"""
     global db_connection
+    
+    if not HAS_DATABASE:
+        logger.warning("psycopg2 not installed - database features disabled")
+        return None
     
     DATABASE_URL = os.environ.get('DATABASE_URL', 
         'postgresql://bma_user:wVLGYkim3mf3qYocucd6IhXjogfLbZAb@dpg-d2m6jrre5dus739fr8p0-a/bma_social_esoq')
@@ -135,7 +147,7 @@ async def test_database():
         raise HTTPException(status_code=503, detail="Database not available")
     
     try:
-        cursor = conn.cursor(cursor_factory=RealDictCursor)
+        cursor = conn.cursor(cursor_factory=RealDictCursor) if RealDictCursor else conn.cursor()
         
         # Get PostgreSQL version
         cursor.execute("SELECT version();")
@@ -243,7 +255,7 @@ async def get_venues():
         raise HTTPException(status_code=503, detail="Database not available")
     
     try:
-        cursor = conn.cursor(cursor_factory=RealDictCursor)
+        cursor = conn.cursor(cursor_factory=RealDictCursor) if RealDictCursor else conn.cursor()
         cursor.execute("SELECT * FROM venues ORDER BY id")
         venues = cursor.fetchall()
         cursor.close()
