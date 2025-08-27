@@ -24,7 +24,7 @@ logger = logging.getLogger(__name__)
 app = FastAPI(
     title="BMA Social API",
     description="AI-powered music operations platform",
-    version="0.1.0"
+    version="0.1.1"
 )
 
 # Global state
