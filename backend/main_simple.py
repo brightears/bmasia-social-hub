@@ -22,6 +22,14 @@ except ImportError:
     psycopg2 = None
     RealDictCursor = None
 
+# Try to import redis, but make it optional
+try:
+    import redis
+    HAS_REDIS = True
+except ImportError:
+    HAS_REDIS = False
+    redis = None
+
 # Configure logging
 logging.basicConfig(
     level=logging.INFO,
@@ -40,6 +48,7 @@ app = FastAPI(
 startup_time = datetime.utcnow()
 request_count = 0
 db_connection = None
+redis_client = None
 
 def get_db_connection():
     """Get database connection"""
@@ -61,15 +70,47 @@ def get_db_connection():
         logger.error(f"Database connection failed: {e}")
         return None
 
+def get_redis_client():
+    """Get Redis client"""
+    global redis_client
+    
+    if not HAS_REDIS:
+        logger.warning("redis not installed - cache features disabled")
+        return None
+    
+    REDIS_URL = os.environ.get('REDIS_URL', 
+        'redis://red-d2m6jrre5dus739fr8g0:6379')
+    
+    try:
+        if redis_client is None:
+            redis_client = redis.from_url(REDIS_URL, decode_responses=True)
+            # Test connection
+            redis_client.ping()
+            logger.info("Redis connected successfully")
+        return redis_client
+    except Exception as e:
+        logger.error(f"Redis connection failed: {e}")
+        redis_client = None
+        return None
+
 @app.on_event("startup")
 async def startup_event():
     """Initialize on startup"""
-    logger.info("Starting BMA Social API with Database")
+    logger.info("Starting BMA Social API with Database and Cache")
+    
+    # Initialize database
     conn = get_db_connection()
     if conn:
         logger.info("✅ Database connection established")
     else:
         logger.warning("⚠️ Running without database")
+    
+    # Initialize Redis
+    redis = get_redis_client()
+    if redis:
+        logger.info("✅ Redis connection established")
+    else:
+        logger.warning("⚠️ Running without cache")
 
 @app.on_event("shutdown")
 async def shutdown_event():
@@ -103,10 +144,12 @@ async def health():
 
 @app.get("/api/v1/status")
 async def api_status():
-    """API status with database check"""
+    """API status with database and cache check"""
     db_status = "connected"
+    redis_status = "connected"
     table_count = 0
     
+    # Check database
     conn = get_db_connection()
     if conn:
         try:
@@ -122,13 +165,24 @@ async def api_status():
     else:
         db_status = "not_connected"
     
+    # Check Redis
+    redis = get_redis_client()
+    if redis:
+        try:
+            redis.ping()
+            redis_status = "connected"
+        except Exception as e:
+            redis_status = f"error: {str(e)}"
+    else:
+        redis_status = "not_connected"
+    
     return {
         "api_version": "2.0.0",
         "environment": os.environ.get("ENVIRONMENT", "development"),
         "services": {
             "database": db_status,
             "database_tables": table_count,
-            "redis": "not_connected",
+            "redis": redis_status,
             "soundtrack_api": "not_configured"
         },
         "features": {
@@ -245,6 +299,38 @@ async def init_database():
     except Exception as e:
         conn.rollback()
         logger.error(f"Database init failed: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.get("/api/v1/cache/test")
+async def test_cache():
+    """Test Redis cache connection"""
+    redis = get_redis_client()
+    if not redis:
+        raise HTTPException(status_code=503, detail="Cache not available")
+    
+    try:
+        # Set a test key
+        test_key = f"test_{datetime.utcnow().timestamp()}"
+        redis.set(test_key, "Hello Redis!", ex=60)  # Expire after 60 seconds
+        
+        # Get the test key
+        value = redis.get(test_key)
+        
+        # Get Redis info
+        info = redis.info()
+        
+        return {
+            "status": "connected",
+            "test_key": test_key,
+            "test_value": value,
+            "redis_version": info.get("redis_version", "unknown"),
+            "used_memory_human": info.get("used_memory_human", "unknown"),
+            "connected_clients": info.get("connected_clients", 0),
+            "total_commands_processed": info.get("total_commands_processed", 0)
+        }
+        
+    except Exception as e:
+        logger.error(f"Cache test failed: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
 @app.get("/api/v1/venues")

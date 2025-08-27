@@ -8,7 +8,7 @@ https://bma-social-api-q9uu.onrender.com
 
 ### Service Health
 - **API**: ✅ Running (FastAPI 0.109.0)
-- **Database**: ❌ Not connected (PostgreSQL pending)
+- **Database**: ✅ Connected (PostgreSQL 16.10)
 - **Cache**: ❌ Not connected (Redis pending)
 - **Workers**: ❌ Not deployed (Celery pending)
 
