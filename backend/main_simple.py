@@ -359,6 +359,14 @@ async def get_venues():
             "error": "Table not initialized. Call /api/v1/database/init first"
         }
 
+# Add webhook routes
+try:
+    from app.api.v1.endpoints import webhooks
+    app.include_router(webhooks.router, prefix="/webhooks", tags=["webhooks"])
+    logger.info("Webhook routes loaded successfully")
+except ImportError as e:
+    logger.warning(f"Could not load webhook routes: {e}")
+
 # Error handlers
 @app.exception_handler(404)
 async def not_found(request, exc):
