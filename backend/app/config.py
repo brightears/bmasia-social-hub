@@ -65,7 +65,7 @@ class Settings(BaseSettings):
     whatsapp_access_token: str = Field(default="", env="WHATSAPP_ACCESS_TOKEN")
     whatsapp_verify_token: str = Field(default="", env="WHATSAPP_VERIFY_TOKEN")
     whatsapp_phone_number_id: str = Field(default="", env="WHATSAPP_PHONE_NUMBER_ID")
-    whatsapp_webhook_verify_token: str = Field(default="", env="WHATSAPP_WEBHOOK_VERIFY_TOKEN")
+    whatsapp_webhook_secret: str = Field(default="", env="WHATSAPP_WEBHOOK_SECRET")
     whatsapp_app_secret: str = Field(default="", env="WHATSAPP_APP_SECRET")
     
     # Line Business API
