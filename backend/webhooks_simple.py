@@ -28,6 +28,17 @@ WHATSAPP_VERIFY_TOKEN = os.getenv("WHATSAPP_VERIFY_TOKEN", "bma_whatsapp_verify_
 WHATSAPP_WEBHOOK_SECRET = os.getenv("WHATSAPP_WEBHOOK_SECRET", "bma_webhook_secret_2024")
 LINE_CHANNEL_SECRET = os.getenv("LINE_CHANNEL_SECRET", "")
 
+# Import bot for responses
+try:
+    from bot_simple import bot, sender
+    BOT_ENABLED = True
+    logger.info("✅ Bot module loaded successfully")
+except ImportError as e:
+    logger.warning(f"⚠️ Bot module not available: {e}")
+    BOT_ENABLED = False
+    bot = None
+    sender = None
+
 
 # WhatsApp Webhooks
 
@@ -87,9 +98,33 @@ async def whatsapp_webhook(
                 from_number = message.get("from")
                 message_type = message.get("type")
                 
+                # Get contact name if available
+                contacts = value.get("contacts", [{}])
+                contact = contacts[0] if contacts else {}
+                contact_name = contact.get("profile", {}).get("name", "User")
+                
                 if message_type == "text":
                     content = message.get("text", {}).get("body", "")
-                    logger.info(f"WhatsApp message: {message_id} from {from_number}: {content}")
+                    logger.info(f"WhatsApp message: {message_id} from {from_number} ({contact_name}): {content}")
+                    
+                    # Generate and send response if bot is enabled
+                    if BOT_ENABLED and bot and sender:
+                        try:
+                            # Generate AI response
+                            response_text = bot.generate_response(content, contact_name)
+                            logger.info(f"Generated response: {response_text[:100]}...")
+                            
+                            # Send response back via WhatsApp
+                            success = sender.send_whatsapp_message(from_number, response_text)
+                            if success:
+                                logger.info(f"Response sent to {from_number}")
+                            else:
+                                logger.error(f"Failed to send response to {from_number}")
+                                
+                        except Exception as e:
+                            logger.error(f"Error generating/sending response: {e}")
+                    else:
+                        logger.info("Bot not enabled - no response sent")
                 
     except Exception as e:
         logger.error(f"Error processing WhatsApp webhook: {e}")
@@ -147,10 +182,30 @@ async def line_webhook(
                 
                 source = event.get("source", {})
                 user_id = source.get("userId")
+                reply_token = event.get("replyToken")
                 
                 if message_type == "text":
                     content = message.get("text", "")
                     logger.info(f"Line message: {message_id} from {user_id}: {content}")
+                    
+                    # Generate and send response if bot is enabled
+                    if BOT_ENABLED and bot and sender and reply_token:
+                        try:
+                            # Generate AI response
+                            response_text = bot.generate_response(content, user_id)
+                            logger.info(f"Generated LINE response: {response_text[:100]}...")
+                            
+                            # Send response back via LINE
+                            success = sender.send_line_message(reply_token, response_text)
+                            if success:
+                                logger.info(f"LINE response sent to {user_id}")
+                            else:
+                                logger.error(f"Failed to send LINE response to {user_id}")
+                                
+                        except Exception as e:
+                            logger.error(f"Error generating/sending LINE response: {e}")
+                    else:
+                        logger.info("Bot not enabled or no reply token - no response sent")
                     
     except Exception as e:
         logger.error(f"Error processing Line webhook: {e}")
