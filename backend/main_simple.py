@@ -361,11 +361,18 @@ async def get_venues():
 
 # Add webhook routes
 try:
-    from app.api.v1.endpoints import webhooks
-    app.include_router(webhooks.router, prefix="/webhooks", tags=["webhooks"])
-    logger.info("Webhook routes loaded successfully")
-except ImportError as e:
-    logger.warning(f"Could not load webhook routes: {e}")
+    # Try simple webhooks first (no database dependencies)
+    import webhooks_simple
+    app.include_router(webhooks_simple.router, prefix="/webhooks", tags=["webhooks"])
+    logger.info("Webhook routes loaded successfully (simple mode)")
+except ImportError:
+    try:
+        # Fallback to full webhooks if available
+        from app.api.v1.endpoints import webhooks
+        app.include_router(webhooks.router, prefix="/webhooks", tags=["webhooks"])
+        logger.info("Webhook routes loaded successfully (full mode)")
+    except ImportError as e:
+        logger.warning(f"Could not load webhook routes: {e}")
 
 # Error handlers
 @app.exception_handler(404)
