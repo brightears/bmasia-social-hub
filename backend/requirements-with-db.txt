@@ -8,3 +8,9 @@ psycopg2-binary==2.9.9
 
 # Cache
 redis==5.0.1
+
+# HTTP client for API calls
+requests==2.31.0
+
+# AI Integration (optional - will use fallback if not available)
+google-generativeai==0.8.3
