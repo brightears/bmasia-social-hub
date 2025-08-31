@@ -7,6 +7,7 @@ import os
 import logging
 import json
 import requests
+import hashlib
 from typing import Dict, Any, Optional
 from datetime import datetime
 
@@ -55,6 +56,15 @@ class SimpleBot:
     """Simple bot for handling messages"""
     
     def __init__(self):
+        # Try to import cache manager
+        try:
+            from cache import cache_manager
+            self.cache = cache_manager
+            logger.info("✅ Cache integration enabled for bot")
+        except:
+            self.cache = None
+            logger.warning("⚠️ Cache not available for bot")
+        
         self.system_prompt = """You are BMA Social AI Assistant, an expert support specialist for venue music systems.
         You support 2000+ venues worldwide using Soundtrack Your Brand music players.
         
@@ -79,6 +89,15 @@ class SimpleBot:
     def generate_response(self, user_message: str, user_name: str = "User") -> str:
         """Generate AI response to user message"""
         
+        # Check cache for common questions
+        if self.cache:
+            # Create hash of the question for caching
+            question_hash = hashlib.md5(user_message.lower().strip().encode()).hexdigest()
+            cached_response = self.cache.get_cached_response(question_hash)
+            if cached_response:
+                logger.info("Using cached response for common question")
+                return cached_response
+        
         if not AI_ENABLED:
             # Fallback responses when Gemini is not configured
             return self._get_fallback_response(user_message)
@@ -93,7 +112,14 @@ Assistant: """
             
             # Generate response with Gemini
             response = model.generate_content(prompt)
-            return response.text.strip()
+            response_text = response.text.strip()
+            
+            # Cache the response for common questions
+            if self.cache and len(user_message) < 200:  # Only cache short questions
+                question_hash = hashlib.md5(user_message.lower().strip().encode()).hexdigest()
+                self.cache.cache_response(question_hash, response_text, ttl=3600)  # Cache for 1 hour
+                
+            return response_text
             
         except Exception as e:
             logger.error(f"Error generating AI response: {e}")

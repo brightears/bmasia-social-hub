@@ -39,6 +39,16 @@ except ImportError as e:
     bot = None
     sender = None
 
+# Import database manager
+try:
+    from database import db_manager
+    DB_ENABLED = True
+    logger.info("✅ Database module loaded successfully")
+except ImportError as e:
+    logger.warning(f"⚠️ Database module not available: {e}")
+    DB_ENABLED = False
+    db_manager = None
+
 
 # WhatsApp Webhooks
 
@@ -107,6 +117,23 @@ async def whatsapp_webhook(
                     content = message.get("text", {}).get("body", "")
                     logger.info(f"WhatsApp message: {message_id} from {from_number} ({contact_name}): {content}")
                     
+                    # Store message in database if enabled
+                    conversation_id = None
+                    if DB_ENABLED and db_manager:
+                        try:
+                            conversation_id = db_manager.store_message(
+                                channel="whatsapp",
+                                user_phone=from_number,
+                                user_name=contact_name,
+                                message_id=message_id,
+                                content=content,
+                                direction="inbound",
+                                message_type=message_type
+                            )
+                            logger.info(f"Message stored in conversation {conversation_id}")
+                        except Exception as e:
+                            logger.error(f"Failed to store message: {e}")
+                    
                     # Generate and send response if bot is enabled
                     if BOT_ENABLED and bot and sender:
                         try:
@@ -118,6 +145,23 @@ async def whatsapp_webhook(
                             success = sender.send_whatsapp_message(from_number, response_text)
                             if success:
                                 logger.info(f"Response sent to {from_number}")
+                                
+                                # Store outbound message in database
+                                if DB_ENABLED and db_manager and conversation_id:
+                                    try:
+                                        db_manager.store_message(
+                                            channel="whatsapp",
+                                            user_phone=from_number,
+                                            user_name=contact_name,
+                                            message_id=f"out_{message_id}_{datetime.now().timestamp()}",
+                                            content=response_text,
+                                            direction="outbound",
+                                            message_type="text",
+                                            ai_response=True
+                                        )
+                                        logger.info("Response stored in database")
+                                    except Exception as e:
+                                        logger.error(f"Failed to store response: {e}")
                             else:
                                 logger.error(f"Failed to send response to {from_number}")
                                 

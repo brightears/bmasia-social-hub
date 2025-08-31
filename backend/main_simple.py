@@ -98,11 +98,20 @@ async def startup_event():
     """Initialize on startup"""
     logger.info("Starting BMA Social API with Database and Cache")
     
-    # Initialize database
-    conn = get_db_connection()
-    if conn:
-        logger.info("✅ Database connection established")
-    else:
+    # Initialize database with new manager
+    try:
+        from database import db_manager
+        if db_manager.ensure_connection():
+            logger.info("✅ Database connection established")
+            # Initialize tables
+            if db_manager.initialize_tables():
+                logger.info("✅ Database tables initialized")
+            else:
+                logger.warning("⚠️ Failed to initialize tables")
+        else:
+            logger.warning("⚠️ Running without database")
+    except Exception as e:
+        logger.error(f"Database initialization error: {e}")
         logger.warning("⚠️ Running without database")
     
     # Initialize Redis
