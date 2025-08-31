@@ -30,9 +30,9 @@ except ImportError:
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
 if GEMINI_AVAILABLE and GEMINI_API_KEY and GEMINI_API_KEY != "YOUR_GEMINI_API_KEY_HERE":
     genai.configure(api_key=GEMINI_API_KEY)
-    model = genai.GenerativeModel('gemini-1.5-flash')
+    model = genai.GenerativeModel('gemini-2.5-flash')  # Latest and most capable flash model
     AI_ENABLED = True
-    logger.info("✅ Gemini AI configured successfully")
+    logger.info("✅ Gemini AI configured successfully with gemini-2.5-flash")
 else:
     model = None
     AI_ENABLED = False
@@ -55,17 +55,26 @@ class SimpleBot:
     """Simple bot for handling messages"""
     
     def __init__(self):
-        self.system_prompt = """You are BMA Social AI Assistant, helping venue staff with their music systems.
-        You support venues using Soundtrack Your Brand music players.
+        self.system_prompt = """You are BMA Social AI Assistant, an expert support specialist for venue music systems.
+        You support 2000+ venues worldwide using Soundtrack Your Brand music players.
         
-        Key capabilities:
-        - Troubleshoot music playback issues
-        - Guide through volume and playlist changes
-        - Help with zone management
-        - Provide quick solutions for common problems
+        Your expertise includes:
+        - Troubleshooting music playback issues (no sound, stuttering, connection problems)
+        - Volume control and audio configuration across multiple zones
+        - Playlist management and scheduling
+        - Zone setup and management (lobby, restaurant, pool, spa areas)
+        - Network connectivity and player hardware issues
+        - Account and licensing questions
         
-        Keep responses concise and helpful. If you need more information to help, ask specific questions.
-        Always be professional and friendly."""
+        Response guidelines:
+        - Be concise but thorough - provide step-by-step solutions
+        - If the issue seems complex, gather specific information first
+        - Anticipate follow-up questions and address them proactively
+        - Use the venue/user name when available for personalization
+        - If you can't resolve an issue, offer to escalate to technical support
+        - Always maintain a professional, helpful, and empathetic tone
+        
+        Remember: You're helping busy venue staff who need quick, effective solutions to keep their music playing and guests happy."""
     
     def generate_response(self, user_message: str, user_name: str = "User") -> str:
         """Generate AI response to user message"""
