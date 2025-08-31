@@ -35,19 +35,23 @@ class SoundtrackBot(IntegratedBot):
         is_music_issue = any(keyword in message_lower for keyword in music_keywords)
         
         # Check if user is already authenticated
-        from smart_authentication import trust_manager
         from venue_identifier import conversation_context
         
-        # For authenticated users asking about zones, skip email verification
-        if trust_manager.is_trusted(user_phone):
-            context = conversation_context.get_context(user_phone)
-            venue = context.get('venue')
+        # Check context for existing venue
+        context = conversation_context.get_context(user_phone)
+        venue = context.get('venue')
+        
+        # For users with identified venue asking about music, handle directly
+        if venue and is_music_issue:
+            venue_name = venue.get('name', '')
             
-            if venue and is_music_issue:
-                # Direct Soundtrack query for trusted users
-                venue_name = venue.get('name', '')
-                logger.info(f"Trusted user {user_phone} querying zones for {venue_name}")
-                return self._handle_music_query(message, venue_name, user_phone)
+            # Check if this is a simple query (not requiring verification)
+            if 'zone' in message_lower or 'active' in message_lower or 'status' in message_lower:
+                # For zone queries, check if already verified
+                from email_verification import email_verifier
+                if email_verifier.is_trusted_device(user_phone, venue_name):
+                    logger.info(f"Verified user {user_phone} querying zones for {venue_name}")
+                    return self._handle_music_query(message, venue_name, user_phone)
         
         # Get base response from parent class (includes authentication if needed)
         base_response = super().process_message(message, user_phone, user_name)
