@@ -8,10 +8,18 @@ import logging
 from typing import Dict, Any, Optional
 from datetime import datetime
 
+logger = logging.getLogger(__name__)
+
 # Import all our modules
 from bot_simple import SimpleBot
 from venue_identifier import venue_identifier, conversation_context
-from email_verification import email_verifier
+# Use test email verifier with admin bypass for BMA staff
+try:
+    from email_verification_test import test_email_verifier as email_verifier
+    logger.info("Using test email verifier with admin bypass")
+except ImportError:
+    from email_verification import email_verifier
+    logger.info("Using standard email verifier")
 from terminology_handler import terminology
 from smart_authentication import smart_auth, trust_manager
 
@@ -36,8 +44,6 @@ try:
 except:
     EMAIL_AVAILABLE = False
     email_manager = None
-
-logger = logging.getLogger(__name__)
 
 class IntegratedBot(SimpleBot):
     """Production-ready bot with all features integrated"""
