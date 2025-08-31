@@ -28,22 +28,28 @@ WHATSAPP_VERIFY_TOKEN = os.getenv("WHATSAPP_VERIFY_TOKEN", "bma_whatsapp_verify_
 WHATSAPP_WEBHOOK_SECRET = os.getenv("WHATSAPP_WEBHOOK_SECRET", "bma_webhook_secret_2024")
 LINE_CHANNEL_SECRET = os.getenv("LINE_CHANNEL_SECRET", "")
 
-# Import bot for responses - try integrated version first
+# Import bot for responses - try Soundtrack-enabled version first
 try:
-    from bot_integrated import integrated_bot as bot
+    from bot_soundtrack import soundtrack_bot as bot
     from bot_simple import sender
     BOT_ENABLED = True
-    logger.info("✅ Integrated bot loaded with email verification")
+    logger.info("✅ Soundtrack-enabled bot loaded with full API integration")
 except ImportError:
     try:
-        from bot_simple import bot, sender
+        from bot_integrated import integrated_bot as bot
+        from bot_simple import sender
         BOT_ENABLED = True
-        logger.info("✅ Simple bot loaded")
-    except ImportError as e:
-        logger.warning(f"⚠️ Bot module not available: {e}")
-        BOT_ENABLED = False
-        bot = None
-        sender = None
+        logger.info("✅ Integrated bot loaded with email verification")
+    except ImportError:
+        try:
+            from bot_simple import bot, sender
+            BOT_ENABLED = True
+            logger.info("✅ Simple bot loaded")
+        except ImportError as e:
+            logger.warning(f"⚠️ Bot module not available: {e}")
+            BOT_ENABLED = False
+            bot = None
+            sender = None
 
 # Import database manager
 try:
