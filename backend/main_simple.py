@@ -368,6 +368,25 @@ async def get_venues():
             "error": "Table not initialized. Call /api/v1/database/init first"
         }
 
+@app.post("/api/v1/venues/import-sample")
+async def import_sample_venues():
+    """Import sample venue data"""
+    try:
+        from import_venues import create_sample_venues, import_venues
+        
+        # Create and import sample venues
+        sample_venues = create_sample_venues()
+        count = import_venues(sample_venues)
+        
+        return {
+            "status": "success",
+            "message": f"Imported {count} sample venues",
+            "venues_imported": count
+        }
+    except Exception as e:
+        logger.error(f"Failed to import sample venues: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
 # Add webhook routes
 try:
     # Try simple webhooks first (no database dependencies)

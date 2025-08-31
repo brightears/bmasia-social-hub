@@ -1,0 +1,2 @@
+name,phone_number,location,soundtrack_account_id,contact_name,contact_email,active,venue_type,zones
+"Example Hotel Name","+6612345678","Bangkok, Thailand","SYB_ACCOUNT_ID","Contact Name","email@example.com","true","Hotel","Lobby|Restaurant|Pool"
