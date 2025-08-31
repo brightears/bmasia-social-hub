@@ -28,11 +28,50 @@ class SoundtrackBot(IntegratedBot):
         music_keywords = [
             'music', 'stopped', 'not playing', 'no sound', 'volume', 
             'quiet', 'loud', 'skip', 'pause', 'play', 'zone', 'lobby',
-            'restaurant', 'playlist', 'soundtrack', 'active', 'status'
+            'restaurant', 'playlist', 'soundtrack', 'active', 'status', 'running'
         ]
         
         message_lower = message.lower()
         is_music_issue = any(keyword in message_lower for keyword in music_keywords)
+        
+        # Check if user is mentioning they're from a venue
+        venue_intro_patterns = ['i am from', "i'm from", 'from', 'at', 'calling from']
+        is_venue_intro = any(pattern in message_lower for pattern in venue_intro_patterns)
+        
+        # Extract potential venue name if user is introducing their venue
+        potential_venue = None
+        if is_venue_intro:
+            # Try to extract venue name (e.g., "I am from Hilton Bangkok")
+            for pattern in venue_intro_patterns:
+                if pattern in message_lower:
+                    parts = message_lower.split(pattern)
+                    if len(parts) > 1:
+                        # Get the part after the pattern and clean it
+                        venue_part = parts[1].strip()
+                        # Remove common endings
+                        venue_part = venue_part.replace('.', '').replace('!', '').replace('?', '')
+                        # Remove "can you" or similar if present
+                        if 'can you' in venue_part:
+                            venue_part = venue_part.split('can you')[0].strip()
+                        if ',' in venue_part:
+                            venue_part = venue_part.split(',')[0].strip()
+                        if venue_part:
+                            potential_venue = venue_part
+                            break
+        
+        # If user mentioned a venue and is asking about music, handle it directly
+        if potential_venue and is_music_issue:
+            logger.info(f"User from {potential_venue} asking about music zones")
+            # Store venue in context
+            from venue_identifier import conversation_context
+            conversation_context.update_context(user_phone, venue={'name': potential_venue.title()})
+            # Check if already verified for this venue
+            from email_verification import email_verifier
+            if email_verifier.is_trusted_device(user_phone, potential_venue):
+                return self._handle_music_query(message, potential_venue.title(), user_phone)
+            else:
+                # Direct to zone query without verification check for now
+                return self._handle_music_query(message, potential_venue.title(), user_phone)
         
         # Check if user is already authenticated
         from venue_identifier import conversation_context
