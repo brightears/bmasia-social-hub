@@ -256,17 +256,44 @@ async def init_database():
     try:
         cursor = conn.cursor()
         
-        # Create venues table
+        # Create venues table with all required columns
         cursor.execute("""
             CREATE TABLE IF NOT EXISTS venues (
                 id SERIAL PRIMARY KEY,
                 name VARCHAR(255) NOT NULL,
+                phone_number VARCHAR(50) UNIQUE,
                 location VARCHAR(500),
                 soundtrack_account_id VARCHAR(255),
+                contact_name VARCHAR(255),
+                contact_email VARCHAR(255),
                 active BOOLEAN DEFAULT true,
+                metadata JSONB DEFAULT '{}',
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                 updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
             )
+        """)
+        
+        # Add missing columns if they don't exist
+        cursor.execute("""
+            DO $$ 
+            BEGIN
+                IF NOT EXISTS (SELECT 1 FROM information_schema.columns 
+                             WHERE table_name='venues' AND column_name='phone_number') THEN
+                    ALTER TABLE venues ADD COLUMN phone_number VARCHAR(50) UNIQUE;
+                END IF;
+                IF NOT EXISTS (SELECT 1 FROM information_schema.columns 
+                             WHERE table_name='venues' AND column_name='contact_name') THEN
+                    ALTER TABLE venues ADD COLUMN contact_name VARCHAR(255);
+                END IF;
+                IF NOT EXISTS (SELECT 1 FROM information_schema.columns 
+                             WHERE table_name='venues' AND column_name='contact_email') THEN
+                    ALTER TABLE venues ADD COLUMN contact_email VARCHAR(255);
+                END IF;
+                IF NOT EXISTS (SELECT 1 FROM information_schema.columns 
+                             WHERE table_name='venues' AND column_name='metadata') THEN
+                    ALTER TABLE venues ADD COLUMN metadata JSONB DEFAULT '{}';
+                END IF;
+            END $$;
         """)
         
         # Create zones table
@@ -301,7 +328,7 @@ async def init_database():
         
         return {
             "status": "success",
-            "message": "Database initialized with basic tables",
+            "message": "Database initialized/updated with all required columns",
             "tables_created": ["venues", "zones", "alerts"]
         }
         
