@@ -21,8 +21,8 @@ class SoundtrackAPI:
     """
     
     def __init__(self):
-        self.base_url = os.getenv('SOUNDTRACK_BASE_URL', 'https://api.soundtrackyourbrand.com/v2')
-        self.graphql_url = f"{self.base_url}/graphql"
+        self.base_url = os.getenv('SOUNDTRACK_BASE_URL', 'https://api.soundtrackyourbrand.com')
+        self.graphql_url = f"{self.base_url}/v2"
         
         # Use API credentials from environment
         self.api_credentials = os.getenv('SOUNDTRACK_API_CREDENTIALS')
