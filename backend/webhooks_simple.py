@@ -68,13 +68,18 @@ def whatsapp_webhook_verify(
     WhatsApp webhook verification endpoint.
     Called by Meta to verify webhook URL.
     """
-    logger.info(f"WhatsApp webhook verification: mode={hub_mode}, token={hub_verify_token}")
+    # Enhanced logging for debugging
+    logger.info(f"🔍 WhatsApp webhook verification received:")
+    logger.info(f"  - mode: {hub_mode}")
+    logger.info(f"  - token: {hub_verify_token}")
+    logger.info(f"  - challenge: {hub_challenge}")
+    logger.info(f"  - expected_token: {WHATSAPP_VERIFY_TOKEN}")
     
     if hub_mode == "subscribe" and hub_verify_token == WHATSAPP_VERIFY_TOKEN:
-        logger.info("WhatsApp webhook verified successfully")
+        logger.info("✅ WhatsApp webhook verified successfully")
         return PlainTextResponse(content=hub_challenge)
     else:
-        logger.warning(f"WhatsApp webhook verification failed: {hub_verify_token} != {WHATSAPP_VERIFY_TOKEN}")
+        logger.error(f"❌ WhatsApp webhook verification failed: received='{hub_verify_token}' expected='{WHATSAPP_VERIFY_TOKEN}'")
         raise HTTPException(status_code=403, detail="Verification failed")
 
 
@@ -85,22 +90,30 @@ async def whatsapp_webhook(
 ):
     """
     WhatsApp webhook endpoint for receiving messages.
-    Logs messages for now - processing to be added later.
+    Enhanced logging and processing.
     """
-    # Get request body
-    body = await request.body()
-    data = await request.json()
+    # Enhanced logging
+    logger.info("📨 WhatsApp webhook POST received!")
+    logger.info(f"  - Source IP: {request.client.host if request.client else 'unknown'}")
+    logger.info(f"  - Headers: {dict(request.headers)}")
     
-    # Temporarily skip signature verification for testing
-    # TODO: Get App Secret from Meta App Dashboard for production
+    # Get request body
+    try:
+        body = await request.body()
+        data = await request.json()
+        logger.info(f"  - Body length: {len(body)} bytes")
+        logger.info(f"📱 WhatsApp webhook data: {json.dumps(data, indent=2)}")
+    except Exception as e:
+        logger.error(f"❌ Failed to parse webhook body: {e}")
+        return {"status": "error", "message": "Invalid JSON"}
+    
+    # Check signature
     signature = request.headers.get("X-Hub-Signature-256", "")
     if signature:
-        logger.info(f"Received signature: {signature[:20]}...")
-        # For now, just log and continue
-        pass
-    
-    # Log the message
-    logger.info(f"WhatsApp webhook received: {json.dumps(data)}")
+        logger.info(f"🔐 Received signature: {signature[:20]}...")
+        # TODO: Implement proper signature verification for production
+    else:
+        logger.warning("⚠️ No signature received from WhatsApp")
     
     # Process message data
     try:
@@ -185,6 +198,93 @@ async def whatsapp_webhook(
     
     # Return immediate response
     return {"status": "received"}
+
+
+@router.post("/whatsapp/test")
+async def test_whatsapp_webhook():
+    """Test endpoint to simulate a WhatsApp message"""
+    logger.info("🧪 Test WhatsApp webhook triggered")
+    
+    # Simulate a WhatsApp message payload
+    test_data = {
+        "object": "whatsapp_business_account",
+        "entry": [{
+            "id": "test_entry",
+            "changes": [{
+                "value": {
+                    "messaging_product": "whatsapp",
+                    "metadata": {
+                        "display_phone_number": "6563237765",
+                        "phone_number_id": "test_phone_id"
+                    },
+                    "contacts": [{
+                        "profile": {"name": "Test User"},
+                        "wa_id": "601234567890"
+                    }],
+                    "messages": [{
+                        "from": "601234567890",
+                        "id": f"test_msg_{datetime.now().timestamp()}",
+                        "timestamp": str(int(datetime.now().timestamp())),
+                        "text": {"body": "Test message - is the bot working?"},
+                        "type": "text"
+                    }]
+                },
+                "field": "messages"
+            }]
+        }]
+    }
+    
+    logger.info(f"🧪 Simulating WhatsApp message: {json.dumps(test_data, indent=2)}")
+    
+    # Process the test message through the same logic
+    try:
+        entry = test_data.get("entry", [{}])[0]
+        changes = entry.get("changes", [{}])[0]
+        value = changes.get("value", {})
+        
+        if "messages" in value:
+            for message in value["messages"]:
+                message_id = message.get("id")
+                from_number = message.get("from")
+                content = message.get("text", {}).get("body", "")
+                contact_name = "Test User"
+                
+                logger.info(f"🧪 Processing test message: {content}")
+                
+                # Generate response if bot is enabled
+                if BOT_ENABLED and bot and sender:
+                    try:
+                        if hasattr(bot, 'process_message'):
+                            response_text = bot.process_message(content, from_number, contact_name)
+                        else:
+                            response_text = bot.generate_response(content, contact_name)
+                        
+                        logger.info(f"🤖 Generated test response: {response_text[:100]}...")
+                        
+                        return {
+                            "status": "test_success",
+                            "test_message": content,
+                            "bot_response": response_text,
+                            "message": "Test webhook processed successfully"
+                        }
+                    except Exception as e:
+                        logger.error(f"❌ Error in test bot response: {e}")
+                        return {
+                            "status": "test_error",
+                            "error": str(e),
+                            "message": "Bot response failed"
+                        }
+                else:
+                    return {
+                        "status": "test_partial",
+                        "message": "Webhook received but bot not enabled"
+                    }
+    except Exception as e:
+        logger.error(f"❌ Test webhook processing error: {e}")
+        return {
+            "status": "test_error",
+            "error": str(e)
+        }
 
 
 # Line Webhooks

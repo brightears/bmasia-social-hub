@@ -148,7 +148,33 @@ async def health():
         "status": "healthy",
         "timestamp": datetime.utcnow().isoformat(),
         "uptime": str(datetime.utcnow() - startup_time),
-        "requests_served": request_count
+        "requests_served": request_count,
+        "service_awake": True
+    }
+
+@app.get("/wake")
+@app.post("/wake")
+async def wake_service():
+    """Wake up endpoint to prevent service from sleeping"""
+    logger.info("🚀 Service wake-up requested")
+    return {
+        "status": "awake",
+        "timestamp": datetime.utcnow().isoformat(),
+        "message": "Service is now awake and ready to receive webhooks"
+    }
+
+@app.get("/webhook-test")
+async def webhook_diagnostics():
+    """Test endpoint to verify webhook configuration"""
+    return {
+        "webhook_urls": {
+            "whatsapp_verify": "https://bma-social-api-q9uu.onrender.com/webhooks/whatsapp",
+            "whatsapp_webhook": "https://bma-social-api-q9uu.onrender.com/webhooks/whatsapp",
+            "line_webhook": "https://bma-social-api-q9uu.onrender.com/webhooks/line"
+        },
+        "verify_token": "bma_whatsapp_verify_2024",
+        "service_status": "active",
+        "timestamp": datetime.utcnow().isoformat()
     }
 
 @app.get("/api/v1/status")
