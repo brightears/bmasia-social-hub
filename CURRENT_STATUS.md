@@ -1,17 +1,17 @@
 # BMA Social Platform - Current Status
-**Last Updated**: August 31, 2025, 02:45 UTC
+**Last Updated**: August 31, 2025, 04:20 UTC
 
-## 🟢 DEPLOYMENT STATUS: LIVE WITH AI-POWERED RESPONSES
+## 🟢 DEPLOYMENT STATUS: LIVE WITH DATABASE & CACHE INTEGRATION
 
 ### Production URL
 https://bma-social-api-q9uu.onrender.com
 
 ### Service Health
 - **API**: ✅ Running (FastAPI with webhooks_simple.py)
-- **Database**: ✅ Provisioned (PostgreSQL 16 - not connected)
-- **Cache**: ✅ Provisioned (Redis 8.1.0 - not connected)
-- **Webhooks**: ✅ WhatsApp fully operational | ⏳ LINE configured
-- **Bot AI**: ✅ GEMINI AI ACTIVE - Intelligent responses working
+- **Database**: ✅ Connected (PostgreSQL 16 - storing conversations)
+- **Cache**: ✅ Connected (Redis 8.1.0 - caching responses)
+- **Webhooks**: ✅ WhatsApp fully operational | ✅ LINE with AI responses
+- **Bot AI**: ✅ GEMINI 2.5 FLASH - Latest model active
 - **Workers**: ❌ Not deployed (Celery pending)
 
 ## 📱 MESSAGING INTEGRATION STATUS
@@ -21,7 +21,7 @@ https://bma-social-api-q9uu.onrender.com
 - **Phone**: +66 63 237 7765
 - **Webhook**: Verified, receiving and responding with AI
 - **Last Test**: "Hello BMAsia" - AI responded successfully (Aug 31, 2025)
-- **AI Model**: Google Gemini 1.5 Flash
+- **AI Model**: Google Gemini 2.5 Flash (Latest)
 - **Response Time**: < 2 seconds
 - **Limitations**: Development mode (test messages only)
 

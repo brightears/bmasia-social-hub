@@ -28,16 +28,22 @@ WHATSAPP_VERIFY_TOKEN = os.getenv("WHATSAPP_VERIFY_TOKEN", "bma_whatsapp_verify_
 WHATSAPP_WEBHOOK_SECRET = os.getenv("WHATSAPP_WEBHOOK_SECRET", "bma_webhook_secret_2024")
 LINE_CHANNEL_SECRET = os.getenv("LINE_CHANNEL_SECRET", "")
 
-# Import bot for responses
+# Import bot for responses - try integrated version first
 try:
-    from bot_simple import bot, sender
+    from bot_integrated import integrated_bot as bot
+    from bot_simple import sender
     BOT_ENABLED = True
-    logger.info("✅ Bot module loaded successfully")
-except ImportError as e:
-    logger.warning(f"⚠️ Bot module not available: {e}")
-    BOT_ENABLED = False
-    bot = None
-    sender = None
+    logger.info("✅ Integrated bot loaded with email verification")
+except ImportError:
+    try:
+        from bot_simple import bot, sender
+        BOT_ENABLED = True
+        logger.info("✅ Simple bot loaded")
+    except ImportError as e:
+        logger.warning(f"⚠️ Bot module not available: {e}")
+        BOT_ENABLED = False
+        bot = None
+        sender = None
 
 # Import database manager
 try:
@@ -137,8 +143,12 @@ async def whatsapp_webhook(
                     # Generate and send response if bot is enabled
                     if BOT_ENABLED and bot and sender:
                         try:
-                            # Generate AI response
-                            response_text = bot.generate_response(content, contact_name)
+                            # Use integrated bot's process_message if available
+                            if hasattr(bot, 'process_message'):
+                                response_text = bot.process_message(content, from_number, contact_name)
+                            else:
+                                # Fallback to simple generate_response
+                                response_text = bot.generate_response(content, contact_name)
                             logger.info(f"Generated response: {response_text[:100]}...")
                             
                             # Send response back via WhatsApp
