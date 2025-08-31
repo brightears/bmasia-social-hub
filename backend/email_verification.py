@@ -132,6 +132,11 @@ class EmailVerificationSystem:
         email_lower = email.lower().strip()
         company_lower = company_name.lower()
         
+        # Admin/testing emails - always allowed
+        admin_domains = ['@bmasiamusic.com', '@bmamusic.com']
+        if any(email_lower.endswith(domain) for domain in admin_domains):
+            return (True, "✅ BMA staff email verified! Full access granted.")
+        
         # Extract domain from email
         if '@' not in email_lower:
             return (False, "Please provide a valid email address (e.g., john.smith@hilton.com)")
