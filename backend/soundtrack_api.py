@@ -145,33 +145,97 @@ class SoundtrackAPI:
         return accounts
     
     def find_venue_zones(self, venue_name: str) -> List[Dict]:
-        """Find all zones for a specific venue"""
+        """Find all zones for a specific venue with fuzzy matching"""
         accounts = self.get_accounts()
         zones = []
         
+        # Clean search term
+        search_terms = venue_name.lower().split()
+        
         for account in accounts:
-            # Check account name
-            if venue_name.lower() in account.get('name', '').lower():
-                # Get all zones from all locations
-                for loc_edge in account.get('locations', {}).get('edges', []):
-                    location = loc_edge['node']
+            account_name = account.get('name', '').lower()
+            match_score = 0
+            
+            # Check if all search terms are in account name
+            if all(term in account_name for term in search_terms):
+                match_score = 2  # High score for all terms matching
+            # Check if any important term matches
+            elif any(term in account_name for term in search_terms if len(term) > 3):
+                match_score = 1  # Lower score for partial match
+            
+            # Also check location names
+            for loc_edge in account.get('locations', {}).get('edges', []):
+                location = loc_edge['node']
+                location_name = location.get('name', '').lower()
+                
+                loc_match_score = 0
+                if all(term in location_name for term in search_terms):
+                    loc_match_score = 2
+                elif any(term in location_name for term in search_terms if len(term) > 3):
+                    loc_match_score = 1
+                
+                # If either account or location matches, include zones
+                if match_score > 0 or loc_match_score > 0:
                     for zone_edge in location.get('soundZones', {}).get('edges', []):
                         zone = zone_edge['node']
                         zone['location_name'] = location.get('name')
                         zone['account_name'] = account.get('name')
+                        zone['match_score'] = max(match_score, loc_match_score)
                         zones.append(zone)
-            else:
-                # Also check location names
-                for loc_edge in account.get('locations', {}).get('edges', []):
-                    location = loc_edge['node']
-                    if venue_name.lower() in location.get('name', '').lower():
-                        for zone_edge in location.get('soundZones', {}).get('edges', []):
-                            zone = zone_edge['node']
-                            zone['location_name'] = location.get('name')
-                            zone['account_name'] = account.get('name')
-                            zones.append(zone)
+        
+        # Sort by match score (best matches first)
+        zones.sort(key=lambda x: x.get('match_score', 0), reverse=True)
         
         return zones
+    
+    def find_matching_accounts(self, venue_name: str) -> List[Dict]:
+        """Find all accounts that might match the venue name"""
+        accounts = self.get_accounts()
+        matches = []
+        
+        # Clean search term
+        search_terms = venue_name.lower().split()
+        
+        for account in accounts:
+            account_name = account.get('name', '').lower()
+            
+            # Calculate match score
+            match_score = 0
+            matched_terms = []
+            
+            for term in search_terms:
+                if term in account_name and len(term) > 2:
+                    match_score += 1
+                    matched_terms.append(term)
+            
+            # Special handling for common venue names
+            if 'hilton' in search_terms and 'hilton' in account_name:
+                match_score += 2  # Boost for brand match
+            
+            if match_score > 0:
+                # Count total zones
+                total_zones = 0
+                online_zones = 0
+                for loc_edge in account.get('locations', {}).get('edges', []):
+                    location = loc_edge['node']
+                    for zone_edge in location.get('soundZones', {}).get('edges', []):
+                        total_zones += 1
+                        if zone_edge['node'].get('isOnline'):
+                            online_zones += 1
+                
+                matches.append({
+                    'account_id': account.get('id'),
+                    'account_name': account.get('name'),
+                    'match_score': match_score,
+                    'matched_terms': matched_terms,
+                    'total_zones': total_zones,
+                    'online_zones': online_zones
+                })
+        
+        # Sort by match score
+        matches.sort(key=lambda x: x['match_score'], reverse=True)
+        
+        return matches
     
     def get_zone_status(self, zone_id: str) -> Dict:
         """Get detailed status for a specific zone"""

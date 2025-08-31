@@ -28,21 +28,35 @@ class SoundtrackBot(IntegratedBot):
         music_keywords = [
             'music', 'stopped', 'not playing', 'no sound', 'volume', 
             'quiet', 'loud', 'skip', 'pause', 'play', 'zone', 'lobby',
-            'restaurant', 'playlist', 'soundtrack'
+            'restaurant', 'playlist', 'soundtrack', 'active', 'status'
         ]
         
         message_lower = message.lower()
         is_music_issue = any(keyword in message_lower for keyword in music_keywords)
         
-        # Get base response from parent class
+        # Check if user is already authenticated
+        from smart_authentication import trust_manager
+        from venue_identifier import conversation_context
+        
+        # For authenticated users asking about zones, skip email verification
+        if trust_manager.is_trusted(user_phone):
+            context = conversation_context.get_context(user_phone)
+            venue = context.get('venue')
+            
+            if venue and is_music_issue:
+                # Direct Soundtrack query for trusted users
+                venue_name = venue.get('name', '')
+                logger.info(f"Trusted user {user_phone} querying zones for {venue_name}")
+                return self._handle_music_query(message, venue_name, user_phone)
+        
+        # Get base response from parent class (includes authentication if needed)
         base_response = super().process_message(message, user_phone, user_name)
         
         # If not a music issue or no venue identified, return base response
         if not is_music_issue:
             return base_response
         
-        # Check if we have a verified venue
-        from venue_identifier import conversation_context
+        # Check if we have a verified venue after authentication
         context = conversation_context.get_context(user_phone)
         venue = context.get('venue')
         
@@ -54,17 +68,118 @@ class SoundtrackBot(IntegratedBot):
         # If music issue and venue identified, check Soundtrack status
         return self._handle_music_issue(message, venue_name, base_response)
     
+    def _handle_music_query(self, message: str, venue_name: str, user_phone: str) -> str:
+        """Handle direct music queries from authenticated users"""
+        
+        message_lower = message.lower()
+        
+        # Check if asking about zones/status
+        if 'zone' in message_lower and ('active' in message_lower or 'have' in message_lower or 'status' in message_lower):
+            return self._list_venue_zones(venue_name, user_phone)
+        
+        # Otherwise handle as issue
+        return self._handle_music_issue(message, venue_name, "")
+    
+    def _list_venue_zones(self, venue_name: str, user_phone: str) -> str:
+        """List all zones for a venue"""
+        
+        logger.info(f"Listing zones for {venue_name}")
+        
+        # Find matching accounts
+        matching_accounts = self.soundtrack.find_matching_accounts(venue_name)
+        
+        if not matching_accounts:
+            return f"I couldn't find '{venue_name}' in the Soundtrack system. The account name might be different. Could you provide the exact name as shown in Soundtrack?"
+        
+        if len(matching_accounts) > 1:
+            # Multiple matches - ask for clarification
+            response = f"I found multiple Soundtrack accounts for Hilton:\n\n"
+            for i, match in enumerate(matching_accounts[:3], 1):
+                response += f"{i}. **{match['account_name']}**\n"
+                response += f"   • {match['total_zones']} zones ({match['online_zones']} online)\n\n"
+            
+            response += "Which one is your venue? Reply with the number or full name."
+            
+            # Store in context
+            from venue_identifier import conversation_context
+            conversation_context.update_context(
+                user_phone=user_phone,
+                soundtrack_matches=matching_accounts,
+                pending_action='list_zones'
+            )
+            
+            return response
+        
+        # Single match - show zones
+        account_name = matching_accounts[0]['account_name']
+        zones = self.soundtrack.find_venue_zones(account_name)
+        
+        if not zones:
+            return f"No zones found for {account_name}."
+        
+        response = f"**Music Zones for {account_name}:**\n\n"
+        
+        # Group zones by status
+        online_zones = [z for z in zones if z.get('isOnline')]
+        offline_zones = [z for z in zones if not z.get('isOnline')]
+        
+        if online_zones:
+            response += f"✅ **Online Zones ({len(online_zones)}):**\n"
+            for zone in online_zones[:10]:  # Limit to 10 to avoid too long message
+                status = "🎵 Playing" if zone.get('nowPlaying', {}).get('isPlaying') else "⏸️ Paused"
+                response += f"• {zone.get('name')} - {status}\n"
+                if zone.get('nowPlaying', {}).get('track'):
+                    track = zone['nowPlaying']['track']
+                    response += f"  Now: {track.get('name')} by {', '.join(track.get('artists', ['Unknown']))}\n"
+        
+        if offline_zones:
+            response += f"\n❌ **Offline Zones ({len(offline_zones)}):**\n"
+            for zone in offline_zones[:5]:  # Show fewer offline zones
+                response += f"• {zone.get('name')}\n"
+        
+        response += f"\n**Summary:** {len(online_zones)} online, {len(offline_zones)} offline"
+        
+        if offline_zones:
+            response += "\n\nNeed help with the offline zones? Just let me know!"
+        
+        return response
+    
     def _handle_music_issue(self, message: str, venue_name: str, base_response: str) -> str:
         """Handle music-related issues with Soundtrack API"""
         
         logger.info(f"Checking Soundtrack status for {venue_name}")
         
-        # Get diagnosis from Soundtrack API
-        diagnosis = self.soundtrack.diagnose_venue_issues(venue_name)
+        # First try to find matching accounts
+        matching_accounts = self.soundtrack.find_matching_accounts(venue_name)
         
-        if diagnosis.get('status') == 'error':
-            # Venue not found in Soundtrack
-            return base_response + "\n\n⚠️ I couldn't find your venue in the Soundtrack system. This might mean:\n• The venue name in our system doesn't match Soundtrack\n• The account hasn't been set up yet\n• There's a connection issue\n\nPlease contact support for manual assistance."
+        if not matching_accounts:
+            # No matches found
+            return f"I couldn't find '{venue_name}' in the Soundtrack system. This might mean:\n• The venue name in Soundtrack is different\n• The account hasn't been set up yet\n\nCould you provide the exact account name as it appears in Soundtrack Your Brand?"
+        
+        elif len(matching_accounts) > 1:
+            # Multiple matches found - ask for clarification
+            response = f"I found multiple Soundtrack accounts that might be yours:\n\n"
+            for i, match in enumerate(matching_accounts[:3], 1):  # Show max 3 matches
+                response += f"{i}. **{match['account_name']}**\n"
+                response += f"   • {match['total_zones']} zones ({match['online_zones']} online)\n\n"
+            
+            response += "Which account is yours? Reply with the number or the full account name."
+            
+            # Store matches in context for follow-up
+            from venue_identifier import conversation_context
+            conversation_context.update_context(
+                user_phone=conversation_context.contexts.get(list(conversation_context.contexts.keys())[0], {}).get('user_phone', ''),
+                soundtrack_matches=matching_accounts
+            )
+            
+            return response
+        
+        # Single match found - use it
+        account_name = matching_accounts[0]['account_name']
+        logger.info(f"Found Soundtrack account: {account_name}")
+        
+        # Get diagnosis from Soundtrack API using the matched account name
+        diagnosis = self.soundtrack.diagnose_venue_issues(account_name)
         
         # Build enhanced response based on diagnosis
         response_parts = []
