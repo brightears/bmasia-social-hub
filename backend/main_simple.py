@@ -372,6 +372,12 @@ async def get_venues():
 async def import_sample_venues():
     """Import sample venue data"""
     try:
+        # First ensure database tables are properly initialized
+        from database import db_manager
+        if db_manager.ensure_connection():
+            db_manager.initialize_tables()
+            logger.info("Database tables verified/updated")
+        
         from import_venues import create_sample_venues, import_venues
         
         # Create and import sample venues
