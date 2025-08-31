@@ -21,8 +21,8 @@ class SoundtrackAPI:
     """
     
     def __init__(self):
-        self.base_url = os.getenv('SOUNDTRACK_BASE_URL', 'https://api.soundtrackyourbrand.com')
-        self.graphql_url = f"{self.base_url}/v2"
+        self.base_url = os.getenv('SOUNDTRACK_BASE_URL', 'https://api.soundtrackyourbrand.com/v2')
+        self.graphql_url = self.base_url  # GraphQL endpoint is at /v2, not /v2/graphql
         
         # Use API credentials from environment
         self.api_credentials = os.getenv('SOUNDTRACK_API_CREDENTIALS')
@@ -42,34 +42,63 @@ class SoundtrackAPI:
     
     def _setup_authentication(self):
         """Setup authentication headers"""
+        import base64
+        
+        self.session.headers.update({
+            'Content-Type': 'application/json',
+            'User-Agent': 'BMA-Social/2.0'
+        })
+        
         if self.api_credentials:
-            # Use the base64 encoded credentials
-            self.session.headers.update({
-                'Authorization': f'Basic {self.api_credentials}',
-                'Content-Type': 'application/json'
-            })
+            # Use the pre-encoded base64 credentials
+            logger.info("Using SOUNDTRACK_API_CREDENTIALS for authentication")
+            self.session.headers['Authorization'] = f'Basic {self.api_credentials}'
+            
         elif self.client_id and self.client_secret:
-            # Alternative: use client credentials
-            auth = HTTPBasicAuth(self.client_id, self.client_secret)
-            self.session.auth = auth
-            self.session.headers.update({
-                'Content-Type': 'application/json'
-            })
+            # Encode client credentials to base64
+            logger.info("Using SOUNDTRACK_CLIENT_ID and SOUNDTRACK_CLIENT_SECRET for authentication")
+            credentials_string = f"{self.client_id}:{self.client_secret}"
+            encoded_credentials = base64.b64encode(credentials_string.encode()).decode()
+            self.session.headers['Authorization'] = f'Basic {encoded_credentials}'
+            
         else:
-            logger.warning("No Soundtrack API credentials configured")
+            logger.error("No Soundtrack API credentials configured!")
+            logger.error("Please set either:")
+            logger.error("  - SOUNDTRACK_API_CREDENTIALS (base64 encoded)")
+            logger.error("  - SOUNDTRACK_CLIENT_ID and SOUNDTRACK_CLIENT_SECRET")
+            
+        logger.info(f"Soundtrack API URL: {self.graphql_url}")
+        logger.info(f"Authentication configured: {'Yes' if 'Authorization' in self.session.headers else 'No'}")
     
     def _execute_query(self, query: str, variables: Dict = None) -> Dict:
         """Execute a GraphQL query"""
+        
+        # Check if authentication is configured
+        if 'Authorization' not in self.session.headers:
+            logger.error("Cannot execute query: No authentication credentials configured")
+            return {'error': 'No authentication credentials configured'}
+        
         try:
             payload = {
                 'query': query,
                 'variables': variables or {}
             }
             
-            response = self.session.post(self.graphql_url, json=payload)
-            response.raise_for_status()
+            logger.debug(f"Sending GraphQL query to {self.graphql_url}")
+            logger.debug(f"Query: {query[:200]}...")  # First 200 chars
+            
+            response = self.session.post(self.graphql_url, json=payload, timeout=10)
+            
+            logger.debug(f"Response status: {response.status_code}")
+            logger.debug(f"Response headers: {dict(response.headers)}")
+            
+            if response.status_code != 200:
+                error_msg = f"HTTP {response.status_code}: {response.text}"
+                logger.error(f"API request failed: {error_msg}")
+                return {'error': error_msg}
             
             data = response.json()
+            logger.debug(f"Response data keys: {list(data.keys())}")
             
             if 'errors' in data:
                 logger.error(f"GraphQL errors: {data['errors']}")
@@ -77,9 +106,25 @@ class SoundtrackAPI:
             
             return data.get('data', {})
             
+        except requests.exceptions.Timeout:
+            error_msg = "API request timed out after 10 seconds"
+            logger.error(error_msg)
+            return {'error': error_msg}
+            
+        except requests.exceptions.ConnectionError:
+            error_msg = "Cannot connect to Soundtrack API"
+            logger.error(error_msg)
+            return {'error': error_msg}
+            
         except requests.exceptions.RequestException as e:
-            logger.error(f"API request failed: {e}")
-            return {'error': str(e)}
+            error_msg = f"API request failed: {e}"
+            logger.error(error_msg)
+            return {'error': error_msg}
+            
+        except json.JSONDecodeError:
+            error_msg = "Invalid JSON response from API"
+            logger.error(error_msg)
+            return {'error': error_msg}
     
     def get_accounts(self, force_refresh: bool = False) -> List[Dict]:
         """Get all accessible accounts"""

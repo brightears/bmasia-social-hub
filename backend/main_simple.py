@@ -182,6 +182,7 @@ async def api_status():
     """API status with database and cache check"""
     db_status = "connected"
     redis_status = "connected"
+    soundtrack_status = "not_configured"
     table_count = 0
     
     # Check database
@@ -211,6 +212,17 @@ async def api_status():
     else:
         redis_status = "not_connected"
     
+    # Check Soundtrack API
+    try:
+        soundtrack_credentials = os.environ.get('SOUNDTRACK_API_CREDENTIALS')
+        soundtrack_client_id = os.environ.get('SOUNDTRACK_CLIENT_ID')
+        if soundtrack_credentials or soundtrack_client_id:
+            soundtrack_status = "configured"
+        else:
+            soundtrack_status = "not_configured"
+    except Exception:
+        soundtrack_status = "error"
+    
     return {
         "api_version": "2.0.0",
         "environment": os.environ.get("ENVIRONMENT", "development"),
@@ -218,13 +230,13 @@ async def api_status():
             "database": db_status,
             "database_tables": table_count,
             "redis": redis_status,
-            "soundtrack_api": "not_configured"
+            "soundtrack_api": soundtrack_status
         },
         "features": {
             "venues": table_count > 0,
             "zones": table_count > 0,
             "conversations": False,
-            "webhooks": False
+            "webhooks": True
         }
     }
 
@@ -394,6 +406,50 @@ async def test_cache():
     except Exception as e:
         logger.error(f"Cache test failed: {e}")
         raise HTTPException(status_code=500, detail=str(e))
+
+@app.get("/api/v1/soundtrack/test")
+async def test_soundtrack_api():
+    """Test Soundtrack API integration"""
+    try:
+        from test_live_soundtrack import test_soundtrack_api_live
+        results = test_soundtrack_api_live()
+        
+        return {
+            "status": "completed",
+            "results": results,
+            "success_rate": results["summary"]["passed"] / max(results["summary"]["total"], 1) * 100
+        }
+    except Exception as e:
+        logger.error(f"Soundtrack API test failed: {e}")
+        raise HTTPException(status_code=500, detail=f"Test failed: {str(e)}")
+
+@app.post("/api/v1/soundtrack/test-message")
+async def test_soundtrack_message(message: Dict[str, Any]):
+    """Test bot response to Soundtrack-related messages"""
+    try:
+        test_message = message.get("message", "I am from Millennium Hilton Bangkok, can you check our zones?")
+        test_phone = message.get("phone", "+6012345678")
+        test_name = message.get("name", "Test User")
+        
+        # Import and test the bot
+        from bot_soundtrack import soundtrack_bot
+        response = soundtrack_bot.process_message(test_message, test_phone, test_name)
+        
+        return {
+            "status": "success",
+            "input": {
+                "message": test_message,
+                "phone": test_phone,
+                "name": test_name
+            },
+            "output": {
+                "response": response,
+                "response_length": len(response)
+            }
+        }
+    except Exception as e:
+        logger.error(f"Message test failed: {e}")
+        raise HTTPException(status_code=500, detail=f"Message test failed: {str(e)}")
 
 @app.get("/api/v1/venues")
 async def get_venues():

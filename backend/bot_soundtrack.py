@@ -129,7 +129,11 @@ class SoundtrackBot(IntegratedBot):
         logger.info(f"Listing zones for {venue_name}")
         
         # Find matching accounts
-        matching_accounts = self.soundtrack.find_matching_accounts(venue_name)
+        try:
+            matching_accounts = self.soundtrack.find_matching_accounts(venue_name)
+        except Exception as e:
+            logger.error(f"Error finding matching accounts: {e}")
+            return f"Sorry, I'm having trouble connecting to the Soundtrack system right now. The error was: {str(e)[:100]}. Please try again in a moment."
         
         if not matching_accounts:
             return f"I couldn't find '{venue_name}' in the Soundtrack system. The account name might be different. Could you provide the exact name as shown in Soundtrack?"
@@ -193,7 +197,11 @@ class SoundtrackBot(IntegratedBot):
         logger.info(f"Checking Soundtrack status for {venue_name}")
         
         # First try to find matching accounts
-        matching_accounts = self.soundtrack.find_matching_accounts(venue_name)
+        try:
+            matching_accounts = self.soundtrack.find_matching_accounts(venue_name)
+        except Exception as e:
+            logger.error(f"Error connecting to Soundtrack API: {e}")
+            return f"Sorry, I'm having trouble connecting to the Soundtrack system right now. The error was: {str(e)[:100]}.\n\nThis could be due to:\n• API credentials not configured\n• Network connectivity issues\n• Soundtrack API being temporarily unavailable\n\nPlease try again in a moment, or contact support if the issue persists."
         
         if not matching_accounts:
             # No matches found
