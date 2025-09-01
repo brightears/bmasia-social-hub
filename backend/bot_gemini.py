@@ -22,6 +22,16 @@ except Exception as e:
     sheets_client = None
     SHEETS_AVAILABLE = False
 
+# Import Gmail smart search
+try:
+    from smart_email_search import init_smart_search
+    smart_email_searcher = init_smart_search()
+    GMAIL_AVAILABLE = True
+except Exception as e:
+    logger.warning(f"Gmail search not available: {e}")
+    smart_email_searcher = None
+    GMAIL_AVAILABLE = False
+
 logger = logging.getLogger(__name__)
 
 class GeminiBot:
@@ -110,6 +120,8 @@ class GeminiBot:
                 online = combined_data.get('online_zones', [])
                 data_context += f"- Active zones: {len(online)}/{len(zones)} online\n"
                 data_context += f"- Zone names: {', '.join([z.get('name', '') for z in zones])}\n"
+            if combined_data.get('email_summary'):
+                data_context += f"\nEmail History:\n{combined_data['email_summary']}\n"
         
         # Combine prompts
         full_prompt = f"""{system_prompt}
@@ -185,6 +197,24 @@ Response:"""
                 combined_data['online_zones'] = [z for z in zones if z.get('online') or z.get('isOnline')]
         except Exception as e:
             logger.debug(f"Could not get Soundtrack data: {e}")
+        
+        # 3. Smart Email Search (only when relevant)
+        try:
+            if GMAIL_AVAILABLE and smart_email_searcher:
+                # Extract domain from sheets data if available
+                domain = None
+                if sheets_venue:
+                    email = sheets_venue.get('client_contact', '')
+                    if '@' in email:
+                        domain = email.split('@')[1]
+                
+                # Perform smart search
+                email_results = smart_email_searcher.smart_search(message, venue_name, domain)
+                if email_results and email_results.get('found'):
+                    combined_data['email_context'] = email_results
+                    combined_data['email_summary'] = smart_email_searcher.format_for_bot(email_results)
+        except Exception as e:
+            logger.debug(f"Could not search emails: {e}")
         
         return combined_data
     
@@ -279,8 +309,14 @@ I automatically check multiple sources to provide comprehensive information:
    - Current track information
    - Playback control
 
-I intelligently combine data from both sources to give complete answers.
-No manual actions needed - I automatically fetch all relevant data.
+3. **Gmail Search** - Smart contextual search for:
+   - Previous support issues and resolutions
+   - Contract negotiations and pricing discussions
+   - Follow-ups and ongoing conversations
+   - Historical context when mentioned
+
+I intelligently combine data from all sources to give complete answers.
+Email search only activates when contextually relevant to save resources.
 """
     
     def _get_venue_zones_info(self, venue_name: str) -> str:
