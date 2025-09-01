@@ -40,19 +40,25 @@ class SoundtrackBot(IntegratedBot):
         
         # Look for patterns like "playing at Edge", "playing in Edge", etc.
         zone_patterns = [
-            r'playing\s+(?:at|in)\s+([^\s?,]+)',  # playing at Edge
+            r'(?:venue|zone|area)\s+called\s+["\']([^"\']+)["\']',  # venue called 'Edge'
+            r'(?:venue|zone|area)\s+named\s+["\']([^"\']+)["\']',   # venue named 'Edge'
+            r'called\s+["\']([^"\']+)["\']',                        # called 'Edge'
+            r'zone\s+(?:called|named)?\s*["\']?([^"\'?,]+)["\']?',  # zone called Edge
+            r'area\s+(?:called|named)?\s*["\']?([^"\'?,]+)["\']?',  # area called Edge
+            r'playing\s+at\s+(?:my\s+)?(?:venue\s+)?(?:called\s+)?["\']?([^"\'?,\s]+)["\']?',  # playing at Edge or at my venue called Edge
             r'currently\s+playing\s+(?:at|in)\s+([^\s?,]+)',  # currently playing at Edge
-            r'what.*playing\s+(?:at|in)\s+([^\s?,]+)',  # what is playing at Edge
-            r'zone\s+(?:called|named)?\s*["\']?([^"\'?,]+)["\']?',  # zone called 'Edge'
-            r'area\s+(?:called|named)?\s*["\']?([^"\'?,]+)["\']?',  # area called 'Edge'
-            r'(?:at|in)\s+([A-Z][a-z]+)(?:\?|$)',  # at Edge? (capitalized word at end)
+            r'what.*playing\s+(?:at|in)\s+([^\s?,]+)(?:\s|$)',  # what is playing at Edge
         ]
         
         for pattern in zone_patterns:
-            match = re.search(pattern, message_lower.replace('edge', 'Edge'))  # Preserve proper names
+            match = re.search(pattern, message_lower)
             if match:
                 zone_query = match.group(1).strip()
-                break
+                # Skip common words that aren't zone names
+                if zone_query and zone_query not in ['my', 'the', 'a', 'an', 'our', 'your', 'venue']:
+                    break
+                else:
+                    zone_query = None
         
         # Fallback to simpler detection for known zones
         if not zone_query and is_music_issue:
@@ -90,7 +96,7 @@ class SoundtrackBot(IntegratedBot):
         
         # If user is asking about a specific zone, try to find it across all accounts
         if zone_query and is_music_issue:
-            logger.info(f"User asking about specific zone: {zone_query}")
+            logger.info(f"Zone query detected: '{zone_query}' from message: '{message}'")
             return self._handle_zone_query(zone_query, user_phone, message)
         
         # If user mentioned a venue and is asking about music, handle it directly
