@@ -35,27 +35,33 @@ class SoundtrackBot(IntegratedBot):
         is_music_issue = any(keyword in message_lower for keyword in music_keywords)
         
         # Check if user is asking about a specific zone
-        zone_keywords = ['zone called', 'zone named', 'soundtrack zone', 'zone', 'area called', 'area named']
+        import re
         zone_query = None
-        for keyword in zone_keywords:
-            if keyword in message_lower:
-                # Extract zone name from patterns like "zone called 'Edge'" or "zone named Lobby"
-                pattern_start = message_lower.find(keyword) + len(keyword)
-                remaining = message_lower[pattern_start:].strip()
-                
-                # Look for quoted zone name
-                if '"' in remaining or "'" in remaining:
-                    import re
-                    match = re.search(r'["\']([^"\']+)["\']', remaining)
-                    if match:
-                        zone_query = match.group(1).strip()
-                        break
-                elif remaining:
-                    # Take the next word(s) as zone name
-                    words = remaining.split()
-                    if words:
-                        zone_query = words[0].strip('.,!?')
-                        break
+        
+        # Look for patterns like "playing at Edge", "playing in Edge", etc.
+        zone_patterns = [
+            r'playing\s+(?:at|in)\s+([^\s?,]+)',  # playing at Edge
+            r'currently\s+playing\s+(?:at|in)\s+([^\s?,]+)',  # currently playing at Edge
+            r'what.*playing\s+(?:at|in)\s+([^\s?,]+)',  # what is playing at Edge
+            r'zone\s+(?:called|named)?\s*["\']?([^"\'?,]+)["\']?',  # zone called 'Edge'
+            r'area\s+(?:called|named)?\s*["\']?([^"\'?,]+)["\']?',  # area called 'Edge'
+            r'(?:at|in)\s+([A-Z][a-z]+)(?:\?|$)',  # at Edge? (capitalized word at end)
+        ]
+        
+        for pattern in zone_patterns:
+            match = re.search(pattern, message_lower.replace('edge', 'Edge'))  # Preserve proper names
+            if match:
+                zone_query = match.group(1).strip()
+                break
+        
+        # Fallback to simpler detection for known zones
+        if not zone_query and is_music_issue:
+            # Known zone names for Hilton Pattaya
+            known_zones = ['edge', 'horizon', 'shore', 'drift bar']
+            for zone in known_zones:
+                if zone in message_lower:
+                    zone_query = zone.title() if zone != 'drift bar' else 'Drift Bar'
+                    break
         
         # Check if user is mentioning they're from a venue (but not asking about zones)
         venue_intro_patterns = ['i am from', "i'm from", 'calling from']
@@ -144,29 +150,53 @@ class SoundtrackBot(IntegratedBot):
         
         logger.info(f"Searching for zone '{zone_name}' across all accounts")
         
+        # First check if user has a venue context
+        from venue_identifier import conversation_context
+        context = conversation_context.get_context(user_phone)
+        venue = context.get('venue')
+        
         try:
-            # Get all accounts and search for the zone
-            accounts = self.soundtrack.get_accounts()
             matching_zones = []
             
-            for account in accounts:
-                account_name = account.get('name', '')
-                for loc_edge in account.get('locations', {}).get('edges', []):
-                    location = loc_edge['node']
-                    location_name = location.get('name', '')
-                    for zone_edge in location.get('soundZones', {}).get('edges', []):
-                        zone = zone_edge['node']
-                        zone_zone_name = zone.get('name', '').lower()
-                        
-                        # Check if zone name matches (case insensitive)
-                        if zone_name.lower() in zone_zone_name or zone_zone_name in zone_name.lower():
-                            zone_info = {
-                                'zone': zone,
-                                'account_name': account_name,
-                                'location_name': location_name,
-                                'exact_match': zone_name.lower() == zone_zone_name
-                            }
-                            matching_zones.append(zone_info)
+            if venue:
+                # User has identified venue - search specifically in that venue
+                venue_name = venue.get('name', '')
+                logger.info(f"User from {venue_name}, searching for zone '{zone_name}'")
+                zones = self.soundtrack.find_venue_zones(venue_name)
+                
+                for zone in zones:
+                    zone_zone_name = zone.get('name', '').lower()
+                    # Check if zone name matches
+                    if zone_name.lower() in zone_zone_name or zone_zone_name in zone_name.lower():
+                        zone_info = {
+                            'zone': zone,
+                            'account_name': zone.get('account_name', venue_name),
+                            'location_name': zone.get('location_name', venue_name),
+                            'exact_match': zone_name.lower() == zone_zone_name
+                        }
+                        matching_zones.append(zone_info)
+            else:
+                # No venue context - search all accounts
+                accounts = self.soundtrack.get_accounts()
+                
+                for account in accounts:
+                    account_name = account.get('name', '')
+                    for loc_edge in account.get('locations', {}).get('edges', []):
+                        location = loc_edge['node']
+                        location_name = location.get('name', '')
+                        for zone_edge in location.get('soundZones', {}).get('edges', []):
+                            zone = zone_edge['node']
+                            zone_zone_name = zone.get('name', '').lower()
+                            
+                            # Check if zone name matches (case insensitive)
+                            if zone_name.lower() in zone_zone_name or zone_zone_name in zone_name.lower():
+                                zone_info = {
+                                    'zone': zone,
+                                    'account_name': account_name,
+                                    'location_name': location_name,
+                                    'exact_match': zone_name.lower() == zone_zone_name
+                                }
+                                matching_zones.append(zone_info)
             
             if not matching_zones:
                 return f"I couldn't find any zone named '{zone_name}' in the Soundtrack system. Could you check the exact zone name?"
@@ -200,6 +230,7 @@ class SoundtrackBot(IntegratedBot):
         """Format detailed status for a specific zone"""
         
         zone = zone_info['zone']
+        zone_id = zone.get('id')
         zone_name = zone.get('name')
         is_online = zone.get('isOnline') or zone.get('online', False)
         is_paired = zone.get('isPaired', False)
@@ -218,24 +249,36 @@ class SoundtrackBot(IntegratedBot):
         else:
             response += "🟢 **Status: Online**\n"
             
-            # Check what's playing
-            now_playing = zone.get('nowPlaying', {})
-            if now_playing and now_playing.get('track'):
-                track = now_playing['track']
-                track_name = track.get('name', 'Unknown Track')
-                artists = track.get('artists', [])
-                artist_names = ', '.join(artists) if artists else 'Unknown Artist'
+            # Fetch current now playing data for this zone
+            try:
+                now_playing = self.soundtrack.get_now_playing(zone_id)
                 
-                # Check if it's actually playing
-                playback = now_playing.get('playback', {})
-                is_playing = playback.get('isPlaying', False) if playback else now_playing.get('isPlaying', False)
-                
-                if is_playing:
+                if now_playing and now_playing.get('track'):
+                    track = now_playing['track']
+                    track_name = track.get('name', 'Unknown Track')
+                    
+                    # Handle artists array properly
+                    artists_data = track.get('artists', [])
+                    if isinstance(artists_data, list) and artists_data:
+                        # If it's a list of dicts with 'name' field
+                        if isinstance(artists_data[0], dict):
+                            artist_names = ', '.join([a.get('name', '') for a in artists_data])
+                        else:
+                            # If it's a list of strings
+                            artist_names = ', '.join(artists_data)
+                    else:
+                        artist_names = 'Unknown Artist'
+                    
                     response += f"🎵 **Now Playing:**\n{track_name} by {artist_names}\n"
+                    
+                    if now_playing.get('startedAt'):
+                        response += f"Started at: {now_playing['startedAt']}\n"
                 else:
-                    response += f"⏸️ **Paused:**\n{track_name} by {artist_names}\n"
-            else:
-                response += "⏸️ **Status: No music playing**\n"
+                    response += "⏸️ **Status: No music currently playing**\n"
+                    
+            except Exception as e:
+                logger.error(f"Error fetching now playing for zone {zone_id}: {e}")
+                response += "⚠️ **Status: Unable to fetch current track information**\n"
         
         return response
     
