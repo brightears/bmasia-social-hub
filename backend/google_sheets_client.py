@@ -83,19 +83,48 @@ class GoogleSheetsClient:
                 logger.warning('No data found in master sheet')
                 return []
             
-            # First row is headers
-            headers = values[0]
+            # Find the header row (look for row with "Client Name" or "Outlet Name")
+            header_row_idx = 0
+            headers = []
+            
+            for idx, row in enumerate(values):
+                if row and any('Client Name' in str(cell) or 'Outlet Name' in str(cell) for cell in row):
+                    header_row_idx = idx
+                    headers = row
+                    break
+            
+            if not headers:
+                # Fallback to first non-empty row
+                for idx, row in enumerate(values):
+                    if row and len(row) > 3:
+                        headers = row
+                        header_row_idx = idx
+                        break
+            
+            if not headers:
+                logger.warning('Could not find headers in sheet')
+                return []
+            
             venues = []
             
-            for row in values[1:]:
+            # Process data rows (after headers)
+            for row in values[header_row_idx + 1:]:
+                if not row or len(row) < 2:  # Skip empty rows
+                    continue
+                    
                 # Create dict from row data
                 venue = {}
                 for i, header in enumerate(headers):
                     if i < len(row):
-                        venue[header.lower().replace(' ', '_')] = row[i]
+                        # Normalize header names
+                        key = header.lower().replace(' ', '_').replace('.', '')
+                        venue[key] = row[i]
                     else:
                         venue[header.lower().replace(' ', '_')] = ''
-                venues.append(venue)
+                        
+                # Only add if it has meaningful data (at least a name)
+                if venue.get('client_name') or venue.get('outlet_name') or venue.get('name'):
+                    venues.append(venue)
             
             logger.info(f"Loaded {len(venues)} venues from Google Sheets")
             return venues
@@ -108,23 +137,34 @@ class GoogleSheetsClient:
         """Find venue by name with fuzzy matching"""
         venues = self.get_all_venues()
         
+        venue_name_lower = venue_name.lower()
+        
+        # Check multiple possible name columns
+        name_fields = ['outlet_name', 'client_name', 'name', 'venue_name', 'property']
+        
         # Exact match first
         for venue in venues:
-            if venue.get('name', '').lower() == venue_name.lower():
-                return venue
+            for field in name_fields:
+                if venue.get(field, '').lower() == venue_name_lower:
+                    return venue
         
-        # Fuzzy match
-        venue_name_lower = venue_name.lower()
+        # Fuzzy match - check if venue_name is contained in any name field
         matches = []
         
         for venue in venues:
-            name = venue.get('name', '').lower()
-            # Check if venue_name is contained in the sheet name
-            if venue_name_lower in name or name in venue_name_lower:
-                matches.append(venue)
+            for field in name_fields:
+                name = venue.get(field, '').lower()
+                if name and (venue_name_lower in name or name in venue_name_lower):
+                    matches.append(venue)
+                    break  # Found a match in this venue, move to next
         
         # Return best match or None
         if matches:
+            # Prefer exact substring matches
+            for match in matches:
+                for field in name_fields:
+                    if venue_name_lower in match.get(field, '').lower():
+                        return match
             return matches[0]
         
         return None

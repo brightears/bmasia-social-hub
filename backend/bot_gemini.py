@@ -36,8 +36,8 @@ class GeminiBot:
         
         genai.configure(api_key=api_key)
         
-        # Use gemini-2.0-flash-exp for latest features
-        model_name = os.getenv('GEMINI_MODEL', 'gemini-2.0-flash-exp')
+        # Use gemini-2.5-flash for better performance
+        model_name = os.getenv('GEMINI_MODEL', 'gemini-2.5-flash')
         self.model = genai.GenerativeModel(model_name)
         
         # Initialize components
@@ -49,7 +49,7 @@ class GeminiBot:
             logger.info("Google Sheets integration enabled")
     
     def process_message(self, message: str, user_phone: str, user_name: str = None) -> str:
-        """Process message using Gemini AI with Soundtrack integration"""
+        """Process message using Gemini AI with integrated data from multiple sources"""
         
         # First check if message mentions a venue
         venue_name = self._extract_venue_name(message)
@@ -61,20 +61,34 @@ class GeminiBot:
         context = conversation_context.get_context(user_phone)
         venue = context.get('venue')
         
-        # Check if message asks about a zone
+        # Gather all available data from multiple sources
+        combined_data = self._gather_all_venue_data(venue, message) if venue else {}
+        
+        # Check for specific queries that need immediate data
+        message_lower = message.lower()
+        
+        # For zone/music queries - check Soundtrack API
         zone_name = self._extract_zone_name(message)
         if zone_name and venue:
-            # Fetch real zone data
             zone_data = self._fetch_zone_data(zone_name, venue)
             if zone_data:
+                # Also add any relevant sheets data
+                if combined_data.get('sheets_data'):
+                    zone_data += f"\n\n📋 Venue Info: {combined_data['sheets_data'].get('zones_info', '')}"
                 return zone_data
         
-        # Check if message asks about venue information from sheets
-        message_lower = message.lower()
-        if venue and any(keyword in message_lower for keyword in ['contact', 'it support', 'phone', 'email', 'details', 'information', 'sheet']):
-            sheets_data = self._get_sheets_data(venue.get('name'), message)
-            if sheets_data:
-                return sheets_data
+        # For contract/contact queries - return Google Sheets data immediately
+        if any(keyword in message_lower for keyword in ['contract', 'renewal', 'expire', 'expiry', 'when will', 'when does']):
+            if combined_data.get('sheets_response'):
+                return combined_data['sheets_response']
+            # If no sheets data but asking about contract, provide helpful response
+            elif 'contract' in message_lower or 'renewal' in message_lower:
+                return self._get_contract_info_from_sheets(venue.get('name')) if venue else "Please tell me which venue you're from first."
+        
+        # For contact info queries
+        if any(keyword in message_lower for keyword in ['contact', 'email', 'phone', 'who is']):
+            if combined_data.get('sheets_response'):
+                return combined_data['sheets_response']
         
         # Build the system prompt with context
         system_prompt = self._build_system_prompt(venue, user_phone)
@@ -82,10 +96,26 @@ class GeminiBot:
         # Add tools/functions context for Gemini
         tools_context = self._build_tools_context()
         
+        # Add combined data context
+        data_context = ""
+        if combined_data:
+            data_context = "\n\nAvailable Data:\n"
+            if combined_data.get('sheets_data'):
+                sheets = combined_data['sheets_data']
+                data_context += f"- Contract expires: {sheets.get('expiry_date', 'N/A')}\n"
+                data_context += f"- Contact: {sheets.get('client_contact', 'N/A')}\n"
+                data_context += f"- Zones in contract: {sheets.get('no_of_zones', 'N/A')}\n"
+            if combined_data.get('soundtrack_zones'):
+                zones = combined_data['soundtrack_zones']
+                online = combined_data.get('online_zones', [])
+                data_context += f"- Active zones: {len(online)}/{len(zones)} online\n"
+                data_context += f"- Zone names: {', '.join([z.get('name', '') for z in zones])}\n"
+        
         # Combine prompts
         full_prompt = f"""{system_prompt}
 
 {tools_context}
+{data_context}
 
 User Context:
 - Phone: {user_phone}
@@ -97,9 +127,14 @@ User Message: {message}
 
 Response Instructions:
 1. If user mentions a venue (e.g., "I am from Hilton Pattaya"), acknowledge it
-2. If user asks about a zone and venue is known, provide the zone information
-3. Be helpful, conversational, and concise
-4. Format responses with **bold** for emphasis
+2. If user asks about contract/renewal/expiry - provide the data immediately from "Available Data" above
+3. NEVER ask for email verification to access contract or venue information
+4. NEVER show "tool_code" or "CHECK_SHEETS" - data is already available
+5. NEVER repeat questions - answer directly with the information you have
+6. Be concise and helpful
+7. Format responses with **bold** for emphasis
+
+IMPORTANT: The contract and venue data is ALREADY AVAILABLE in the context above. Just answer the question directly.
 
 Response:"""
         
@@ -117,6 +152,85 @@ Response:"""
             logger.error(f"Gemini API error: {e}")
             # Fallback to basic response
             return "I'm having trouble processing your request right now. Could you please try again or rephrase your question?"
+    
+    def _gather_all_venue_data(self, venue: Dict, message: str) -> Dict:
+        """Gather data from all available sources for comprehensive response"""
+        
+        combined_data = {}
+        venue_name = venue.get('name') if venue else None
+        
+        if not venue_name:
+            return combined_data
+        
+        # 1. Get Google Sheets data
+        try:
+            if self.sheets:
+                sheets_venue = self.sheets.find_venue_by_name(venue_name)
+                if sheets_venue:
+                    combined_data['sheets_data'] = sheets_venue
+                    # Pre-format common queries
+                    if any(word in message.lower() for word in ['contract', 'renewal', 'expire']):
+                        combined_data['sheets_response'] = self._format_contract_info(sheets_venue, venue_name)
+                    elif any(word in message.lower() for word in ['contact', 'email', 'phone']):
+                        combined_data['sheets_response'] = self._format_contact_info(sheets_venue, venue_name)
+        except Exception as e:
+            logger.debug(f"Could not get sheets data: {e}")
+        
+        # 2. Get Soundtrack zones data
+        try:
+            zones = self.soundtrack.find_venue_zones(venue_name)
+            if zones:
+                combined_data['soundtrack_zones'] = zones
+                combined_data['zone_count'] = len(zones)
+                combined_data['online_zones'] = [z for z in zones if z.get('online') or z.get('isOnline')]
+        except Exception as e:
+            logger.debug(f"Could not get Soundtrack data: {e}")
+        
+        return combined_data
+    
+    def _format_contract_info(self, venue_data: Dict, venue_name: str) -> str:
+        """Format contract information from sheets data"""
+        venue_display = venue_data.get('outlet_name') or venue_data.get('client_name') or venue_name
+        expiry = venue_data.get('expiry_date', 'Not specified')
+        
+        response = f"**{venue_display} Contract Information:**\n\n"
+        response += f"📅 **Contract Expiry:** {expiry}\n"
+        response += f"📝 **Commencement:** {venue_data.get('commencement_date_', 'Not specified')}\n"
+        response += f"🏨 **Group:** {venue_data.get('group', 'Not specified')}\n"
+        response += f"📧 **Contact:** {venue_data.get('client_contact', 'Not specified')}\n"
+        
+        if expiry and expiry != 'Not specified':
+            response += f"\n💡 Your contract expires on {expiry}. Please contact your account manager for renewal options."
+        
+        return response
+    
+    def _get_contract_info_from_sheets(self, venue_name: str) -> str:
+        """Get contract information directly from sheets"""
+        if not self.sheets or not venue_name:
+            return "I need to know your venue to check contract information."
+        
+        try:
+            venue_data = self.sheets.find_venue_by_name(venue_name)
+            if venue_data:
+                return self._format_contract_info(venue_data, venue_name)
+            else:
+                return f"I couldn't find contract information for {venue_name} in our records."
+        except Exception as e:
+            logger.error(f"Error getting contract info: {e}")
+            return "I'm having trouble accessing the contract information right now. Please try again."
+    
+    def _format_contact_info(self, venue_data: Dict, venue_name: str) -> str:
+        """Format contact information from sheets data"""
+        venue_display = venue_data.get('outlet_name') or venue_data.get('client_name') or venue_name
+        
+        response = f"**{venue_display} Contact Information:**\n\n"
+        response += f"👤 **Contact Person:** {venue_data.get('name', venue_data.get('client_contact', 'Not specified'))}\n"
+        response += f"📧 **Email:** {venue_data.get('email', venue_data.get('client_contact', 'Not specified'))}\n"
+        response += f"☎️ **Phone:** {venue_data.get('phone_number', 'Not specified')}\n"
+        response += f"💼 **Position:** {venue_data.get('position_/_job_title', 'Not specified')}\n"
+        response += f"🏢 **Department:** {venue_data.get('department', 'Not specified')}\n"
+        
+        return response
     
     def _build_system_prompt(self, venue: Optional[Dict], user_phone: str) -> str:
         """Build the system prompt with current context"""
@@ -150,19 +264,23 @@ Available Zones: {zones_info}"""
         """Build context about available tools/functions"""
         
         return """
-Available Actions:
-- SEARCH_ZONES: When user asks about zones or what's playing
-- CHECK_ZONE_STATUS: When user mentions a specific zone name
-- IDENTIFY_VENUE: When user mentions their venue name
-- REQUEST_AUTH: When privileged action needs email verification
-- CHECK_SHEETS: When user asks about venue data, contacts, or configurations
+Intelligent Data Sources:
+I automatically check multiple sources to provide comprehensive information:
 
-Examples:
-- "What's playing at Edge?" -> CHECK_ZONE_STATUS for Edge zone
-- "I'm from Hilton Pattaya" -> IDENTIFY_VENUE as Hilton Pattaya
-- "Show me all zones" -> SEARCH_ZONES for current venue
-- "What's our IT contact?" -> CHECK_SHEETS for venue contacts
-- "Show venue details" -> CHECK_SHEETS for venue information
+1. **Google Sheets** - For:
+   - Contract details and expiry dates
+   - Contact information (names, emails, phones)
+   - Venue configuration and metadata
+   - Business information
+
+2. **Soundtrack API** - For:
+   - Real-time music playing in zones
+   - Zone online/offline status
+   - Current track information
+   - Playback control
+
+I intelligently combine data from both sources to give complete answers.
+No manual actions needed - I automatically fetch all relevant data.
 """
     
     def _get_venue_zones_info(self, venue_name: str) -> str:
@@ -196,32 +314,51 @@ Examples:
                 return f"Venue '{venue_name}' not found in Google Sheets"
             
             # Format response based on query type
-            response = f"**{venue_data.get('name', venue_name)} Information:**\n\n"
+            venue_display_name = venue_data.get('outlet_name') or venue_data.get('client_name') or venue_name
+            response = f"**{venue_display_name} Information:**\n\n"
             
             if 'contact' in query_type.lower() or 'it' in query_type.lower():
                 # Show contact information
-                response += f"📞 **IT Contact:** {venue_data.get('it_contact', 'Not specified')}\n"
-                response += f"📧 **Email:** {venue_data.get('email', 'Not specified')}\n"
-                response += f"☎️ **Phone:** {venue_data.get('phone', 'Not specified')}\n"
+                contact_name = venue_data.get('name', venue_data.get('client_contact', 'Not specified'))
+                email = venue_data.get('email', venue_data.get('client_contact', 'Not specified'))
+                phone = venue_data.get('phone_number', venue_data.get('phone', 'Not specified'))
+                
+                response += f"👤 **Contact Person:** {contact_name}\n"
+                response += f"📧 **Email:** {email}\n"
+                response += f"☎️ **Phone:** {phone}\n"
+                response += f"💼 **Position:** {venue_data.get('position_/_job_title', 'Not specified')}\n"
             
             elif 'venue' in query_type.lower() or 'detail' in query_type.lower():
                 # Show venue details
                 response += f"📍 **Address:** {venue_data.get('address', 'Not specified')}\n"
-                response += f"🏢 **Type:** {venue_data.get('type', 'Not specified')}\n"
-                response += f"🎵 **Zones:** {venue_data.get('zones_count', 'Not specified')}\n"
-                response += f"📅 **Contract:** {venue_data.get('contract_end', 'Not specified')}\n"
+                response += f"🏢 **Type:** {venue_data.get('client_type', 'Not specified')}\n"
+                response += f"🎵 **Zones:** {venue_data.get('no_of_zones', 'Not specified')}\n"
+                response += f"📅 **Contract Expiry:** {venue_data.get('expiry_date', 'Not specified')}\n"
+                response += f"🏨 **Group:** {venue_data.get('group', 'Not specified')}\n"
+            
+            elif 'contract' in query_type.lower() or 'renewal' in query_type.lower() or 'expire' in query_type.lower():
+                # Show contract information
+                expiry = venue_data.get('expiry_date', 'Not specified')
+                response += f"📅 **Contract Expiry Date:** {expiry}\n"
+                response += f"📝 **Commencement Date:** {venue_data.get('commencement_date_', 'Not specified')}\n"
+                response += f"🏨 **Group:** {venue_data.get('group', 'Not specified')}\n"
+                response += f"📧 **Contact:** {venue_data.get('client_contact', 'Not specified')}\n"
+                
+                # Add renewal reminder if date is available
+                if expiry and expiry != 'Not specified':
+                    response += f"\n💡 Your contract expires on {expiry}. Please contact your account manager for renewal options."
             
             elif 'zone' in query_type.lower():
                 # Show zone configuration from sheets
                 response += f"**Zone Configuration:**\n"
-                zones = venue_data.get('zones', '').split(',') if venue_data.get('zones') else []
-                for zone in zones:
-                    response += f"• {zone.strip()}\n"
+                response += f"🎵 **Number of Zones:** {venue_data.get('no_of_zones', 'Not specified')}\n"
+                response += f"🎮 **Platform:** {venue_data.get('platform', 'Not specified')}\n"
+                response += f"📍 **Outlet:** {venue_data.get('outlet_name', 'Not specified')}\n"
             
             else:
                 # Show all available data
                 for key, value in venue_data.items():
-                    if value and key not in ['id', 'sheet_id']:
+                    if value and key not in ['id', 'sheet_id', 'index']:
                         formatted_key = key.replace('_', ' ').title()
                         response += f"**{formatted_key}:** {value}\n"
             
