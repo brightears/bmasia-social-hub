@@ -28,25 +28,32 @@ WHATSAPP_VERIFY_TOKEN = os.getenv("WHATSAPP_VERIFY_TOKEN", "bma_whatsapp_verify_
 WHATSAPP_WEBHOOK_SECRET = os.getenv("WHATSAPP_WEBHOOK_SECRET", "bma_webhook_secret_2024")
 LINE_CHANNEL_SECRET = os.getenv("LINE_CHANNEL_SECRET", "")
 
-# Import bot for responses - try Soundtrack-enabled version first
+# Import bot for responses - try Gemini AI-powered version first
 try:
-    from bot_soundtrack import soundtrack_bot as bot
+    from bot_gemini import gemini_bot as bot
     from bot_simple import sender
     BOT_ENABLED = True
-    logger.info("✅ Soundtrack-enabled bot loaded with full API integration")
-except ImportError:
+    logger.info("✅ Gemini AI-powered bot loaded with natural language understanding")
+except ImportError as e:
+    logger.warning(f"⚠️ Gemini bot not available: {e}")
     try:
-        from bot_integrated import integrated_bot as bot
+        from bot_soundtrack import soundtrack_bot as bot
         from bot_simple import sender
         BOT_ENABLED = True
-        logger.info("✅ Integrated bot loaded with email verification")
+        logger.info("✅ Soundtrack-enabled bot loaded (fallback)")
     except ImportError:
         try:
-            from bot_simple import bot, sender
+            from bot_integrated import integrated_bot as bot
+            from bot_simple import sender
             BOT_ENABLED = True
-            logger.info("✅ Simple bot loaded")
-        except ImportError as e:
-            logger.warning(f"⚠️ Bot module not available: {e}")
+            logger.info("✅ Integrated bot loaded (fallback)")
+        except ImportError:
+            try:
+                from bot_simple import bot, sender
+                BOT_ENABLED = True
+                logger.info("✅ Simple bot loaded (final fallback)")
+            except ImportError as e:
+                logger.warning(f"⚠️ Bot module not available: {e}")
             BOT_ENABLED = False
             bot = None
             sender = None
