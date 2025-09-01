@@ -136,31 +136,37 @@ class SoundtrackAPI:
         
         query = """
         query GetAccounts {
-            accounts {
-                edges {
-                    node {
-                        id
-                        name
-                        accountType
-                        locations {
-                            edges {
-                                node {
-                                    id
-                                    name
-                                    address
-                                    soundZones {
-                                        edges {
-                                            node {
-                                                id
-                                                name
-                                                isPaired
-                                                isOnline
-                                                nowPlaying {
-                                                    track {
+            me {
+                ... on PublicAPIClient {
+                    id
+                    accounts(first: 50) {
+                        edges {
+                            node {
+                                id
+                                businessName
+                                locations(first: 50) {
+                                    edges {
+                                        node {
+                                            id
+                                            name
+                                            address
+                                            soundZones(first: 50) {
+                                                edges {
+                                                    node {
+                                                        id
                                                         name
-                                                        artists
+                                                        isPaired
+                                                        online
+                                                        nowPlaying {
+                                                            track {
+                                                                name
+                                                                artists
+                                                            }
+                                                            playback {
+                                                                isPlaying
+                                                            }
+                                                        }
                                                     }
-                                                    isPlaying
                                                 }
                                             }
                                         }
@@ -179,9 +185,16 @@ class SoundtrackAPI:
         if 'error' in result:
             return []
         
+        # Extract accounts from the me.accounts structure
         accounts = []
-        for edge in result.get('accounts', {}).get('edges', []):
-            accounts.append(edge['node'])
+        me_data = result.get('me', {})
+        if me_data and 'accounts' in me_data:
+            for edge in me_data['accounts'].get('edges', []):
+                account = edge['node']
+                # Normalize field names for backward compatibility
+                if 'businessName' in account:
+                    account['name'] = account['businessName']
+                accounts.append(account)
         
         # Cache results
         self.accounts_cache['accounts'] = accounts
@@ -226,6 +239,9 @@ class SoundtrackAPI:
                         zone['location_name'] = location.get('name')
                         zone['account_name'] = account.get('name')
                         zone['match_score'] = max(match_score, loc_match_score)
+                        # Normalize field names for consistency
+                        if 'online' in zone:
+                            zone['isOnline'] = zone['online']
                         zones.append(zone)
         
         # Sort by match score (best matches first)
@@ -265,7 +281,8 @@ class SoundtrackAPI:
                     location = loc_edge['node']
                     for zone_edge in location.get('soundZones', {}).get('edges', []):
                         total_zones += 1
-                        if zone_edge['node'].get('isOnline'):
+                        zone_node = zone_edge['node']
+                        if zone_node.get('isOnline') or zone_node.get('online'):
                             online_zones += 1
                 
                 matches.append({
@@ -446,10 +463,11 @@ class SoundtrackAPI:
         }
         
         for zone in zones:
+            is_online = zone.get('isOnline') or zone.get('online', False)
             zone_status = {
                 'name': zone.get('name'),
                 'location': zone.get('location_name'),
-                'is_online': zone.get('isOnline', False),
+                'is_online': is_online,
                 'is_paired': zone.get('isPaired', False),
                 'issues': []
             }
@@ -458,7 +476,7 @@ class SoundtrackAPI:
             if not zone.get('isPaired'):
                 zone_status['issues'].append('Device not paired')
             
-            if not zone.get('isOnline'):
+            if not is_online:
                 zone_status['issues'].append('Device offline')
                 diagnosis['offline_zones'] += 1
             else:
@@ -466,9 +484,13 @@ class SoundtrackAPI:
                 
                 # Check playback status
                 now_playing = zone.get('nowPlaying', {})
-                if now_playing.get('isPlaying'):
+                playback = now_playing.get('playback', {}) if now_playing else {}
+                is_playing = playback.get('isPlaying', False) if playback else now_playing.get('isPlaying', False)
+                
+                if is_playing:
                     diagnosis['playing_zones'] += 1
-                    zone_status['currently_playing'] = now_playing.get('track', {}).get('name')
+                    if now_playing and now_playing.get('track'):
+                        zone_status['currently_playing'] = now_playing['track'].get('name')
                 else:
                     diagnosis['paused_zones'] += 1
                     zone_status['issues'].append('Music paused or stopped')

@@ -34,9 +34,32 @@ class SoundtrackBot(IntegratedBot):
         message_lower = message.lower()
         is_music_issue = any(keyword in message_lower for keyword in music_keywords)
         
-        # Check if user is mentioning they're from a venue
-        venue_intro_patterns = ['i am from', "i'm from", 'from', 'at', 'calling from']
-        is_venue_intro = any(pattern in message_lower for pattern in venue_intro_patterns)
+        # Check if user is asking about a specific zone
+        zone_keywords = ['zone called', 'zone named', 'soundtrack zone', 'zone', 'area called', 'area named']
+        zone_query = None
+        for keyword in zone_keywords:
+            if keyword in message_lower:
+                # Extract zone name from patterns like "zone called 'Edge'" or "zone named Lobby"
+                pattern_start = message_lower.find(keyword) + len(keyword)
+                remaining = message_lower[pattern_start:].strip()
+                
+                # Look for quoted zone name
+                if '"' in remaining or "'" in remaining:
+                    import re
+                    match = re.search(r'["\']([^"\']+)["\']', remaining)
+                    if match:
+                        zone_query = match.group(1).strip()
+                        break
+                elif remaining:
+                    # Take the next word(s) as zone name
+                    words = remaining.split()
+                    if words:
+                        zone_query = words[0].strip('.,!?')
+                        break
+        
+        # Check if user is mentioning they're from a venue (but not asking about zones)
+        venue_intro_patterns = ['i am from', "i'm from", 'calling from']
+        is_venue_intro = any(pattern in message_lower for pattern in venue_intro_patterns) and not zone_query
         
         # Extract potential venue name if user is introducing their venue
         potential_venue = None
@@ -55,9 +78,14 @@ class SoundtrackBot(IntegratedBot):
                             venue_part = venue_part.split('can you')[0].strip()
                         if ',' in venue_part:
                             venue_part = venue_part.split(',')[0].strip()
-                        if venue_part:
+                        if venue_part and len(venue_part.split()) <= 4:  # Reasonable venue name length
                             potential_venue = venue_part
                             break
+        
+        # If user is asking about a specific zone, try to find it across all accounts
+        if zone_query and is_music_issue:
+            logger.info(f"User asking about specific zone: {zone_query}")
+            return self._handle_zone_query(zone_query, user_phone, message)
         
         # If user mentioned a venue and is asking about music, handle it directly
         if potential_venue and is_music_issue:
@@ -110,6 +138,106 @@ class SoundtrackBot(IntegratedBot):
         
         # If music issue and venue identified, check Soundtrack status
         return self._handle_music_issue(message, venue_name, base_response)
+    
+    def _handle_zone_query(self, zone_name: str, user_phone: str, message: str) -> str:
+        """Handle queries about specific zones across all accounts"""
+        
+        logger.info(f"Searching for zone '{zone_name}' across all accounts")
+        
+        try:
+            # Get all accounts and search for the zone
+            accounts = self.soundtrack.get_accounts()
+            matching_zones = []
+            
+            for account in accounts:
+                account_name = account.get('name', '')
+                for loc_edge in account.get('locations', {}).get('edges', []):
+                    location = loc_edge['node']
+                    location_name = location.get('name', '')
+                    for zone_edge in location.get('soundZones', {}).get('edges', []):
+                        zone = zone_edge['node']
+                        zone_zone_name = zone.get('name', '').lower()
+                        
+                        # Check if zone name matches (case insensitive)
+                        if zone_name.lower() in zone_zone_name or zone_zone_name in zone_name.lower():
+                            zone_info = {
+                                'zone': zone,
+                                'account_name': account_name,
+                                'location_name': location_name,
+                                'exact_match': zone_name.lower() == zone_zone_name
+                            }
+                            matching_zones.append(zone_info)
+            
+            if not matching_zones:
+                return f"I couldn't find any zone named '{zone_name}' in the Soundtrack system. Could you check the exact zone name?"
+            
+            # Sort by exact matches first
+            matching_zones.sort(key=lambda x: x['exact_match'], reverse=True)
+            
+            if len(matching_zones) == 1:
+                # Single match - provide detailed info
+                zone_info = matching_zones[0]
+                return self._format_zone_status(zone_info, message)
+            else:
+                # Multiple matches - show list
+                response = f"I found {len(matching_zones)} zones matching '{zone_name}':\n\n"
+                for i, zone_info in enumerate(matching_zones[:5], 1):
+                    zone = zone_info['zone']
+                    is_online = zone.get('isOnline') or zone.get('online', False)
+                    status = "🟢 Online" if is_online else "🔴 Offline"
+                    response += f"{i}. **{zone.get('name')}** - {status}\n"
+                    response += f"   Location: {zone_info['location_name']}\n"
+                    response += f"   Account: {zone_info['account_name']}\n\n"
+                
+                response += "Which zone would you like to check? Reply with the number."
+                return response
+                
+        except Exception as e:
+            logger.error(f"Error searching for zone '{zone_name}': {e}")
+            return f"Sorry, I'm having trouble connecting to the Soundtrack system right now. Please try again in a moment."
+    
+    def _format_zone_status(self, zone_info: dict, original_message: str) -> str:
+        """Format detailed status for a specific zone"""
+        
+        zone = zone_info['zone']
+        zone_name = zone.get('name')
+        is_online = zone.get('isOnline') or zone.get('online', False)
+        is_paired = zone.get('isPaired', False)
+        
+        response = f"**Zone Status: {zone_name}**\n"
+        response += f"Location: {zone_info['location_name']}\n"
+        response += f"Account: {zone_info['account_name']}\n\n"
+        
+        if not is_paired:
+            response += "🔴 **Status: Device Not Paired**\n"
+            response += "The Soundtrack device needs to be paired. Please check the device setup.\n"
+        elif not is_online:
+            response += "🔴 **Status: Offline**\n"
+            response += "The device is not connected. Please check:\n"
+            response += "• Power connection\n• Network connectivity\n• Device LED status\n"
+        else:
+            response += "🟢 **Status: Online**\n"
+            
+            # Check what's playing
+            now_playing = zone.get('nowPlaying', {})
+            if now_playing and now_playing.get('track'):
+                track = now_playing['track']
+                track_name = track.get('name', 'Unknown Track')
+                artists = track.get('artists', [])
+                artist_names = ', '.join(artists) if artists else 'Unknown Artist'
+                
+                # Check if it's actually playing
+                playback = now_playing.get('playback', {})
+                is_playing = playback.get('isPlaying', False) if playback else now_playing.get('isPlaying', False)
+                
+                if is_playing:
+                    response += f"🎵 **Now Playing:**\n{track_name} by {artist_names}\n"
+                else:
+                    response += f"⏸️ **Paused:**\n{track_name} by {artist_names}\n"
+            else:
+                response += "⏸️ **Status: No music playing**\n"
+        
+        return response
     
     def _handle_music_query(self, message: str, venue_name: str, user_phone: str) -> str:
         """Handle direct music queries from authenticated users"""
