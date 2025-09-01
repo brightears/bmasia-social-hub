@@ -61,10 +61,18 @@ def test_api_connection():
     # Test query - get accounts
     test_query = """
     query TestConnection {
-        viewer {
-            id
-            name
-            email
+        me {
+            ... on PublicAPIClient {
+                id
+                accounts(first: 1) {
+                    edges {
+                        node {
+                            id
+                            businessName
+                        }
+                    }
+                }
+            }
         }
     }
     """

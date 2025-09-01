@@ -11,6 +11,7 @@ from typing import Dict, Any, Optional, List
 from datetime import datetime, timedelta
 import requests
 from requests.auth import HTTPBasicAuth
+from venue_accounts import VENUE_ACCOUNTS, find_venue_account
 
 logger = logging.getLogger(__name__)
 
@@ -157,15 +158,6 @@ class SoundtrackAPI:
                                                         name
                                                         isPaired
                                                         online
-                                                        nowPlaying {
-                                                            track {
-                                                                name
-                                                                artists
-                                                            }
-                                                            playback {
-                                                                isPlaying
-                                                            }
-                                                        }
                                                     }
                                                 }
                                             }
@@ -202,10 +194,70 @@ class SoundtrackAPI:
         
         return accounts
     
+    def get_account_by_id(self, account_id: str) -> Dict:
+        """Get specific account data by its ID"""
+        
+        query = """
+        query GetAccount($id: ID!) {
+            account(id: $id) {
+                id
+                businessName
+                locations(first: 50) {
+                    edges {
+                        node {
+                            id
+                            name
+                            soundZones(first: 50) {
+                                edges {
+                                    node {
+                                        id
+                                        name
+                                        isPaired
+                                        online
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        """
+        
+        result = self._execute_query(query, {'id': account_id})
+        
+        if 'error' in result:
+            return None
+        
+        return result.get('account')
+    
     def find_venue_zones(self, venue_name: str) -> List[Dict]:
         """Find all zones for a specific venue with fuzzy matching"""
-        accounts = self.get_accounts()
         zones = []
+        
+        # First check if it's a known venue with direct account ID
+        venue_account = find_venue_account(venue_name)
+        if venue_account:
+            logger.info(f"Found known venue: {venue_account['name']}")
+            account_data = self.get_account_by_id(venue_account['account_id'])
+            
+            if account_data:
+                for loc_edge in account_data.get('locations', {}).get('edges', []):
+                    location = loc_edge['node']
+                    for zone_edge in location.get('soundZones', {}).get('edges', []):
+                        zone = zone_edge['node']
+                        zone['location_name'] = location.get('name')
+                        zone['account_name'] = account_data.get('businessName')
+                        zone['match_score'] = 3  # Highest score for exact match
+                        # Normalize field names for consistency
+                        if 'online' in zone:
+                            zone['isOnline'] = zone['online']
+                        zones.append(zone)
+                
+                return zones
+        
+        # Fall back to searching through accessible accounts
+        accounts = self.get_accounts()
         
         # Clean search term
         search_terms = venue_name.lower().split()
@@ -417,18 +469,11 @@ class SoundtrackAPI:
                 track {
                     id
                     name
-                    artists
-                    album
-                    duration
-                    imageUrl
+                    artists {
+                        name
+                    }
                 }
-                isPlaying
-                position
                 startedAt
-                playlist {
-                    id
-                    name
-                }
             }
         }
         """
