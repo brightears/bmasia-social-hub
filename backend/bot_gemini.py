@@ -12,6 +12,16 @@ from soundtrack_api import soundtrack_api
 from venue_identifier import conversation_context
 from email_verification import email_verifier
 
+# Import Google Sheets client
+try:
+    from google_sheets_client import GoogleSheetsClient
+    sheets_client = GoogleSheetsClient()
+    SHEETS_AVAILABLE = True
+except Exception as e:
+    logger.warning(f"Google Sheets not available: {e}")
+    sheets_client = None
+    SHEETS_AVAILABLE = False
+
 logger = logging.getLogger(__name__)
 
 class GeminiBot:
@@ -32,8 +42,11 @@ class GeminiBot:
         
         # Initialize components
         self.soundtrack = soundtrack_api
+        self.sheets = sheets_client if SHEETS_AVAILABLE else None
         
         logger.info(f"Gemini bot initialized with model: {model_name}")
+        if SHEETS_AVAILABLE:
+            logger.info("Google Sheets integration enabled")
     
     def process_message(self, message: str, user_phone: str, user_name: str = None) -> str:
         """Process message using Gemini AI with Soundtrack integration"""
@@ -55,6 +68,13 @@ class GeminiBot:
             zone_data = self._fetch_zone_data(zone_name, venue)
             if zone_data:
                 return zone_data
+        
+        # Check if message asks about venue information from sheets
+        message_lower = message.lower()
+        if venue and any(keyword in message_lower for keyword in ['contact', 'it support', 'phone', 'email', 'details', 'information', 'sheet']):
+            sheets_data = self._get_sheets_data(venue.get('name'), message)
+            if sheets_data:
+                return sheets_data
         
         # Build the system prompt with context
         system_prompt = self._build_system_prompt(venue, user_phone)
@@ -135,11 +155,14 @@ Available Actions:
 - CHECK_ZONE_STATUS: When user mentions a specific zone name
 - IDENTIFY_VENUE: When user mentions their venue name
 - REQUEST_AUTH: When privileged action needs email verification
+- CHECK_SHEETS: When user asks about venue data, contacts, or configurations
 
 Examples:
 - "What's playing at Edge?" -> CHECK_ZONE_STATUS for Edge zone
 - "I'm from Hilton Pattaya" -> IDENTIFY_VENUE as Hilton Pattaya
 - "Show me all zones" -> SEARCH_ZONES for current venue
+- "What's our IT contact?" -> CHECK_SHEETS for venue contacts
+- "Show venue details" -> CHECK_SHEETS for venue information
 """
     
     def _get_venue_zones_info(self, venue_name: str) -> str:
@@ -158,6 +181,55 @@ Examples:
         except Exception as e:
             logger.error(f"Error getting zones for {venue_name}: {e}")
             return "Unable to fetch zones"
+    
+    def _get_sheets_data(self, venue_name: str, query_type: str) -> Optional[str]:
+        """Get data from Google Sheets for a venue"""
+        
+        if not self.sheets:
+            return None
+        
+        try:
+            # Find venue in master sheet
+            venue_data = self.sheets.find_venue_by_name(venue_name)
+            
+            if not venue_data:
+                return f"Venue '{venue_name}' not found in Google Sheets"
+            
+            # Format response based on query type
+            response = f"**{venue_data.get('name', venue_name)} Information:**\n\n"
+            
+            if 'contact' in query_type.lower() or 'it' in query_type.lower():
+                # Show contact information
+                response += f"📞 **IT Contact:** {venue_data.get('it_contact', 'Not specified')}\n"
+                response += f"📧 **Email:** {venue_data.get('email', 'Not specified')}\n"
+                response += f"☎️ **Phone:** {venue_data.get('phone', 'Not specified')}\n"
+            
+            elif 'venue' in query_type.lower() or 'detail' in query_type.lower():
+                # Show venue details
+                response += f"📍 **Address:** {venue_data.get('address', 'Not specified')}\n"
+                response += f"🏢 **Type:** {venue_data.get('type', 'Not specified')}\n"
+                response += f"🎵 **Zones:** {venue_data.get('zones_count', 'Not specified')}\n"
+                response += f"📅 **Contract:** {venue_data.get('contract_end', 'Not specified')}\n"
+            
+            elif 'zone' in query_type.lower():
+                # Show zone configuration from sheets
+                response += f"**Zone Configuration:**\n"
+                zones = venue_data.get('zones', '').split(',') if venue_data.get('zones') else []
+                for zone in zones:
+                    response += f"• {zone.strip()}\n"
+            
+            else:
+                # Show all available data
+                for key, value in venue_data.items():
+                    if value and key not in ['id', 'sheet_id']:
+                        formatted_key = key.replace('_', ' ').title()
+                        response += f"**{formatted_key}:** {value}\n"
+            
+            return response
+            
+        except Exception as e:
+            logger.error(f"Error accessing Google Sheets: {e}")
+            return None
     
     def _process_ai_response(self, ai_response: str, original_message: str, user_phone: str, venue: Optional[Dict]) -> str:
         """Process AI response and handle any detected actions"""
