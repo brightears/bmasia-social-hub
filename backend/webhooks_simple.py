@@ -171,7 +171,7 @@ async def whatsapp_webhook(
                         try:
                             # Use integrated bot's process_message if available
                             if hasattr(bot, 'process_message'):
-                                response_text = bot.process_message(content, from_number, contact_name)
+                                response_text = bot.process_message(content, from_number, contact_name, platform="WhatsApp")
                             else:
                                 # Fallback to simple generate_response
                                 response_text = bot.generate_response(content, contact_name)
@@ -268,7 +268,7 @@ async def test_whatsapp_webhook():
                 if BOT_ENABLED and bot and sender:
                     try:
                         if hasattr(bot, 'process_message'):
-                            response_text = bot.process_message(content, from_number, contact_name)
+                            response_text = bot.process_message(content, from_number, contact_name, platform="LINE")
                         else:
                             response_text = bot.generate_response(content, contact_name)
                         

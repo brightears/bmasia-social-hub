@@ -32,6 +32,15 @@ except Exception as e:
     smart_email_searcher = None
     GMAIL_AVAILABLE = False
 
+# Import Google Chat for escalations
+try:
+    from google_chat_client import chat_client, should_escalate, Department, Priority
+    CHAT_AVAILABLE = True
+except Exception as e:
+    logger.warning(f"Google Chat not available: {e}")
+    chat_client = None
+    CHAT_AVAILABLE = False
+
 logger = logging.getLogger(__name__)
 
 class GeminiBot:
@@ -58,7 +67,7 @@ class GeminiBot:
         if SHEETS_AVAILABLE:
             logger.info("Google Sheets integration enabled")
     
-    def process_message(self, message: str, user_phone: str, user_name: str = None) -> str:
+    def process_message(self, message: str, user_phone: str, user_name: str = None, platform: str = "WhatsApp") -> str:
         """Process message using Gemini AI with integrated data from multiple sources"""
         
         # First check if message mentions a venue
@@ -137,16 +146,15 @@ User Context:
 
 User Message: {message}
 
-Response Instructions:
-1. If user mentions a venue (e.g., "I am from Hilton Pattaya"), acknowledge it
-2. If user asks about contract/renewal/expiry - provide the data immediately from "Available Data" above
-3. NEVER ask for email verification to access contract or venue information
-4. NEVER show "tool_code" or "CHECK_SHEETS" - data is already available
-5. NEVER repeat questions - answer directly with the information you have
-6. Be concise and helpful
-7. Format responses with **bold** for emphasis
+Response Guidelines:
+1. If they mention their venue, acknowledge it naturally: "Got it, checking Hilton Pattaya's system now..."
+2. For contract questions - give the info conversationally: "Your contract runs until October 31st, 2025"
+3. NEVER ask for verification - you already have their info
+4. Keep it short and natural - this is WhatsApp chat
+5. When something's wrong, show you care: "That's not right, let me look into this"
+6. End with something helpful: "Anything else I can check for you?" or "Let me know if that helps!"
 
-IMPORTANT: The contract and venue data is ALREADY AVAILABLE in the context above. Just answer the question directly.
+Remember: You're Scott, a real person helping via WhatsApp. Be human, be helpful, be brief.
 
 Response:"""
         
@@ -157,6 +165,38 @@ Response:"""
             
             # Process any actions detected by Gemini
             processed_response = self._process_ai_response(ai_response, message, user_phone, venue)
+            
+            # Check if this needs escalation to Google Chat
+            if CHAT_AVAILABLE and chat_client and should_escalate(message):
+                try:
+                    # Gather context for escalation
+                    venue_data_for_chat = {}
+                    if combined_data.get('sheets_data'):
+                        sheets = combined_data['sheets_data']
+                        venue_data_for_chat = {
+                            'contract_end': sheets.get('expiry_date'),
+                            'zones': sheets.get('no_of_zones'),
+                            'contact': sheets.get('client_contact')
+                        }
+                    
+                    # Send to Google Chat
+                    chat_client.send_notification(
+                        message=message,
+                        venue_name=venue.get('name') if venue else None,
+                        venue_data=venue_data_for_chat,
+                        user_info={
+                            'name': user_name or 'Unknown',
+                            'phone': user_phone,
+                            'platform': platform
+                        },
+                        context=f"Bot response: {processed_response[:200]}..."
+                    )
+                    
+                    # Add escalation notice to response
+                    processed_response += "\n\n🚨 *This issue has been escalated to our support team for immediate attention.*"
+                    
+                except Exception as e:
+                    logger.error(f"Failed to escalate to Google Chat: {e}")
             
             return processed_response
             
@@ -265,18 +305,34 @@ Response:"""
     def _build_system_prompt(self, venue: Optional[Dict], user_phone: str) -> str:
         """Build the system prompt with current context"""
         
-        base_prompt = """You are the BMA Social AI Assistant, helping venue staff with their Soundtrack Your Brand music systems.
+        base_prompt = """You're Scott from the BMA support team, helping venues with their music systems.
 
-Your capabilities:
-- Check music zone status and what's currently playing
-- Diagnose music playback issues
-- Provide troubleshooting steps
-- Access real-time zone data from Soundtrack API
+Personality & Style:
+- Be conversational and natural, like a helpful colleague chatting on WhatsApp
+- Use contractions (I'm, you're, let's, that's) 
+- Show empathy when there are problems ("Oh no, that's frustrating!" or "I understand how annoying that must be")
+- Be friendly but professional
+- Keep responses concise - this is WhatsApp, not email
 
-Key Information:
-- Venues use Soundtrack Your Brand for background music
-- Common zones: Lobby, Restaurant, Bar, Pool, Spa, Edge, Horizon, Shore
-- Issues include: music stopped, volume problems, device offline, network issues"""
+How to respond:
+- Acknowledge issues naturally: "Let me check what's happening with your music zones..."
+- Explain simply: "Looks like Edge zone went offline about 10 minutes ago"
+- Offer help conversationally: "I can help you get that sorted"
+- Use their name occasionally if you know it
+- Add appropriate emojis sparingly (👍 ✅ 🎵) but don't overdo it
+
+What you know:
+- Venues use Soundtrack Your Brand for their background music
+- Common zone names: Lobby, Restaurant, Bar, Pool, Spa, Edge, Horizon, Shore
+- Common issues: music stopped, offline zones, volume problems, network issues
+- You have access to real-time zone status and what's playing
+
+Never:
+- Say you're an AI, bot, or assistant
+- Use overly formal language
+- Give long technical explanations
+- Start with "Greetings" or "Hello, I am..."
+- Use robotic phrases like "How may I assist you today?" """
         
         if venue:
             # Add venue-specific context
