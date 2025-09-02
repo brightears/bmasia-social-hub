@@ -1,5 +1,5 @@
 # Integration Status Dashboard
-**Last Updated: September 1, 2025**
+**Last Updated: December 2, 2024**
 
 ## 🟢 ACTIVE INTEGRATIONS
 
@@ -10,13 +10,13 @@
 | **Soundtrack API** | ✅ Active | Zone status, Now playing | GraphQL with pooling |
 | **WhatsApp** | ✅ Active | Message receive/send | Webhook verified |
 | **LINE** | ✅ Active | Message receive/send | Webhook verified |
+| **Gmail** | ✅ Active | Email history, Smart search, 7 accounts | Domain-wide delegation active |
 
 ## 🟡 READY BUT NOT ACTIVE
 
 | Service | Status | Features | Blocker |
 |---------|--------|----------|---------|
-| **Gmail** | ⏳ Ready | Email history, Smart search | Needs API permissions |
-| **Email Verification** | ⏳ Ready | One-time verification | Currently disabled |
+| **Email Verification** | ⏳ Ready | One-time verification | Currently disabled (not needed) |
 
 ## 🔵 PLANNED INTEGRATIONS
 
@@ -31,8 +31,8 @@
 
 ### Google APIs
 - **Sheets API**: Using ~10% of quota
-- **Gmail API**: 0% (not active)
-- **Drive API**: 0% (not enabled)
+- **Gmail API**: Using ~5% of quota (7 accounts active)
+- **Drive API**: 0% (not enabled yet)
 - **Daily Limit**: 1,000,000 requests
 
 ### Soundtrack API
