@@ -32,7 +32,10 @@ class GmailClient:
         'norbert@bmasiamusic.com',
         'production@bmasiamusic.com',
         'keith@bmasiamusic.com',
-        # Add more team members as needed
+        'support@bmasiamusic.com',
+        'pom@bmasiamusic.com',  # Finance
+        'nikki.h@bmasiamusic.com',
+        'scott@bmasiamusic.com',
     ]
     
     # Performance limits
