@@ -12,6 +12,8 @@ from datetime import datetime
 
 from fastapi import APIRouter, Request, Response, HTTPException, BackgroundTasks, Query
 from fastapi.responses import PlainTextResponse
+import time
+from collections import defaultdict
 
 # Simple config using environment variables
 import os
@@ -22,6 +24,10 @@ load_dotenv()
 logger = logging.getLogger(__name__)
 
 router = APIRouter()
+
+# Simple deduplication - track recent message IDs
+processed_messages = defaultdict(float)
+MESSAGE_DEDUPE_WINDOW = 10  # seconds
 
 # Get config from environment
 WHATSAPP_VERIFY_TOKEN = os.getenv("WHATSAPP_VERIFY_TOKEN", "bma_whatsapp_verify_2024")
@@ -139,6 +145,19 @@ async def whatsapp_webhook(
                 message_id = message.get("id")
                 from_number = message.get("from")
                 message_type = message.get("type")
+                
+                # Check for duplicate messages
+                current_time = time.time()
+                if message_id in processed_messages:
+                    if current_time - processed_messages[message_id] < MESSAGE_DEDUPE_WINDOW:
+                        logger.info(f"Duplicate message {message_id} ignored (processed {current_time - processed_messages[message_id]:.1f}s ago)")
+                        continue
+                processed_messages[message_id] = current_time
+                
+                # Clean old entries from deduplication dict
+                for msg_id in list(processed_messages.keys()):
+                    if current_time - processed_messages[msg_id] > MESSAGE_DEDUPE_WINDOW * 2:
+                        del processed_messages[msg_id]
                 
                 # Get contact name if available
                 contacts = value.get("contacts", [{}])

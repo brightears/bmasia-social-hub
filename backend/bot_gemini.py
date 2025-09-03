@@ -95,7 +95,18 @@ class GeminiBot:
         # Check for specific queries that need immediate data
         message_lower = message.lower()
         
-        # For zone/music queries - check Soundtrack API
+        # Check if asking for list of zones for the property
+        if venue and any(phrase in message_lower for phrase in ['what zones', 'our zones', 'list zones', 'all zones', 'which zones']):
+            zones = self.soundtrack.find_venue_zones(venue.get('name'))
+            if zones:
+                zone_names = [z.get('name', 'Unknown') for z in zones]
+                online_count = len([z for z in zones if z.get('online') or z.get('isOnline')])
+                response = f"You have {len(zones)} zones at {venue.get('name')}:\n"
+                response += ", ".join(zone_names)
+                response += f"\n\n{online_count} zones are currently online."
+                return response
+        
+        # For specific zone/music queries - check Soundtrack API
         zone_name = self._extract_zone_name(message)
         if zone_name and venue:
             zone_data = self._fetch_zone_data(zone_name, venue)
