@@ -135,29 +135,9 @@ class GeminiBot:
             if zone_data:
                 return zone_data
         
-        # For rate/pricing queries - interpret as contract rate
-        if any(keyword in message_lower for keyword in ['rate', 'pricing', 'cost', 'fee', 'charge', 'pay']):
-            if combined_data.get('sheets_data'):
-                rate_info = combined_data['sheets_data'].get('rate') or combined_data['sheets_data'].get('monthly_rate')
-                if rate_info:
-                    return f"Your current rate is {rate_info}. This should be detailed in your contract documents."
-                else:
-                    return "I don't have your exact contract rate here on my end, that info is usually detailed in your contract document."
-            else:
-                return "I don't have your rate information available right now. Let me check with the team and get back to you."
-        
-        # For contract/contact queries - return Google Sheets data immediately
-        if any(keyword in message_lower for keyword in ['contract', 'renewal', 'expire', 'expiry', 'when will', 'when does']):
-            if combined_data.get('sheets_response'):
-                return combined_data['sheets_response']
-            # If no sheets data but asking about contract, provide helpful response
-            elif 'contract' in message_lower or 'renewal' in message_lower:
-                return self._get_contract_info_from_sheets(venue.get('name')) if venue else "Please tell me which venue you're from first."
-        
-        # For contact info queries
-        if any(keyword in message_lower for keyword in ['contact', 'email', 'phone', 'who is']):
-            if combined_data.get('sheets_response'):
-                return combined_data['sheets_response']
+        # Note: Removed early returns to prevent duplicate responses
+        # All queries will now be handled by Gemini with the combined data context
+        # This prevents duplicate responses while ensuring all data sources are available
         
         # Build the system prompt with context
         system_prompt = self._build_system_prompt(venue, user_phone)
@@ -167,13 +147,22 @@ class GeminiBot:
         
         # Add combined data context
         data_context = ""
+        
+        # If we have a pre-formatted response, use it directly
+        if combined_data.get('sheets_response'):
+            # Return the pre-formatted response immediately for direct questions
+            message_lower = message.lower()
+            if any(word in message_lower for word in ['rate', 'price', 'cost', 'contract', 'expire', 'renewal']):
+                return combined_data['sheets_response']
+        
         if combined_data:
             data_context = "\n\nAvailable Data:\n"
             if combined_data.get('sheets_data'):
                 sheets = combined_data['sheets_data']
-                data_context += f"- Contract expires: {sheets.get('expiry_date', 'N/A')}\n"
-                data_context += f"- Contact: {sheets.get('client_contact', 'N/A')}\n"
-                data_context += f"- Zones in contract: {sheets.get('no_of_zones', 'N/A')}\n"
+                data_context += f"- Contract expires: {sheets.get('contract_expiry', sheets.get('expiry_date', 'N/A'))}\n"
+                data_context += f"- Rate: {sheets.get('current_price_per_zone_venue_per_year', 'N/A')}\n"
+                data_context += f"- Contact: {sheets.get('contact_name_1', 'N/A')}\n"
+                data_context += f"- Zones in property: {sheets.get('amount_of_zones_venues', sheets.get('no_of_zones', 'N/A'))}\n"
             if combined_data.get('soundtrack_zones'):
                 zones = combined_data['soundtrack_zones']
                 online = combined_data.get('online_zones', [])
@@ -207,8 +196,12 @@ Response Guidelines:
 4. Keep it short and natural - this is WhatsApp, not a report
 5. When something's wrong, show empathy: "Oh that's not right, let me check..."
 6. Only offer additional help if relevant: "Want me to check the other zones too?"
+7. CRITICAL: Give ONE response only - never repeat the same information twice
+8. If you have contract/rate data, give it once clearly and stop there
+9. Property identification: Always treat property names as containing zones, never AS zones
 
 Remember: You're Scott, a real person helping via WhatsApp. Be human, be helpful, be brief.
+NEVER give duplicate responses or repeat information unnecessarily.
 
 Response:"""
         
@@ -275,9 +268,15 @@ Response:"""
                 if sheets_venue:
                     combined_data['sheets_data'] = sheets_venue
                     # Pre-format common queries
-                    if any(word in message.lower() for word in ['contract', 'renewal', 'expire']):
-                        combined_data['sheets_response'] = self._format_contract_info(sheets_venue, venue_name)
-                    elif any(word in message.lower() for word in ['contact', 'email', 'phone']):
+                    message_lower = message.lower()
+                    if any(word in message_lower for word in ['rate', 'price', 'cost', 'fee', 'pricing', 'charge']):
+                        # Include rate in contract info
+                        combined_data['sheets_response'] = self._format_contract_info(sheets_venue, venue_name, include_rate=True)
+                    elif any(word in message_lower for word in ['contract', 'renewal', 'expire']):
+                        # Check if also asking about rate
+                        include_rate = any(word in message_lower for word in ['rate', 'price', 'cost'])
+                        combined_data['sheets_response'] = self._format_contract_info(sheets_venue, venue_name, include_rate=include_rate)
+                    elif any(word in message_lower for word in ['contact', 'email', 'phone']):
                         combined_data['sheets_response'] = self._format_contact_info(sheets_venue, venue_name)
         except Exception as e:
             logger.debug(f"Could not get sheets data: {e}")
@@ -329,23 +328,58 @@ Response:"""
         
         return combined_data
     
-    def _format_contract_info(self, venue_data: Dict, venue_name: str) -> str:
+    def _format_contract_info(self, venue_data: Dict, venue_name: str, include_rate: bool = False) -> str:
         """Format contract information from sheets data - natural conversation style"""
+        response_parts = []
+        
+        # Get contract expiry
         expiry = venue_data.get('contract_expiry') or venue_data.get('expiry_date')
         
+        # Get rate information
+        rate_info = (venue_data.get('current_price_per_zone_venue_per_year') or
+                    venue_data.get('rate') or
+                    venue_data.get('monthly_rate') or
+                    venue_data.get('contract_rate'))
+        
+        zone_count = venue_data.get('amount_of_zones_venues', '')
+        
+        # Handle rate questions
+        if include_rate and rate_info:
+            rate_response = f"Your current rate is {rate_info}"
+            if 'per_zone' in str(venue_data.keys()):
+                rate_response += " per zone per year"
+            
+            if zone_count:
+                try:
+                    zones = int(zone_count)
+                    if 'THB' in str(rate_info):
+                        # Extract number from rate
+                        import re
+                        numbers = re.findall(r'[\d,]+', str(rate_info))
+                        if numbers:
+                            per_zone = numbers[0].replace(',', '')
+                            total = int(per_zone) * zones
+                            rate_response += f". With your {zones} zones, that's THB {total:,} total per year"
+                except:
+                    pass
+            response_parts.append(rate_response)
+        
+        # Handle expiry questions
         if expiry and expiry != 'Not specified':
-            # Natural response for contract expiry question
-            response = f"Your contract expires on {expiry}. "
+            expiry_response = f"Your contract expires on {expiry}"
             
             # Add a helpful note if renewal is coming up
             if "2025" in str(expiry):
-                response += "You might want to start thinking about renewal options soon. Let me know if you need your account manager's contact!"
+                if not include_rate:  # Don't repeat if we already mentioned rate
+                    expiry_response += ". You might want to start thinking about renewal options soon"
             else:
-                response += "Plenty of time left! 👍"
-        else:
-            response = "I don't see an expiry date in our records. Let me check with the team and get back to you."
+                expiry_response += " - plenty of time left! 👍"
+            response_parts.append(expiry_response)
         
-        return response
+        if response_parts:
+            return ". ".join(response_parts) + "."
+        else:
+            return "I don't see that information in our records. Let me check with the team and get back to you."
     
     def _get_contract_info_from_sheets(self, venue_name: str) -> str:
         """Get contract information directly from sheets"""
@@ -392,11 +426,20 @@ Response:"""
         
         base_prompt = """You're Scott from the BMA support team, helping venues with their music systems.
 
-IMPORTANT TERMINOLOGY:
-- "Property" or "Hotel" = The main establishment (e.g., "Hilton Pattaya", "Marriott Bangkok")
-- "Zone" or "Venue" = Individual music areas within a property (e.g., "Lobby", "Pool", "Restaurant", "Edge Bar")
-- When someone says "I'm from Hilton Pattaya" - that's the PROPERTY name, not a zone
-- Properties have multiple zones, each with their own music player
+CRITICAL UNDERSTANDING - PROPERTY vs ZONE:
+- PROPERTY = The main establishment/hotel (e.g., "Hilton Pattaya", "Marriott Bangkok")
+- ZONE = Individual music areas within a property (e.g., "Lobby", "Pool", "Restaurant", "Edge Bar")
+
+IMPORTANT: When someone says "I'm from Hilton Pattaya" - that's their PROPERTY name.
+- NEVER search for zones called "Hilton Pattaya" 
+- INSTEAD: Search for zones WITHIN Hilton Pattaya property
+- The property contains multiple zones, each with separate music players
+
+CONVERSATION FLOW:
+1. User identifies their property: "I'm from Hilton Pattaya"
+2. You acknowledge: "Got it, checking Hilton Pattaya's music zones..."
+3. You then work with their zones: Edge, Lobby, Pool, etc.
+4. NEVER say "Zone 'Hilton Pattaya' not found" - that's wrong logic!
 
 Personality & Style:
 - Be conversational and natural, like a helpful colleague chatting on WhatsApp
@@ -427,7 +470,8 @@ Never:
 - Use overly formal language
 - Give long technical explanations
 - Start with "Greetings" or "Hello, I am..."
-- Use robotic phrases like "How may I assist you today?" """
+- Use robotic phrases like "How may I assist you today?"
+- Confuse properties with zones - they are completely different things! """
         
         if venue:
             # Add venue-specific context
