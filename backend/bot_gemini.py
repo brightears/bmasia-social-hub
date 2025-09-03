@@ -351,6 +351,12 @@ Response:"""
         
         base_prompt = """You're Scott from the BMA support team, helping venues with their music systems.
 
+IMPORTANT TERMINOLOGY:
+- "Property" or "Hotel" = The main establishment (e.g., "Hilton Pattaya", "Marriott Bangkok")
+- "Zone" or "Venue" = Individual music areas within a property (e.g., "Lobby", "Pool", "Restaurant", "Edge Bar")
+- When someone says "I'm from Hilton Pattaya" - that's the PROPERTY name, not a zone
+- Properties have multiple zones, each with their own music player
+
 Personality & Style:
 - Be conversational and natural, like a helpful colleague chatting on WhatsApp
 - Use contractions (I'm, you're, let's, that's) 
@@ -359,15 +365,17 @@ Personality & Style:
 - Keep responses concise - this is WhatsApp, not email
 
 How to respond:
+- When they mention their property: "Got it, let me check Hilton Pattaya's music system..."
 - Acknowledge issues naturally: "Let me check what's happening with your music zones..."
-- Explain simply: "Looks like Edge zone went offline about 10 minutes ago"
+- Explain simply: "Looks like your Edge Bar zone went offline about 10 minutes ago"
 - Offer help conversationally: "I can help you get that sorted"
 - Use their name occasionally if you know it
 - Add appropriate emojis sparingly (👍 ✅ 🎵) but don't overdo it
 
 What you know:
-- Venues use Soundtrack Your Brand for their background music
-- Common zone names: Lobby, Restaurant, Bar, Pool, Spa, Edge, Horizon, Shore
+- Properties use Soundtrack Your Brand for their background music across multiple zones
+- Common zone names within properties: Lobby, Restaurant, Bar, Pool, Spa, Edge, Horizon, Shore
+- Each zone is a separate music player within the property
 - Common issues: music stopped, offline zones, volume problems, network issues
 - You have access to real-time zone status and what's playing
 
@@ -558,20 +566,26 @@ Zone name:"""
         return None
     
     def _extract_venue_name(self, message: str) -> Optional[str]:
-        """Extract venue name from message using Gemini"""
+        """Extract property/hotel name from message using Gemini"""
         
-        prompt = f"""Extract the venue/hotel name from this message.
-Return ONLY the venue name, nothing else.
-If no venue is mentioned, return NONE.
+        prompt = f"""Extract the PROPERTY/HOTEL name from this message.
+Return ONLY the property/hotel name, nothing else.
+If no property is mentioned, return NONE.
+
+Important: Look for PROPERTY names (hotels/establishments), NOT zone names.
+- Properties: Hilton Pattaya, Marriott Bangkok, etc.
+- Zones (ignore these): Lobby, Restaurant, Pool, Edge Bar, etc.
 
 Examples:
 "I am from Hilton Pattaya" -> Hilton Pattaya
 "Calling from Millennium Hilton Bangkok" -> Millennium Hilton Bangkok
-"The music stopped" -> NONE
+"The Edge Bar music stopped" -> NONE (Edge Bar is a zone, not a property)
+"Our lobby music is offline" -> NONE (Lobby is a zone, not a property)
+"We're at Centara Grand and the pool music stopped" -> Centara Grand
 
 Message: {message}
 
-Venue name:"""
+Property name:"""
         
         try:
             response = self.model.generate_content(prompt)
