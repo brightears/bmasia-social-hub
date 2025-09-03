@@ -294,15 +294,16 @@ Response:"""
         expiry = venue_data.get('expiry_date', 'Not specified')
         
         response = f"**{venue_display} Contract Information:**\n\n"
-        response += f"📅 **Contract Expiry:** {expiry}\n"
+        response += f"📅 **Contract Expiry:** {venue_data.get('contract_expiry', expiry)}\n"
         response += f"📝 **Activation:** {venue_data.get('activation_date', 'Not specified')}\n"
         response += f"🏨 **Type:** {venue_data.get('business_type', 'Not specified')}\n"
         response += f"🎵 **Platform:** {venue_data.get('music_platform', 'Not specified')}\n"
         response += f"📍 **Zones:** {venue_data.get('name_of_zones_venues', 'Not specified')}\n"
         response += f"📧 **Contact:** {venue_data.get('contact_name_1', '')} - {venue_data.get('contact_email_1', '')}\n"
         
-        if expiry and expiry != 'Not specified':
-            response += f"\n💡 Your contract expires on {expiry}. Please contact your account manager for renewal options."
+        actual_expiry = venue_data.get('contract_expiry', expiry)
+        if actual_expiry and actual_expiry != 'Not specified':
+            response += f"\n💡 Your contract expires on {actual_expiry}. Please contact your account manager for renewal options."
         
         return response
     
