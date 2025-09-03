@@ -83,23 +83,13 @@ class GoogleSheetsClient:
                 logger.warning('No data found in master sheet')
                 return []
             
-            # Find the header row (look for row with "Client Name" or "Outlet Name")
+            # Headers are now in row 1 (index 0)
             header_row_idx = 0
-            headers = []
+            headers = values[0] if values else []
             
-            for idx, row in enumerate(values):
-                if row and any('Client Name' in str(cell) or 'Outlet Name' in str(cell) for cell in row):
-                    header_row_idx = idx
-                    headers = row
-                    break
-            
-            if not headers:
-                # Fallback to first non-empty row
-                for idx, row in enumerate(values):
-                    if row and len(row) > 3:
-                        headers = row
-                        header_row_idx = idx
-                        break
+            # Verify we have the expected headers
+            expected_headers = ['Business Type', 'Property Name', 'Name of Zones/Venues']
+            has_new_structure = any(header in headers for header in expected_headers)
             
             if not headers:
                 logger.warning('Could not find headers in sheet')
@@ -117,13 +107,14 @@ class GoogleSheetsClient:
                 for i, header in enumerate(headers):
                     if i < len(row):
                         # Normalize header names
-                        key = header.lower().replace(' ', '_').replace('.', '')
+                        key = header.lower().replace(' ', '_').replace('/', '_').replace('.', '')
                         venue[key] = row[i]
                     else:
-                        venue[header.lower().replace(' ', '_')] = ''
+                        key = header.lower().replace(' ', '_').replace('/', '_').replace('.', '')
+                        venue[key] = ''
                         
-                # Only add if it has meaningful data (at least a name)
-                if venue.get('client_name') or venue.get('outlet_name') or venue.get('name'):
+                # Only add if it has meaningful data (must have property name)
+                if venue.get('property_name'):
                     venues.append(venue)
             
             logger.info(f"Loaded {len(venues)} venues from Google Sheets")
@@ -139,8 +130,8 @@ class GoogleSheetsClient:
         
         venue_name_lower = venue_name.lower()
         
-        # Check multiple possible name columns
-        name_fields = ['outlet_name', 'client_name', 'name', 'venue_name', 'property']
+        # Check property name field (new structure)
+        name_fields = ['property_name', 'outlet_name', 'client_name', 'name']
         
         # Exact match first
         for venue in venues:

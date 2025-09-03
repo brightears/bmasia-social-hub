@@ -290,14 +290,16 @@ Response:"""
     
     def _format_contract_info(self, venue_data: Dict, venue_name: str) -> str:
         """Format contract information from sheets data"""
-        venue_display = venue_data.get('outlet_name') or venue_data.get('client_name') or venue_name
+        venue_display = venue_data.get('property_name') or venue_name
         expiry = venue_data.get('expiry_date', 'Not specified')
         
         response = f"**{venue_display} Contract Information:**\n\n"
         response += f"📅 **Contract Expiry:** {expiry}\n"
-        response += f"📝 **Commencement:** {venue_data.get('commencement_date_', 'Not specified')}\n"
-        response += f"🏨 **Group:** {venue_data.get('group', 'Not specified')}\n"
-        response += f"📧 **Contact:** {venue_data.get('client_contact', 'Not specified')}\n"
+        response += f"📝 **Activation:** {venue_data.get('activation_date', 'Not specified')}\n"
+        response += f"🏨 **Type:** {venue_data.get('business_type', 'Not specified')}\n"
+        response += f"🎵 **Platform:** {venue_data.get('music_platform', 'Not specified')}\n"
+        response += f"📍 **Zones:** {venue_data.get('name_of_zones_venues', 'Not specified')}\n"
+        response += f"📧 **Contact:** {venue_data.get('contact_name_1', '')} - {venue_data.get('contact_email_1', '')}\n"
         
         if expiry and expiry != 'Not specified':
             response += f"\n💡 Your contract expires on {expiry}. Please contact your account manager for renewal options."
@@ -321,7 +323,7 @@ Response:"""
     
     def _format_contact_info(self, venue_data: Dict, venue_name: str) -> str:
         """Format contact information from sheets data"""
-        venue_display = venue_data.get('outlet_name') or venue_data.get('client_name') or venue_name
+        venue_display = venue_data.get('property_name') or venue_name
         
         response = f"**{venue_display} Contact Information:**\n\n"
         response += f"👤 **Contact Person:** {venue_data.get('name', venue_data.get('client_contact', 'Not specified'))}\n"
