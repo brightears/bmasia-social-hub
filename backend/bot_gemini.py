@@ -96,15 +96,37 @@ class GeminiBot:
         message_lower = message.lower()
         
         # Check if asking for list of zones for the property
-        if venue and any(phrase in message_lower for phrase in ['what zones', 'our zones', 'list zones', 'all zones', 'which zones', 'name of our zones', 'names of zones', 'zone names']):
+        if venue and any(phrase in message_lower for phrase in ['what zones', 'our zones', 'list zones', 'all zones', 'which zones', 'name of our zones', 'names of zones', 'zone names', 'music zones']):
             zones = self.soundtrack.find_venue_zones(venue.get('name'))
             if zones:
                 zone_names = [z.get('name', 'Unknown') for z in zones]
                 online_count = len([z for z in zones if z.get('online') or z.get('isOnline')])
-                response = f"You have {len(zones)} zones at {venue.get('name')}:\n"
-                response += ", ".join(zone_names)
-                response += f"\n\n{online_count} zones are currently online."
+                
+                # Natural response about zones
+                response = f"You currently have {len(zones)} music zones registered: "
+                response += ", ".join(zone_names[:-1])
+                if len(zone_names) > 1:
+                    response += f", and {zone_names[-1]}"
+                else:
+                    response += zone_names[0] if zone_names else ""
+                response += f". 👍\n\n{online_count} {'zone is' if online_count == 1 else 'zones are'} currently online."
                 return response
+        
+        # For volume control requests
+        if venue and any(phrase in message_lower for phrase in ['volume', 'turn down', 'turn up', 'louder', 'quieter', 'softer']):
+            # Extract zone name if specified, otherwise ask which zone
+            zone_name = self._extract_zone_name(message)
+            
+            if 'adjust' in message_lower or 'change' in message_lower or 'set' in message_lower:
+                if zone_name:
+                    return self._handle_volume_control(message, zone_name, venue)
+                else:
+                    return "Which zone are you looking to adjust the volume for? Just let me know which one and I can get that sorted for you."
+            elif zone_name:
+                # Just asking about a specific zone
+                return self._handle_volume_control(message, zone_name, venue)
+            else:
+                return "Which zone's volume do you want to adjust? Let me know the zone name and what level you'd like."
         
         # For specific zone/music queries - check Soundtrack API
         zone_name = self._extract_zone_name(message)
@@ -112,6 +134,17 @@ class GeminiBot:
             zone_data = self._fetch_zone_data(zone_name, venue)
             if zone_data:
                 return zone_data
+        
+        # For rate/pricing queries - interpret as contract rate
+        if any(keyword in message_lower for keyword in ['rate', 'pricing', 'cost', 'fee', 'charge', 'pay']):
+            if combined_data.get('sheets_data'):
+                rate_info = combined_data['sheets_data'].get('rate') or combined_data['sheets_data'].get('monthly_rate')
+                if rate_info:
+                    return f"Your current rate is {rate_info}. This should be detailed in your contract documents."
+                else:
+                    return "I don't have your exact contract rate here on my end, that info is usually detailed in your contract document."
+            else:
+                return "I don't have your rate information available right now. Let me check with the team and get back to you."
         
         # For contract/contact queries - return Google Sheets data immediately
         if any(keyword in message_lower for keyword in ['contract', 'renewal', 'expire', 'expiry', 'when will', 'when does']):
@@ -386,6 +419,8 @@ What you know:
 - Each zone is a separate music player within the property
 - Common issues: music stopped, offline zones, volume problems, network issues
 - You have access to real-time zone status and what's playing
+- "Rate" usually means contract pricing/fees, not music tempo
+- You can adjust zone volumes - just ask to turn it up/down or set a specific level (0-100)
 
 Never:
 - Say you're an AI, bot, or assistant
@@ -604,6 +639,72 @@ Property name:"""
             pass
         
         return None
+    
+    def _handle_volume_control(self, message: str, zone_name: str, venue: Dict) -> str:
+        """Handle volume control requests for a zone"""
+        try:
+            # Find the zone
+            zones = self.soundtrack.find_venue_zones(venue.get('name'))
+            matching_zone = None
+            
+            if zones:
+                zone_name_lower = zone_name.lower()
+                matching_zone = next(
+                    (z for z in zones if z.get('name', '').lower() == zone_name_lower),
+                    None
+                )
+            
+            if not matching_zone:
+                return f"I couldn't find a zone called '{zone_name}' at your property. Which zone did you mean?"
+            
+            zone_id = matching_zone.get('id')
+            
+            # Parse volume level from message
+            message_lower = message.lower()
+            volume = None
+            
+            # Check for specific volume levels
+            if any(word in message_lower for word in ['down', 'lower', 'quieter', 'softer']):
+                # Decrease by 20%
+                current_status = self.soundtrack.get_zone_status(zone_id)
+                if current_status and 'volume' in current_status:
+                    current_vol = current_status.get('volume', 50)
+                    volume = max(10, current_vol - 20)  # Decrease by 20%, minimum 10
+                else:
+                    volume = 30  # Default lower volume
+                    
+            elif any(word in message_lower for word in ['up', 'louder', 'higher']):
+                # Increase by 20%
+                current_status = self.soundtrack.get_zone_status(zone_id)
+                if current_status and 'volume' in current_status:
+                    current_vol = current_status.get('volume', 50)
+                    volume = min(90, current_vol + 20)  # Increase by 20%, max 90
+                else:
+                    volume = 70  # Default higher volume
+                    
+            else:
+                # Try to extract a number from the message
+                import re
+                numbers = re.findall(r'\b(\d{1,3})\b', message)
+                if numbers:
+                    vol = int(numbers[0])
+                    if 0 <= vol <= 100:
+                        volume = vol
+            
+            if volume is None:
+                return f"What volume level would you like for {zone_name}? You can say 'turn it down', 'turn it up', or give me a number from 0-100."
+            
+            # Set the volume
+            success = self.soundtrack.set_volume(zone_id, volume)
+            
+            if success:
+                return f"Done! I've adjusted {zone_name}'s volume to {volume}%. Let me know if you need any other adjustments."
+            else:
+                return f"Hmm, I'm having trouble adjusting the volume for {zone_name} right now. You might need to adjust it manually in the Soundtrack dashboard, or I can escalate this to our tech team."
+                
+        except Exception as e:
+            logger.error(f"Error handling volume control: {e}")
+            return "I'm having trouble with the volume control right now. You can adjust it manually in the Soundtrack dashboard, or I can escalate this to our tech team."
     
     def _fetch_zone_data(self, zone_name: str, venue: Optional[Dict]) -> Optional[str]:
         """Fetch actual zone data from Soundtrack API"""
