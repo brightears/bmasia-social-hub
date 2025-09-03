@@ -41,6 +41,15 @@ except Exception as e:
     chat_client = None
     CHAT_AVAILABLE = False
 
+# Import Google Drive for documents
+try:
+    from google_drive_client import drive_client, find_venue_contract, find_troubleshooting_guide
+    DRIVE_AVAILABLE = True
+except Exception as e:
+    logger.warning(f"Google Drive not available: {e}")
+    drive_client = None
+    DRIVE_AVAILABLE = False
+
 logger = logging.getLogger(__name__)
 
 class GeminiBot:
@@ -131,6 +140,10 @@ class GeminiBot:
                 data_context += f"- Zone names: {', '.join([z.get('name', '') for z in zones])}\n"
             if combined_data.get('email_summary'):
                 data_context += f"\nEmail History:\n{combined_data['email_summary']}\n"
+            if combined_data.get('contract_document'):
+                data_context += f"\n📄 Contract Documents:\n{combined_data['contract_document']}\n"
+            if combined_data.get('tech_documents'):
+                data_context += f"\n📚 Technical Documentation:\n{combined_data['tech_documents']}\n"
         
         # Combine prompts
         full_prompt = f"""{system_prompt}
@@ -238,7 +251,24 @@ Response:"""
         except Exception as e:
             logger.debug(f"Could not get Soundtrack data: {e}")
         
-        # 3. Smart Email Search (only when relevant)
+        # 3. Google Drive search (for contracts and docs)
+        try:
+            if DRIVE_AVAILABLE and drive_client:
+                # Check for contract queries
+                if any(word in message.lower() for word in ['contract', 'agreement', 'terms', 'renewal']):
+                    contract_info = find_venue_contract(venue_name)
+                    if contract_info:
+                        combined_data['contract_document'] = contract_info
+                
+                # Check for troubleshooting queries  
+                if any(word in message.lower() for word in ['troubleshoot', 'problem', 'issue', 'help', 'guide', 'manual']):
+                    tech_docs = find_troubleshooting_guide(message)
+                    if tech_docs:
+                        combined_data['tech_documents'] = tech_docs
+        except Exception as e:
+            logger.debug(f"Could not search Drive: {e}")
+        
+        # 4. Smart Email Search (only when relevant)
         try:
             if GMAIL_AVAILABLE and smart_email_searcher:
                 # Extract domain from sheets data if available
