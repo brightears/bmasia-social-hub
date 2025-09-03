@@ -289,21 +289,20 @@ Response:"""
         return combined_data
     
     def _format_contract_info(self, venue_data: Dict, venue_name: str) -> str:
-        """Format contract information from sheets data"""
-        venue_display = venue_data.get('property_name') or venue_name
-        expiry = venue_data.get('expiry_date', 'Not specified')
+        """Format contract information from sheets data - natural conversation style"""
+        expiry = venue_data.get('contract_expiry') or venue_data.get('expiry_date')
         
-        response = f"**{venue_display} Contract Information:**\n\n"
-        response += f"📅 **Contract Expiry:** {venue_data.get('contract_expiry', expiry)}\n"
-        response += f"📝 **Activation:** {venue_data.get('activation_date', 'Not specified')}\n"
-        response += f"🏨 **Type:** {venue_data.get('business_type', 'Not specified')}\n"
-        response += f"🎵 **Platform:** {venue_data.get('music_platform', 'Not specified')}\n"
-        response += f"📍 **Zones:** {venue_data.get('name_of_zones_venues', 'Not specified')}\n"
-        response += f"📧 **Contact:** {venue_data.get('contact_name_1', '')} - {venue_data.get('contact_email_1', '')}\n"
-        
-        actual_expiry = venue_data.get('contract_expiry', expiry)
-        if actual_expiry and actual_expiry != 'Not specified':
-            response += f"\n💡 Your contract expires on {actual_expiry}. Please contact your account manager for renewal options."
+        if expiry and expiry != 'Not specified':
+            # Natural response for contract expiry question
+            response = f"Your contract expires on {expiry}. "
+            
+            # Add a helpful note if renewal is coming up
+            if "2025" in str(expiry):
+                response += "You might want to start thinking about renewal options soon. Let me know if you need your account manager's contact!"
+            else:
+                response += "Plenty of time left! 👍"
+        else:
+            response = "I don't see an expiry date in our records. Let me check with the team and get back to you."
         
         return response
     
@@ -323,15 +322,27 @@ Response:"""
             return "I'm having trouble accessing the contract information right now. Please try again."
     
     def _format_contact_info(self, venue_data: Dict, venue_name: str) -> str:
-        """Format contact information from sheets data"""
-        venue_display = venue_data.get('property_name') or venue_name
+        """Format contact information from sheets data - natural conversation style"""
         
-        response = f"**{venue_display} Contact Information:**\n\n"
-        response += f"👤 **Contact Person:** {venue_data.get('name', venue_data.get('client_contact', 'Not specified'))}\n"
-        response += f"📧 **Email:** {venue_data.get('email', venue_data.get('client_contact', 'Not specified'))}\n"
-        response += f"☎️ **Phone:** {venue_data.get('phone_number', 'Not specified')}\n"
-        response += f"💼 **Position:** {venue_data.get('position_/_job_title', 'Not specified')}\n"
-        response += f"🏢 **Department:** {venue_data.get('department', 'Not specified')}\n"
+        # Get primary contact
+        contact_name = venue_data.get('contact_name_1')
+        contact_email = venue_data.get('contact_email_1')
+        contact_title = venue_data.get('contact_title_1')
+        
+        if contact_name:
+            response = f"Your main contact is {contact_name}"
+            if contact_title:
+                response += f" ({contact_title})"
+            if contact_email:
+                response += f" - you can reach them at {contact_email}"
+            
+            # Check for additional contacts
+            if venue_data.get('contact_name_2'):
+                response += f". You also have {venue_data.get('contact_name_2')}"
+                if venue_data.get('contact_email_2'):
+                    response += f" at {venue_data.get('contact_email_2')}"
+        else:
+            response = "Let me find the right contact person for you. One moment..."
         
         return response
     
