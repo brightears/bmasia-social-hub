@@ -96,7 +96,7 @@ class GeminiBot:
         message_lower = message.lower()
         
         # Check if asking for list of zones for the property
-        if venue and any(phrase in message_lower for phrase in ['what zones', 'our zones', 'list zones', 'all zones', 'which zones']):
+        if venue and any(phrase in message_lower for phrase in ['what zones', 'our zones', 'list zones', 'all zones', 'which zones', 'name of our zones', 'names of zones', 'zone names']):
             zones = self.soundtrack.find_venue_zones(venue.get('name'))
             if zones:
                 zone_names = [z.get('name', 'Unknown') for z in zones]
@@ -111,9 +111,6 @@ class GeminiBot:
         if zone_name and venue:
             zone_data = self._fetch_zone_data(zone_name, venue)
             if zone_data:
-                # Also add any relevant sheets data
-                if combined_data.get('sheets_data'):
-                    zone_data += f"\n\n📋 Venue Info: {combined_data['sheets_data'].get('zones_info', '')}"
                 return zone_data
         
         # For contract/contact queries - return Google Sheets data immediately

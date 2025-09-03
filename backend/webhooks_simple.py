@@ -140,6 +140,14 @@ async def whatsapp_webhook(
         changes = entry.get("changes", [{}])[0]
         value = changes.get("value", {})
         
+        # Handle status updates (delivery, read receipts) - just log and skip
+        if "statuses" in value:
+            for status in value["statuses"]:
+                status_msg_id = status.get("id")
+                status_type = status.get("status")
+                logger.debug(f"WhatsApp status update: {status_msg_id} - {status_type}")
+            return {"status": "received"}
+        
         if "messages" in value:
             for message in value["messages"]:
                 message_id = message.get("id")
