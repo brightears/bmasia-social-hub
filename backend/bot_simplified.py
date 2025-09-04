@@ -5,11 +5,14 @@ Email access is conditional (only when explicitly mentioned)
 
 import os
 import logging
-from typing import Dict, Any, Optional
+from typing import Dict, Any, Optional, List
 import google.generativeai as genai
 from soundtrack_api import soundtrack_api
 from venue_identifier import conversation_context
-from venue_data_reader import get_all_venues, find_venue, get_venue_pricing
+from venue_data_reader import (
+    get_all_venues, find_venue, get_venue_pricing,
+    venue_reader
+)
 
 # Set up logging
 logger = logging.getLogger(__name__)
@@ -107,6 +110,29 @@ class SimplifiedBot:
                 
                 return f"I couldn't find zone information for {venue_to_check}."
         
+        # Handle contact queries
+        if any(word in message_lower for word in ['contact', 'email', 'phone', 'who', 'manager']):
+            if venue_data or current_venue:
+                venue_to_check = venue_data['property_name'] if venue_data else current_venue.get('name')
+                
+                # Check for specific role
+                role = None
+                if 'it' in message_lower or 'tech' in message_lower:
+                    role = 'IT'
+                elif 'general manager' in message_lower:
+                    role = 'General Manager'
+                
+                contacts = venue_reader.get_venue_contacts(venue_to_check, role)
+                if contacts:
+                    return self._format_contacts_response(venue_to_check, contacts)
+        
+        # Handle issue/problem queries
+        if any(word in message_lower for word in ['issue', 'problem', 'offline', 'disconnect', 'volume']):
+            # Check for similar issues in history
+            similar_issues = venue_reader.find_similar_issue(message)
+            if similar_issues:
+                return self._format_similar_issues_response(similar_issues, venue_data or current_venue)
+        
         # Check if email is mentioned - only load if needed
         if self._load_email_if_needed(message):
             return self._handle_email_query(message, user_name)
@@ -169,10 +195,44 @@ class SimplifiedBot:
             logger.error(f"Email search failed: {e}")
             return "I'm having trouble accessing emails right now. Could you describe what you need help with?"
     
+    def _format_contacts_response(self, venue_name: str, contacts: List[Dict]) -> str:
+        """Format contact information naturally"""
+        if len(contacts) == 1:
+            c = contacts[0]
+            response = f"For {venue_name}, your contact is {c.get('name')} ({c.get('title')})"
+            if c.get('email'):
+                response += f"\nEmail: {c['email']}"
+            if c.get('phone'):
+                response += f"\nPhone: {c['phone']}"
+            if c.get('preferred_contact'):
+                response += f"\nThey prefer: {c['preferred_contact']}"
+            return response
+        else:
+            response = f"Here are your contacts at {venue_name}:\n\n"
+            for c in contacts:
+                response += f"• {c.get('name')} - {c.get('title')}\n"
+                if c.get('email'):
+                    response += f"  Email: {c['email']}\n"
+                if c.get('phone'):
+                    response += f"  Phone: {c['phone']}\n"
+            return response
+    
+    def _format_similar_issues_response(self, similar_issues: List[Dict], current_venue: Optional[Dict]) -> str:
+        """Format similar issues found in history"""
+        if not similar_issues:
+            return "I'll help you with that issue. Could you provide more details?"
+        
+        response = "I found similar issues we've resolved before:\n\n"
+        for issue in similar_issues[:3]:  # Show max 3
+            response += f"• {issue['venue']} ({issue['date']}): {issue['issue']}\n"
+        
+        response += "\nBased on past experience, this usually requires contacting the property's IT team. Should I help you reach out?"
+        return response
+    
     def _generate_ai_response(self, message: str, venue_data: Optional[Dict], user_name: str) -> str:
         """Generate AI response using Gemini"""
         try:
-            # Build context
+            # Build context including rich venue data
             context = f"""You are a helpful assistant for BMA Social, a B2B music service provider.
             
             User: {user_name or 'Customer'}
@@ -180,7 +240,14 @@ class SimplifiedBot:
             """
             
             if venue_data:
-                context += f"\nVenue Information: {venue_data}"
+                context += f"\nVenue: {venue_data.get('property_name')}"
+                
+                # Include special notes if available
+                notes = venue_reader.get_venue_notes(venue_data['property_name'])
+                if notes:
+                    context += f"\nImportant notes about this venue:\n"
+                    for note in notes:
+                        context += f"- {note}\n"
             
             context += """
             

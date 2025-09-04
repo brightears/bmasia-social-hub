@@ -54,24 +54,80 @@ class VenueDataReader:
             venue_name = lines[0].strip()
             
             # Skip summary sections
-            if venue_name.lower() == 'summary statistics':
+            if any(skip in venue_name.lower() for skip in ['summary', 'quick reference', 'properties with', 'technical contacts', 'common issues']):
                 continue
             
-            venue = {'property_name': venue_name}
+            venue = {
+                'property_name': venue_name,
+                'contacts': [],
+                'issue_history': [],
+                'special_notes': []
+            }
             
-            # Parse each property line
-            for line in lines[1:]:
-                if line.startswith('- **'):
-                    # Extract key and value
+            current_section = 'main'
+            current_contact = None
+            
+            for i, line in enumerate(lines[1:]):
+                # Check for section headers
+                if line.startswith('#### Contacts'):
+                    current_section = 'contacts'
+                    continue
+                elif line.startswith('#### Issue History'):
+                    current_section = 'issue_history'
+                    continue
+                elif line.startswith('#### Special Notes'):
+                    current_section = 'special_notes'
+                    continue
+                elif line.startswith('---'):
+                    break
+                
+                # Parse based on current section
+                if current_section == 'main' and line.startswith('- **'):
+                    # Main property data
                     match = re.match(r'- \*\*(.+?)\*\*:\s*(.+)', line)
                     if match:
                         key = match.group(1).lower().replace(' ', '_').replace('/', '_')
                         value = match.group(2).strip()
                         venue[key] = value
+                        
+                elif current_section == 'contacts':
+                    if line.startswith('- **'):
+                        # New contact
+                        match = re.match(r'- \*\*(.+?)\*\*:\s*(.+)', line)
+                        if match:
+                            if current_contact:
+                                venue['contacts'].append(current_contact)
+                            current_contact = {
+                                'title': match.group(1),
+                                'name': match.group(2)
+                            }
+                    elif line.strip().startswith('- ') and current_contact:
+                        # Contact detail
+                        detail_match = re.match(r'\s*- (.+?):\s*(.+)', line)
+                        if detail_match:
+                            key = detail_match.group(1).lower().replace(' ', '_')
+                            current_contact[key] = detail_match.group(2)
+                            
+                elif current_section == 'issue_history':
+                    if line.startswith('- **'):
+                        match = re.match(r'- \*\*(.+?)\*\*:\s*(.+)', line)
+                        if match:
+                            venue['issue_history'].append({
+                                'date': match.group(1),
+                                'issue': match.group(2)
+                            })
+                            
+                elif current_section == 'special_notes':
+                    if line.startswith('- '):
+                        venue['special_notes'].append(line[2:].strip())
+            
+            # Add last contact if exists
+            if current_contact:
+                venue['contacts'].append(current_contact)
             
             if venue.get('property_name'):
                 venues.append(venue)
-                logger.debug(f"Parsed venue: {venue['property_name']}")
+                logger.debug(f"Parsed venue: {venue['property_name']} with {len(venue['contacts'])} contacts")
         
         return venues
     
@@ -141,6 +197,51 @@ class VenueDataReader:
         except:
             pass
         return "N/A"
+    
+    def get_venue_contacts(self, venue_name: str, role: str = None) -> List[Dict]:
+        """Get contacts for a venue, optionally filtered by role"""
+        venue = self.find_venue_by_name(venue_name)
+        if not venue:
+            return []
+        
+        contacts = venue.get('contacts', [])
+        if role:
+            role_lower = role.lower()
+            return [c for c in contacts if role_lower in c.get('title', '').lower()]
+        return contacts
+    
+    def get_venue_issues(self, venue_name: str) -> List[Dict]:
+        """Get issue history for a venue"""
+        venue = self.find_venue_by_name(venue_name)
+        if venue:
+            return venue.get('issue_history', [])
+        return []
+    
+    def get_venue_notes(self, venue_name: str) -> List[str]:
+        """Get special notes for a venue"""
+        venue = self.find_venue_by_name(venue_name)
+        if venue:
+            return venue.get('special_notes', [])
+        return []
+    
+    def find_similar_issue(self, issue_description: str) -> List[Dict]:
+        """Find similar issues from history across all venues"""
+        similar = []
+        issue_lower = issue_description.lower()
+        keywords = issue_lower.split()
+        
+        for venue in self.venues:
+            for issue in venue.get('issue_history', []):
+                issue_text = issue.get('issue', '').lower()
+                # Check if any keyword matches
+                if any(kw in issue_text for kw in keywords if len(kw) > 3):
+                    similar.append({
+                        'venue': venue.get('property_name'),
+                        'date': issue.get('date'),
+                        'issue': issue.get('issue')
+                    })
+        
+        return similar
 
 
 # Singleton instance
