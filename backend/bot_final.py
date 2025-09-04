@@ -110,7 +110,7 @@ Determine the intent and extract entities:
 Intents:
 - volume_control: User wants to change volume
 - playback_control: User wants to play/pause/skip music
-- playlist_change: User wants to change playlist
+- playlist_change: User wants to change playlist or mentions music genre/mood (80s, jazz, upbeat, relaxing, etc.)
 - zone_status: User asking about zone status
 - troubleshooting: User reporting an issue
 - venue_info: User asking about venue details
@@ -258,7 +258,7 @@ Response format:
             return self._escalate_api_failure(venue, zone_name, f"{action} command", user_phone)
     
     def _handle_playlist_change(self, analysis: Dict, user_phone: str) -> str:
-        """Handle playlist switching with corrected logic"""
+        """Handle playlist switching with intelligent context matching"""
         venue_name = analysis.get('venue', 'unknown')
         zone_name = analysis.get('zone', 'unknown')
         playlist_request = analysis.get('details', '')
@@ -283,29 +283,97 @@ Response format:
             else:
                 return f"Which zone needs a playlist change? Available zones: {', '.join(zones)}"
         
-        # Get available playlists
+        # INTELLIGENT PLAYLIST SELECTION
+        # First try to find playlists based on context (80s, jazz, upbeat, etc.)
+        if playlist_request:
+            logger.info(f"Searching for playlists matching context: {playlist_request}")
+            
+            # Use the intelligent playlist search
+            context_playlists = soundtrack_api.find_playlists_by_context(playlist_request)
+            
+            if context_playlists:
+                # Found matching playlists from SYB's curated library
+                best_match = context_playlists[0]  # Already sorted by relevance
+                
+                # Attempt to set the playlist
+                try:
+                    result = soundtrack_api.set_playlist(zone_id, best_match['id'])
+                    
+                    if result.get('success'):
+                        return f"✅ Changed to '{best_match['name']}' playlist in {zone_name} at {venue['name']}.\n\n{best_match.get('description', '')}"
+                    else:
+                        # Check failure reason
+                        if 'no_api_control' in result.get('error_type', ''):
+                            # Provide manual instructions with specific playlist name
+                            response = f"⚠️ {zone_name} requires manual playlist change.\n\n"
+                            response += f"**Please use the SYB app to search for and select:**\n"
+                            response += f"🎵 '{best_match['name']}'\n"
+                            if best_match.get('description'):
+                                response += f"Description: {best_match['description']}\n"
+                            response += f"\nAlternatives you might like:\n"
+                            for i, alt in enumerate(context_playlists[1:4], 1):  # Show 3 alternatives
+                                response += f"{i}. {alt['name']}\n"
+                            return response
+                        else:
+                            return self._escalate_api_failure(venue, zone_name, f"playlist change to {best_match['name']}", user_phone)
+                            
+                except Exception as e:
+                    logger.error(f"Error setting playlist: {e}")
+                    
+                    # Even if setting fails, provide helpful manual instructions
+                    response = f"I found the perfect playlist but couldn't set it automatically.\n\n"
+                    response += f"**Please search for these playlists in the SYB app:**\n"
+                    for i, playlist in enumerate(context_playlists[:5], 1):
+                        response += f"{i}. '{playlist['name']}'"
+                        if playlist.get('description'):
+                            response += f" - {playlist['description'][:50]}"
+                        response += "\n"
+                    return response
+            else:
+                # No context match found, fall back to account playlists
+                logger.info("No context match found, checking account playlists")
+        
+        # Fall back to account's custom playlists
         playlists = soundtrack_api.get_playlists(zone_id)
         if not playlists:
+            # No account playlists, but try curated search anyway
+            if playlist_request:
+                curated = soundtrack_api.search_curated_playlists(playlist_request)
+                if curated:
+                    response = f"I found these playlists in SYB's library for '{playlist_request}':\n\n"
+                    for i, playlist in enumerate(curated[:5], 1):
+                        response += f"{i}. {playlist['name']}"
+                        if playlist.get('description'):
+                            response += f" - {playlist['description'][:50]}"
+                        response += "\n"
+                    response += "\nPlease search for one of these in your SYB app to add it to your account."
+                    return response
             return self._escalate_api_failure(venue, zone_name, "playlist retrieval", user_phone)
         
-        # Try to match requested playlist
+        # Try to match from account playlists
         playlist_to_set = None
-        playlist_lower = playlist_request.lower()
-        
-        for playlist in playlists:
-            if playlist_lower in playlist['name'].lower() or playlist['name'].lower() in playlist_lower:
-                playlist_to_set = playlist
-                break
+        if playlist_request:
+            playlist_lower = playlist_request.lower()
+            for playlist in playlists:
+                if playlist_lower in playlist['name'].lower() or playlist['name'].lower() in playlist_lower:
+                    playlist_to_set = playlist
+                    break
         
         if not playlist_to_set:
             # Show available playlists
-            response = f"Available playlists for {zone_name} at {venue['name']}:\n"
+            response = f"Your account playlists for {zone_name} at {venue['name']}:\n"
             for i, playlist in enumerate(playlists[:10], 1):  # Show max 10
                 response += f"{i}. {playlist['name']}"
                 if playlist.get('description'):
                     response += f" - {playlist['description'][:50]}"
                 response += "\n"
-            response += "\nWhich playlist would you like to activate?"
+            
+            # Also suggest searching for curated playlists
+            if playlist_request:
+                response += f"\n💡 Want something different? I can search SYB's library for '{playlist_request}' playlists."
+            else:
+                response += "\n💡 Tell me what mood or genre you want (e.g., '80s hits', 'relaxing jazz', 'upbeat pop')"
+            
             return response
         
         # ALWAYS attempt to set playlist (app-level control)
@@ -442,7 +510,8 @@ Response format:
         response = "I can help you with:\n"
         response += "• Volume control (0-16 levels)\n"
         response += "• Playback control (play/pause)\n"
-        response += "• Playlist changes\n"
+        response += "• **Smart playlist selection** - Just tell me the mood or genre!\n"
+        response += "  Examples: '80s hits', 'relaxing jazz', 'upbeat pop'\n"
         response += "• Zone status checks\n"
         response += "• Music troubleshooting\n"
         response += "• Venue information\n\n"

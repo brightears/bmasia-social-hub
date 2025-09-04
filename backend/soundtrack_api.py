@@ -498,7 +498,24 @@ class SoundtrackAPI:
         return {'success': True}
     
     def set_playlist(self, zone_id: str, playlist_id: str) -> Dict:
-        """Set playlist for a zone - app-level control, device type irrelevant"""
+        """Set playlist for a zone - works with both account-specific and curated playlists"""
+        
+        # First check if the zone is controllable
+        capabilities = self.get_zone_capabilities(zone_id)
+        
+        if not capabilities.get('controllable', False):
+            return {
+                'success': False,
+                'error': 'Zone is not controllable via API',
+                'error_type': 'zone_not_controllable',
+                'zone_name': capabilities.get('zone_name', 'Unknown'),
+                'control_failure_reason': capabilities.get('control_failure_reason', 'unknown'),
+                'recommendations': [
+                    'Use Soundtrack Your Brand mobile app or web dashboard',
+                    'Check if this is a trial/demo account that needs upgrading',
+                    'Verify API control permissions are enabled'
+                ]
+            }
         
         query = """
         mutation SetPlaylist($input: SetPlaylistInput!) {
@@ -523,60 +540,95 @@ class SoundtrackAPI:
                     'success': False,
                     'error': 'Zone not controllable or playlist not found',
                     'error_type': 'no_api_control',
-                    'raw_error': error_msg
+                    'raw_error': error_msg,
+                    'zone_name': capabilities.get('zone_name', 'Unknown')
+                }
+            elif 'Type of variable' in error_msg:
+                return {
+                    'success': False,
+                    'error': 'Invalid playlist type for this zone',
+                    'error_type': 'incompatible_playlist',
+                    'raw_error': error_msg,
+                    'zone_name': capabilities.get('zone_name', 'Unknown'),
+                    'suggestions': [
+                        'This may be a curated playlist that requires account-specific playlists',
+                        'Try using playlists from your account\'s library instead',
+                        'Contact venue staff to change playlist manually'
+                    ]
                 }
             else:
                 return {
                     'success': False,
                     'error': f'API error: {error_msg}',
                     'error_type': 'api_error',
-                    'raw_error': error_msg
+                    'raw_error': error_msg,
+                    'zone_name': capabilities.get('zone_name', 'Unknown')
                 }
         
-        return {'success': True, 'message': 'Playlist changed successfully'}
+        return {
+            'success': True, 
+            'message': 'Playlist changed successfully',
+            'zone_name': capabilities.get('zone_name', 'Unknown'),
+            'playlist_id': playlist_id
+        }
+    
+    def suggest_playlists_for_request(self, user_request: str, zone_id: str = None) -> Dict:
+        """Comprehensive playlist suggestion system with assignment capability"""
+        
+        # Find relevant playlists
+        playlists = self.find_playlists_by_context(user_request, limit=5)
+        
+        response = {
+            'user_request': user_request,
+            'playlists_found': len(playlists),
+            'playlists': playlists,
+            'can_assign': False,
+            'zone_controllable': False
+        }
+        
+        # If zone_id provided, check if we can assign playlists
+        if zone_id:
+            capabilities = self.get_zone_capabilities(zone_id)
+            response['zone_name'] = capabilities.get('zone_name', 'Unknown')
+            response['zone_controllable'] = capabilities.get('controllable', False)
+            response['can_assign'] = response['zone_controllable']
+            
+            if not response['zone_controllable']:
+                response['control_limitation'] = capabilities.get('control_failure_reason', 'unknown')
+                response['manual_instructions'] = [
+                    'Use Soundtrack Your Brand mobile app or web dashboard',
+                    'Access Settings > Music > Playlists',
+                    'Search for the suggested playlist names',
+                    'Apply to your zone manually'
+                ]
+        
+        # Add assignment recommendations for each playlist
+        for playlist in playlists:
+            playlist['assignment_status'] = 'available_for_assignment' if response['can_assign'] else 'manual_assignment_required'
+            
+            if not response['can_assign']:
+                playlist['manual_search_hint'] = f"Search for '{playlist['name']}' in SYB dashboard"
+        
+        return response
     
     def get_playlists(self, zone_id: str) -> List[Dict]:
-        """Get available playlists for a zone's account"""
+        """Get available playlists for a zone's account (DEPRECATED - account playlists not accessible via API)"""
+        logger.warning("get_playlists() is deprecated - account playlists field does not exist in GraphQL schema")
+        logger.info("Use search_curated_playlists() instead to access Soundtrack's playlist library")
+        return []
+    
+    def search_curated_playlists(self, search_term: str, limit: int = 10) -> List[Dict]:
+        """Search Soundtrack's curated playlist library"""
         
-        # First find which account owns this zone
-        zone_info = self.get_zone_status(zone_id)
-        if 'error' in zone_info:
-            logger.error(f"Could not get zone info: {zone_info['error']}")
-            return []
-        
-        # Get all accounts and their playlists
         query = """
-        query GetPlaylists {
-            me {
-                accounts(first: 100) {
-                    edges {
-                        node {
+        query SearchPlaylists($searchTerm: String!, $limit: Int!) {
+            search(query: $searchTerm, type: playlist, first: $limit) {
+                edges {
+                    node {
+                        ... on Playlist {
                             id
                             name
-                            playlists(first: 100) {
-                                edges {
-                                    node {
-                                        id
-                                        name
-                                        description
-                                        trackCount
-                                    }
-                                }
-                            }
-                            locations(first: 100) {
-                                edges {
-                                    node {
-                                        soundZones(first: 100) {
-                                            edges {
-                                                node {
-                                                    id
-                                                    name
-                                                }
-                                            }
-                                        }
-                                    }
-                                }
-                            }
+                            description
                         }
                     }
                 }
@@ -584,47 +636,129 @@ class SoundtrackAPI:
         }
         """
         
-        result = self._execute_query(query)
+        result = self._execute_query(query, {
+            'searchTerm': search_term,
+            'limit': limit
+        })
         
         if 'error' in result:
-            logger.error(f"Error getting playlists: {result['error']}")
+            logger.error(f"Error searching playlists: {result['error']}")
             return []
         
         try:
             playlists = []
+            edges = result.get('search', {}).get('edges', [])
             
-            # Find the account that owns this zone and get its playlists
-            if result.get('data', {}).get('me'):
-                for account_edge in result['data']['me']['accounts']['edges']:
-                    account = account_edge['node']
-                    
-                    # Check if this account owns the zone
-                    zone_found = False
-                    for loc_edge in account.get('locations', {}).get('edges', []):
-                        for zone_edge in loc_edge['node'].get('soundZones', {}).get('edges', []):
-                            if zone_edge['node']['id'] == zone_id:
-                                zone_found = True
-                                break
-                        if zone_found:
-                            break
-                    
-                    if zone_found:
-                        # Get playlists for this account
-                        for playlist_edge in account.get('playlists', {}).get('edges', []):
-                            playlist = playlist_edge['node']
-                            playlists.append({
-                                'id': playlist['id'],
-                                'name': playlist['name'],
-                                'description': playlist.get('description', ''),
-                                'track_count': playlist.get('trackCount', 0)
-                            })
-                        break
+            for edge in edges:
+                node = edge.get('node', {})
+                if node.get('__typename') == 'Playlist' or 'description' in node:
+                    playlists.append({
+                        'id': node.get('id'),
+                        'name': node.get('name'),
+                        'description': node.get('description', ''),
+                        'source': 'curated_library',
+                        'search_term': search_term
+                    })
             
+            logger.info(f"Found {len(playlists)} curated playlists for '{search_term}'")
             return playlists
             
         except Exception as e:
-            logger.error(f"Error parsing playlists: {e}")
+            logger.error(f"Error parsing search results: {e}")
             return []
+    
+    def find_playlists_by_context(self, user_request: str, limit: int = 5) -> List[Dict]:
+        """Intelligently find playlists based on user conversation context"""
+        
+        # Map common user requests to search terms
+        context_mapping = {
+            # Decades/Eras
+            '80s': ['80s', 'eighties', '1980s'], 
+            '90s': ['90s', 'nineties', '1990s'],
+            '70s': ['70s', 'seventies', '1970s'],
+            '60s': ['60s', 'sixties', '1960s'],
+            '2000s': ['2000s', 'two thousands'],
+            
+            # Genres
+            'rock': ['rock', 'rock music'],
+            'pop': ['pop', 'pop music'],
+            'jazz': ['jazz', 'jazz music'],
+            'classical': ['classical', 'classical music'],
+            'electronic': ['electronic', 'edm', 'dance'],
+            'hip hop': ['hip hop', 'rap'],
+            'country': ['country', 'country music'],
+            'blues': ['blues'],
+            'reggae': ['reggae'],
+            'latin': ['latin', 'latin music'],
+            
+            # Moods/Atmospheres  
+            'chill': ['chill', 'relaxing', 'calm'],
+            'upbeat': ['upbeat', 'energetic', 'lively'],
+            'relaxing': ['relaxing', 'peaceful', 'calm'],
+            'party': ['party', 'dance', 'celebration'],
+            'romantic': ['romantic', 'love songs'],
+            'background': ['background', 'ambient'],
+            
+            # Contexts
+            'restaurant': ['restaurant', 'dining', 'dinner'],
+            'lobby': ['lobby', 'hotel lobby', 'lounge'],
+            'cafe': ['cafe', 'coffee shop'],
+            'workout': ['workout', 'gym', 'fitness'],
+        }
+        
+        user_request_lower = user_request.lower()
+        search_terms = []
+        
+        # Find matching context terms
+        for context, terms in context_mapping.items():
+            if any(term in user_request_lower for term in terms):
+                search_terms.append(context)
+        
+        # If no specific context found, extract key words
+        if not search_terms:
+            words = user_request_lower.split()
+            potential_terms = []
+            
+            for word in words:
+                if len(word) > 3 and word not in ['play', 'some', 'music', 'song', 'songs', 'track', 'tracks']:
+                    potential_terms.append(word)
+            
+            search_terms = potential_terms[:2]  # Use first 2 meaningful words
+        
+        # Search for playlists
+        all_playlists = []
+        
+        for term in search_terms[:3]:  # Limit to 3 search terms
+            playlists = self.search_curated_playlists(term, limit=limit)
+            
+            # Add relevance score based on term match
+            for playlist in playlists:
+                playlist['relevance_score'] = 1.0
+                playlist['matched_term'] = term
+                
+                # Boost score if playlist name closely matches user request
+                playlist_name_lower = playlist['name'].lower()
+                if term in playlist_name_lower:
+                    playlist['relevance_score'] += 0.5
+                
+                # Boost for exact matches in description
+                if playlist['description'] and term in playlist['description'].lower():
+                    playlist['relevance_score'] += 0.3
+            
+            all_playlists.extend(playlists)
+        
+        # Remove duplicates and sort by relevance
+        unique_playlists = {}
+        for playlist in all_playlists:
+            playlist_id = playlist['id']
+            if playlist_id not in unique_playlists or playlist['relevance_score'] > unique_playlists[playlist_id]['relevance_score']:
+                unique_playlists[playlist_id] = playlist
+        
+        sorted_playlists = sorted(unique_playlists.values(), key=lambda x: x['relevance_score'], reverse=True)
+        
+        logger.info(f"Found {len(sorted_playlists)} relevant playlists for request: '{user_request}'")
+        
+        return sorted_playlists[:limit]
     
     def get_now_playing(self, zone_id: str) -> Dict:
         """Get current playing track information (limited availability)"""
