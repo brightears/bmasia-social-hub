@@ -34,35 +34,17 @@ WHATSAPP_VERIFY_TOKEN = os.getenv("WHATSAPP_VERIFY_TOKEN", "bma_whatsapp_verify_
 WHATSAPP_WEBHOOK_SECRET = os.getenv("WHATSAPP_WEBHOOK_SECRET", "bma_webhook_secret_2024")
 LINE_CHANNEL_SECRET = os.getenv("LINE_CHANNEL_SECRET", "")
 
-# Import bot for responses - try Gemini AI-powered version first
+# Import simplified bot - only uses venue_data.md and Soundtrack API
 try:
-    from bot_gemini import gemini_bot as bot
+    from bot_simplified import simplified_bot as bot
     from bot_simple import sender
     BOT_ENABLED = True
-    logger.info("✅ Gemini AI-powered bot loaded with natural language understanding")
+    logger.info("✅ Simplified bot loaded - using venue_data.md and Soundtrack API only")
 except ImportError as e:
-    logger.warning(f"⚠️ Gemini bot not available: {e}")
-    try:
-        from bot_soundtrack import soundtrack_bot as bot
-        from bot_simple import sender
-        BOT_ENABLED = True
-        logger.info("✅ Soundtrack-enabled bot loaded (fallback)")
-    except ImportError:
-        try:
-            from bot_integrated import integrated_bot as bot
-            from bot_simple import sender
-            BOT_ENABLED = True
-            logger.info("✅ Integrated bot loaded (fallback)")
-        except ImportError:
-            try:
-                from bot_simple import bot, sender
-                BOT_ENABLED = True
-                logger.info("✅ Simple bot loaded (final fallback)")
-            except ImportError as e:
-                logger.warning(f"⚠️ Bot module not available: {e}")
-            BOT_ENABLED = False
-            bot = None
-            sender = None
+    logger.warning(f"⚠️ Simplified bot not available: {e}")
+    BOT_ENABLED = False
+    bot = None
+    sender = None
 
 # Import database manager
 try:
@@ -196,18 +178,8 @@ async def whatsapp_webhook(
                     # Generate and send response if bot is enabled
                     if BOT_ENABLED and bot and sender:
                         try:
-                            # Use safe bot wrapper to prevent hallucination
-                            try:
-                                from bot_anti_hallucination import process_message as safe_process
-                                response_text = safe_process(content, from_number, contact_name, platform="WhatsApp")
-                                logger.info("Using anti-hallucination bot wrapper")
-                            except ImportError:
-                                # Fallback to regular bot if safe wrapper not available
-                                if hasattr(bot, 'process_message'):
-                                    response_text = bot.process_message(content, from_number, contact_name, platform="WhatsApp")
-                                else:
-                                    # Fallback to simple generate_response
-                                    response_text = bot.generate_response(content, contact_name)
+                            # Use simplified bot directly
+                            response_text = bot.process_message(content, from_number, contact_name, platform="WhatsApp")
                             logger.info(f"Generated response: {response_text[:100]}...")
                             
                             # Send response back via WhatsApp
