@@ -354,41 +354,40 @@ class SoundtrackAPI:
     def get_zone_status(self, zone_id: str) -> Dict:
         """Get detailed status for a specific zone including playing status and current track"""
         
-        # Try comprehensive query first
+        # Updated query based on correct schema discovery
         query = """
         query GetZoneStatus($zoneId: ID!) {
             soundZone(id: $zoneId) {
                 id
                 name
-                streamingType
-                isPlaying
-                volume
+                online
                 device {
-                    id
-                    name
-                    online
-                }
-                schedule {
                     id
                     name
                 }
                 nowPlaying {
-                    __typename
-                    ... on Track {
-                        id
+                    startedAt
+                    track {
                         name
-                        artistName
-                        albumName
-                        duration
+                        artists {
+                            name
+                        }
+                        album {
+                            name
+                        }
                     }
-                    ... on Announcement {
-                        id
-                        name
+                    playFrom {
+                        __typename
+                        ... on Playlist {
+                            name
+                        }
+                        ... on Schedule {
+                            name
+                        }
                     }
                 }
-                currentPlaylist {
-                    id
-                    name
+                playback {
+                    state
                 }
             }
         }
@@ -404,13 +403,14 @@ class SoundtrackAPI:
                 soundZone(id: $zoneId) {
                     id
                     name
-                    streamingType
+                    online
                     device {
-                        id
                         name
                     }
                     nowPlaying {
-                        __typename
+                        track {
+                            name
+                        }
                     }
                 }
             }
@@ -424,31 +424,43 @@ class SoundtrackAPI:
             status = {
                 'id': zone_data.get('id'),
                 'name': zone_data.get('name'),
-                'playing': zone_data.get('isPlaying', None),  # Will be None if not available
-                'volume': zone_data.get('volume'),
                 'device_name': zone_data.get('device', {}).get('name'),
-                'device_online': zone_data.get('device', {}).get('online'),
-                'streaming_type': zone_data.get('streamingType')
+                'device_online': zone_data.get('online'),  # Changed from device.online to zone.online
+                'streaming_type': None  # No longer available in new schema
             }
             
-            # Extract now playing information
+            # Extract playback state (replaces isPlaying)
+            playback = zone_data.get('playback', {})
+            if playback:
+                playback_state = playback.get('state', '').lower()
+                status['playing'] = playback_state == 'playing'
+            else:
+                # Fallback: if there's nowPlaying data, assume it's playing
+                now_playing = zone_data.get('nowPlaying', {})
+                status['playing'] = bool(now_playing and now_playing.get('track'))
+            
+            # Extract now playing information (updated structure)
             now_playing = zone_data.get('nowPlaying', {})
-            if now_playing and now_playing.get('__typename') == 'Track':
-                status['current_track'] = {
-                    'name': now_playing.get('name'),
-                    'artist': now_playing.get('artistName'),
-                    'album': now_playing.get('albumName')
-                }
-            
-            # Extract playlist info
-            current_playlist = zone_data.get('currentPlaylist', {})
-            if current_playlist:
-                status['current_playlist'] = current_playlist.get('name')
-            
-            # If playing status is not available, check if we have nowPlaying data
-            if status['playing'] is None and now_playing:
-                # If there's something in nowPlaying, assume it's playing
-                status['playing'] = True
+            if now_playing:
+                track = now_playing.get('track', {})
+                if track:
+                    # Get first artist name
+                    artists = track.get('artists', [])
+                    artist_name = artists[0].get('name', 'Unknown artist') if artists else 'Unknown artist'
+                    
+                    album = track.get('album', {})
+                    album_name = album.get('name', '') if album else ''
+                    
+                    status['current_track'] = {
+                        'name': track.get('name', 'Unknown track'),
+                        'artist': artist_name,
+                        'album': album_name
+                    }
+                
+                # Extract playlist/schedule info (updated structure)
+                play_from = now_playing.get('playFrom', {})
+                if play_from:
+                    status['current_playlist'] = play_from.get('name')
             
             return status
         
@@ -909,15 +921,15 @@ class SoundtrackAPI:
             else:
                 diagnosis['online_zones'] += 1
                 
-                # Check playback status
-                now_playing = zone.get('nowPlaying', {})
-                playback = now_playing.get('playback', {}) if now_playing else {}
-                is_playing = playback.get('isPlaying', False) if playback else now_playing.get('isPlaying', False)
+                # Check playback status using updated logic
+                zone_status = self.get_zone_status(zone.get('id'))
+                is_playing = zone_status.get('playing', False) if 'error' not in zone_status else False
                 
                 if is_playing:
                     diagnosis['playing_zones'] += 1
-                    if now_playing and now_playing.get('track'):
-                        zone_status['currently_playing'] = now_playing['track'].get('name')
+                    current_track = zone_status.get('current_track')
+                    if current_track:
+                        zone_status['currently_playing'] = current_track.get('name')
                 else:
                     diagnosis['paused_zones'] += 1
                     zone_status['issues'].append('Music paused or stopped')
