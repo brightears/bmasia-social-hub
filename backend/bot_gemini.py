@@ -12,6 +12,9 @@ from soundtrack_api import soundtrack_api
 from venue_identifier import conversation_context
 from email_verification import email_verifier
 
+# Set up logging first
+logger = logging.getLogger(__name__)
+
 # Import Google Sheets client
 try:
     from google_sheets_client import GoogleSheetsClient
@@ -56,8 +59,6 @@ except Exception as e:
     logger.warning(f"Google Drive not available: {e}")
     drive_client = None
     DRIVE_AVAILABLE = False
-
-logger = logging.getLogger(__name__)
 
 class GeminiBot:
     """AI-powered bot using Google Gemini for natural conversation"""
