@@ -361,6 +361,7 @@ class SoundtrackAPI:
                 id
                 name
                 online
+                volume
                 device {
                     id
                     name
@@ -426,7 +427,8 @@ class SoundtrackAPI:
                 'name': zone_data.get('name'),
                 'device_name': zone_data.get('device', {}).get('name'),
                 'device_online': zone_data.get('online'),  # Changed from device.online to zone.online
-                'streaming_type': None  # No longer available in new schema
+                'streaming_type': None,  # No longer available in new schema
+                'volume': zone_data.get('volume')  # Add volume back
             }
             
             # Extract playback state (replaces isPlaying)

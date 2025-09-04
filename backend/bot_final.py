@@ -303,12 +303,20 @@ Important: "Edge", "Drift Bar", "Horizon", "Shore" are zone names, not venue nam
         # Find zone ID
         zone_id = self._find_zone_id(venue.get('property_name', venue_name), zone_name)
         if not zone_id:
-            zones = venue.get('zone_names', [])
-            if len(zones) == 1:
-                zone_id = self._find_zone_id(venue.get('property_name', venue_name), zones[0])
-                zone_name = zones[0]
+            zones = venue.get('zone_names', '')
+            # Handle zones as string (from venue_data.md)
+            if isinstance(zones, str) and zones:
+                zone_list = [z.strip() for z in zones.split(',')]
             else:
-                return f"Which zone needs a playlist change? Available zones: {', '.join(zones)}"
+                zone_list = zones if isinstance(zones, list) else []
+            
+            if len(zone_list) == 1:
+                zone_id = self._find_zone_id(venue.get('property_name', venue_name), zone_list[0])
+                zone_name = zone_list[0]
+            elif zone_list:
+                return f"Which zone needs a playlist change? Available zones: {', '.join(zone_list)}"
+            else:
+                return "I couldn't find the zones for this venue."
         
         # INTELLIGENT PLAYLIST SELECTION
         # First try to find playlists based on context (80s, jazz, upbeat, etc.)
