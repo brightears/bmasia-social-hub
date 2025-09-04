@@ -479,7 +479,9 @@ Response format:
         if not venue:
             return f"I couldn't find {venue_name} in our system."
         
-        response = f"**{venue['name']} Information:**\n"
+        # Get venue name from analysis or use property name
+        venue_display_name = venue.get('property_name', venue_name)
+        response = f"**{venue_display_name} Information:**\n"
         response += f"• Music Platform: {venue.get('music_platform', 'Unknown')}\n"
         response += f"• Total Zones: {venue.get('zone_count', 'Unknown')}\n"
         
@@ -491,10 +493,18 @@ Response format:
         if subscription:
             response += f"• Subscription: {subscription}\n"
         
+        # Add contract information
+        contract_end = venue.get('contract_end')
+        if contract_end:
+            response += f"• Contract expires: {contract_end}\n"
+        contract_start = venue.get('contract_start')
+        if contract_start:
+            response += f"• Contract started: {contract_start}\n"
+        
         # Check API control capability
         if venue.get('music_platform') == 'Soundtrack Your Brand':
             # Test one zone to see if we have API control
-            zone_id = self._find_zone_id(venue['name'], zones[0] if zones else None)
+            zone_id = self._find_zone_id(venue_display_name, zones[0] if zones else None)
             if zone_id:
                 capabilities = soundtrack_api.get_zone_capabilities(zone_id)
                 if capabilities.get('controllable'):
