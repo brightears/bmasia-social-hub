@@ -250,7 +250,34 @@ async def whatsapp_webhook(request: Request):
                                         None
                                     )
                                     logger.info(f"Bot response: {response}")
-                                    # In production, send response back via WhatsApp API
+                                    
+                                    # Send response back via WhatsApp API
+                                    import requests
+                                    whatsapp_token = os.environ.get('WHATSAPP_ACCESS_TOKEN')
+                                    phone_number_id = change.get("value", {}).get("metadata", {}).get("phone_number_id")
+                                    
+                                    if whatsapp_token and phone_number_id:
+                                        url = f"https://graph.facebook.com/v17.0/{phone_number_id}/messages"
+                                        headers = {
+                                            "Authorization": f"Bearer {whatsapp_token}",
+                                            "Content-Type": "application/json"
+                                        }
+                                        payload = {
+                                            "messaging_product": "whatsapp",
+                                            "to": from_number,
+                                            "text": {"body": response}
+                                        }
+                                        
+                                        try:
+                                            send_response = requests.post(url, headers=headers, json=payload)
+                                            if send_response.status_code == 200:
+                                                logger.info(f"WhatsApp response sent to {from_number}")
+                                            else:
+                                                logger.error(f"Failed to send WhatsApp response: {send_response.text}")
+                                        except Exception as e:
+                                            logger.error(f"Error sending WhatsApp response: {e}")
+                                    else:
+                                        logger.warning("WhatsApp token or phone_number_id not configured")
         
         return {"status": "success"}
         
