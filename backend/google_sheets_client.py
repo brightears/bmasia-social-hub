@@ -70,8 +70,9 @@ class GoogleSheetsClient:
             return []
         
         try:
-            # Read the master sheet
-            range_name = 'Sheet1!A:Z'  # Adjust based on actual sheet structure
+            # Read the master sheet - try without sheet name first
+            # This will read from the first/default sheet
+            range_name = 'A:Z'  # Read all columns from default sheet
             result = self.service.spreadsheets().values().get(
                 spreadsheetId=self.master_sheet_id,
                 range=range_name
