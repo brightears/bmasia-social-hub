@@ -485,9 +485,14 @@ Response format:
         response += f"• Music Platform: {venue.get('music_platform', 'Unknown')}\n"
         response += f"• Total Zones: {venue.get('zone_count', 'Unknown')}\n"
         
-        zones = venue.get('zone_names', [])
+        zones = venue.get('zone_names', '')
         if zones:
-            response += f"• Zones: {', '.join(zones)}\n"
+            # If zones is a string (from venue_data.md), split it
+            if isinstance(zones, str):
+                zone_list = [z.strip() for z in zones.split(',')]
+            else:
+                zone_list = zones
+            response += f"• Zones: {', '.join(zone_list)}\n"
         
         subscription = venue.get('subscription_type')
         if subscription:
@@ -504,7 +509,8 @@ Response format:
         # Check API control capability
         if venue.get('music_platform') == 'Soundtrack Your Brand':
             # Test one zone to see if we have API control
-            zone_id = self._find_zone_id(venue_display_name, zones[0] if zones else None)
+            first_zone = zone_list[0] if zones and zone_list else None
+            zone_id = self._find_zone_id(venue_display_name, first_zone)
             if zone_id:
                 capabilities = soundtrack_api.get_zone_capabilities(zone_id)
                 if capabilities.get('controllable'):
