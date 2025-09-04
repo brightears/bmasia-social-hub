@@ -477,7 +477,7 @@ class SoundtrackBot(IntegratedBot):
         return "\n".join(response_parts)
     
     def attempt_auto_fix(self, venue_name: str, zone_name: str = None) -> str:
-        """Attempt to automatically fix zone issues"""
+        """Attempt to automatically fix zone issues - ALWAYS try control first regardless of device"""
         
         zones = self.soundtrack.find_venue_zones(venue_name)
         
@@ -500,15 +500,38 @@ class SoundtrackBot(IntegratedBot):
         if not target_zone:
             return "✅ All zones appear to be working correctly."
         
-        # Attempt fix
+        # Attempt fix - CRITICAL: Always try control first (control is cloud-level)
         zone_id = target_zone.get('id')
+        zone_name_display = target_zone.get('name', 'Unknown Zone')
+        
+        logger.info(f"Attempting auto-fix for zone '{zone_name_display}' - will try control regardless of device type")
+        
         fix_result = self.soundtrack.quick_fix_zone(zone_id)
         
         if fix_result.get('success'):
             fixes = "\n".join([f"• {fix}" for fix in fix_result.get('fixes_attempted', [])])
-            return f"✅ **Automated fixes applied:**\n{fixes}\n\nThe zone should be working now. Please check and let me know if the issue persists."
+            return f"✅ **Automated fixes applied to {zone_name_display}:**\n{fixes}\n\nThe zone should be working now. Please check and let me know if the issue persists."
         else:
-            return f"❌ **Could not automatically fix the issue:**\n{fix_result.get('message')}\n\nManual intervention may be required. Would you like me to create a support ticket?"
+            # Provide specific guidance based on failure reason
+            failure_reason = fix_result.get('zone_info', {}).get('streaming_type', 'Unknown')
+            device_name = fix_result.get('zone_info', {}).get('device', 'Unknown')
+            
+            response = f"❌ **Could not automatically control {zone_name_display}:**\n\n"
+            response += f"{fix_result.get('message', 'Unknown error')}\n\n"
+            
+            if fix_result.get('recommendations'):
+                response += "💡 **Recommended actions:**\n"
+                for rec in fix_result.get('recommendations', []):
+                    response += f"• {rec}\n"
+            
+            response += f"\n🔧 **Technical details:**\n"
+            response += f"• Device: {device_name}\n"
+            response += f"• Streaming Type: {failure_reason}\n"
+            response += f"• This means the zone likely needs manual control via SYB app/dashboard\n"
+            
+            response += f"\n❓ Would you like me to create a support ticket or provide manual control instructions?"
+            
+            return response
 
 
 # Global instance

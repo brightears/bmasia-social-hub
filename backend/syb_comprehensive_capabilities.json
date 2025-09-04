@@ -1,0 +1,3226 @@
+{
+  "discovery_timestamp": "2025-01-20T00:00:00Z",
+  "schema_mutations": [
+    {
+      "name": "playbackReporting",
+      "description": "",
+      "args": [
+        {
+          "name": "input",
+          "type": {
+            "name": null,
+            "kind": "NON_NULL",
+            "ofType": {
+              "name": "PlaybackReportingInput",
+              "kind": "INPUT_OBJECT"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "writeTasteProfile",
+      "description": "Write live taste profile",
+      "args": [
+        {
+          "name": "playlistsIds",
+          "type": {
+            "name": null,
+            "kind": "NON_NULL",
+            "ofType": {
+              "name": null,
+              "kind": "LIST"
+            }
+          }
+        },
+        {
+          "name": "source",
+          "type": {
+            "name": null,
+            "kind": "NON_NULL",
+            "ofType": {
+              "name": "String",
+              "kind": "SCALAR"
+            }
+          }
+        },
+        {
+          "name": "trackingId",
+          "type": {
+            "name": "String",
+            "kind": "SCALAR",
+            "ofType": null
+          }
+        },
+        {
+          "name": "context",
+          "type": {
+            "name": "String",
+            "kind": "SCALAR",
+            "ofType": null
+          }
+        },
+        {
+          "name": "captchaStr",
+          "type": {
+            "name": "String",
+            "kind": "SCALAR",
+            "ofType": null
+          }
+        }
+      ]
+    },
+    {
+      "name": "copyTasteProfileFrom",
+      "description": "Copy taste profile between accounts",
+      "args": [
+        {
+          "name": "source",
+          "type": {
+            "name": null,
+            "kind": "NON_NULL",
+            "ofType": {
+              "name": "String",
+              "kind": "SCALAR"
+            }
+          }
+        },
+        {
+          "name": "accountId",
+          "type": {
+            "name": null,
+            "kind": "NON_NULL",
+            "ofType": {
+              "name": "String",
+              "kind": "SCALAR"
+            }
+          }
+        },
+        {
+          "name": "captchaStr",
+          "type": {
+            "name": "String",
+            "kind": "SCALAR",
+            "ofType": null
+          }
+        }
+      ]
+    },
+    {
+      "name": "writeSectionsSeen",
+      "description": "Write events to BigQuery",
+      "args": [
+        {
+          "name": "eventData",
+          "type": {
+            "name": null,
+            "kind": "NON_NULL",
+            "ofType": {
+              "name": "String",
+              "kind": "SCALAR"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "writeFeedback",
+      "description": "Write feedback form data to BigQuery",
+      "args": [
+        {
+          "name": "feedbackInput",
+          "type": {
+            "name": null,
+            "kind": "NON_NULL",
+            "ofType": {
+              "name": "FeedbackInput",
+              "kind": "INPUT_OBJECT"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "createStationFromTags",
+      "description": "",
+      "args": [
+        {
+          "name": "input",
+          "type": {
+            "name": null,
+            "kind": "NON_NULL",
+            "ofType": {
+              "name": "CreateStationFromTagsInput",
+              "kind": "INPUT_OBJECT"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "updateStationFromTags",
+      "description": "",
+      "args": [
+        {
+          "name": "input",
+          "type": {
+            "name": null,
+            "kind": "NON_NULL",
+            "ofType": {
+              "name": "UpdateStationFromTagsInput",
+              "kind": "INPUT_OBJECT"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "createStationFromPrompt",
+      "description": "Create a station using a prompt",
+      "args": [
+        {
+          "name": "input",
+          "type": {
+            "name": null,
+            "kind": "NON_NULL",
+            "ofType": {
+              "name": "CreateStationFromPromptInput",
+              "kind": "INPUT_OBJECT"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "updateStationFromPrompt",
+      "description": "Update a station using a prompt",
+      "args": [
+        {
+          "name": "input",
+          "type": {
+            "name": null,
+            "kind": "NON_NULL",
+            "ofType": {
+              "name": "UpdateStationFromPromptInput",
+              "kind": "INPUT_OBJECT"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "createAnnouncement",
+      "description": "",
+      "args": [
+        {
+          "name": "options",
+          "type": {
+            "name": null,
+            "kind": "NON_NULL",
+            "ofType": {
+              "name": "AnnouncementInput",
+              "kind": "INPUT_OBJECT"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "updateAnnouncement",
+      "description": "",
+      "args": [
+        {
+          "name": "id",
+          "type": {
+            "name": null,
+            "kind": "NON_NULL",
+            "ofType": {
+              "name": "ID",
+              "kind": "SCALAR"
+            }
+          }
+        },
+        {
+          "name": "options",
+          "type": {
+            "name": null,
+            "kind": "NON_NULL",
+            "ofType": {
+              "name": "AnnouncementUpdateInput",
+              "kind": "INPUT_OBJECT"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "createAnnouncementCampaign",
+      "description": "",
+      "args": [
+        {
+          "name": "options",
+          "type": {
+            "name": null,
+            "kind": "NON_NULL",
+            "ofType": {
+              "name": "AnnouncementCampaignCreateInput",
+              "kind": "INPUT_OBJECT"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "updateAnnouncementCampaign",
+      "description": "",
+      "args": [
+        {
+          "name": "options",
+          "type": {
+            "name": null,
+            "kind": "NON_NULL",
+            "ofType": {
+              "name": "AnnouncementCampaignUpdateInput",
+              "kind": "INPUT_OBJECT"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "addGroupToAnnouncementCampaign",
+      "description": "",
+      "args": [
+        {
+          "name": "campaignId",
+          "type": {
+            "name": null,
+            "kind": "NON_NULL",
+            "ofType": {
+              "name": "ID",
+              "kind": "SCALAR"
+            }
+          }
+        },
+        {
+          "name": "group",
+          "type": {
+            "name": null,
+            "kind": "NON_NULL",
+            "ofType": {
+              "name": "AnnouncementGroupCreateInput",
+              "kind": "INPUT_OBJECT"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "removeGroupFromAnnouncementCampaign",
+      "description": "",
+      "args": [
+        {
+          "name": "campaignId",
+          "type": {
+            "name": null,
+            "kind": "NON_NULL",
+            "ofType": {
+              "name": "ID",
+              "kind": "SCALAR"
+            }
+          }
+        },
+        {
+          "name": "groupId",
+          "type": {
+            "name": null,
+            "kind": "NON_NULL",
+            "ofType": {
+              "name": "ID",
+              "kind": "SCALAR"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "updateAnnouncementCampaignAssignment",
+      "description": "",
+      "args": [
+        {
+          "name": "options",
+          "type": {
+            "name": null,
+            "kind": "NON_NULL",
+            "ofType": {
+              "name": "AnnouncementCampaignAssignmentInput",
+              "kind": "INPUT_OBJECT"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "assignAnnouncementCampaignToSoundZones",
+      "description": "",
+      "args": [
+        {
+          "name": "options",
+          "type": {
+            "name": null,
+            "kind": "NON_NULL",
+            "ofType": {
+              "name": "AnnouncementCampaignAssignmentInput",
+              "kind": "INPUT_OBJECT"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "unassignAnnouncementCampaignFromSoundZones",
+      "description": "",
+      "args": [
+        {
+          "name": "options",
+          "type": {
+            "name": null,
+            "kind": "NON_NULL",
+            "ofType": {
+              "name": "AnnouncementCampaignAssignmentInput",
+              "kind": "INPUT_OBJECT"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "createAnnouncementPreview",
+      "description": "",
+      "args": [
+        {
+          "name": "options",
+          "type": {
+            "name": null,
+            "kind": "NON_NULL",
+            "ofType": {
+              "name": "AnnouncementInput",
+              "kind": "INPUT_OBJECT"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "createAnnouncementAudioFileUploadUrl",
+      "description": "",
+      "args": [
+        {
+          "name": "originUrl",
+          "type": {
+            "name": "String",
+            "kind": "SCALAR",
+            "ofType": null
+          }
+        }
+      ]
+    },
+    {
+      "name": "pitchSong",
+      "description": "Request a song to be reviewed for addition into the Soundtrack readymade playlists",
+      "args": [
+        {
+          "name": "input",
+          "type": {
+            "name": null,
+            "kind": "NON_NULL",
+            "ofType": {
+              "name": "PitchSongInput",
+              "kind": "INPUT_OBJECT"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "createSpotifyConnection",
+      "description": "Create a Spotify Connection",
+      "args": [
+        {
+          "name": "code",
+          "type": {
+            "name": null,
+            "kind": "NON_NULL",
+            "ofType": {
+              "name": "String",
+              "kind": "SCALAR"
+            }
+          }
+        },
+        {
+          "name": "redirectUri",
+          "type": {
+            "name": null,
+            "kind": "NON_NULL",
+            "ofType": {
+              "name": "String",
+              "kind": "SCALAR"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "importSpotifyPlaylists",
+      "description": "Import playlists from Spotify, optionally adding them to the account music library.",
+      "args": [
+        {
+          "name": "connectionId",
+          "type": {
+            "name": null,
+            "kind": "NON_NULL",
+            "ofType": {
+              "name": "String",
+              "kind": "SCALAR"
+            }
+          }
+        },
+        {
+          "name": "spotifyPlaylistUris",
+          "type": {
+            "name": null,
+            "kind": "NON_NULL",
+            "ofType": {
+              "name": null,
+              "kind": "LIST"
+            }
+          }
+        },
+        {
+          "name": "addToLibrary",
+          "type": {
+            "name": "Boolean",
+            "kind": "SCALAR",
+            "ofType": null
+          }
+        }
+      ]
+    },
+    {
+      "name": "getTracksFromSpotifyPlaylists",
+      "description": "Get Soundtrack tracks using Spotify playlist uris.",
+      "args": [
+        {
+          "name": "connectionId",
+          "type": {
+            "name": null,
+            "kind": "NON_NULL",
+            "ofType": {
+              "name": "String",
+              "kind": "SCALAR"
+            }
+          }
+        },
+        {
+          "name": "spotifyPlaylistUris",
+          "type": {
+            "name": null,
+            "kind": "NON_NULL",
+            "ofType": {
+              "name": null,
+              "kind": "LIST"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "updateSpotifyPlaylistMetadata",
+      "description": "Update metadata on playlists imported from Spotify",
+      "args": [
+        {
+          "name": "playlistId",
+          "type": {
+            "name": null,
+            "kind": "NON_NULL",
+            "ofType": {
+              "name": "ID",
+              "kind": "SCALAR"
+            }
+          }
+        },
+        {
+          "name": "playOrder",
+          "type": {
+            "name": "PlayOrder",
+            "kind": "ENUM",
+            "ofType": null
+          }
+        }
+      ]
+    },
+    {
+      "name": "refreshSpotifyPlaylists",
+      "description": "Refresh playlists imported from Spotify",
+      "args": [
+        {
+          "name": "playlistIds",
+          "type": {
+            "name": null,
+            "kind": "NON_NULL",
+            "ofType": {
+              "name": null,
+              "kind": "LIST"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "setSpotifyPlaylistAutoRefreshFrequency",
+      "description": "Set automatic refresh policy for a playlist",
+      "args": [
+        {
+          "name": "input",
+          "type": {
+            "name": null,
+            "kind": "NON_NULL",
+            "ofType": {
+              "name": "SpotifyPlaylistRefreshFrequencyInput",
+              "kind": "INPUT_OBJECT"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "createHomeTasteProfileFromOnboarding",
+      "description": "",
+      "args": [
+        {
+          "name": "artists",
+          "type": {
+            "name": null,
+            "kind": "NON_NULL",
+            "ofType": {
+              "name": null,
+              "kind": "LIST"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "like",
+      "description": "",
+      "args": [
+        {
+          "name": "id",
+          "type": {
+            "name": null,
+            "kind": "NON_NULL",
+            "ofType": {
+              "name": "String",
+              "kind": "SCALAR"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "unlike",
+      "description": "",
+      "args": [
+        {
+          "name": "id",
+          "type": {
+            "name": null,
+            "kind": "NON_NULL",
+            "ofType": {
+              "name": "String",
+              "kind": "SCALAR"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "userSetCompanyRole",
+      "description": "Set the user's role in the company they work at.",
+      "args": [
+        {
+          "name": "input",
+          "type": {
+            "name": null,
+            "kind": "NON_NULL",
+            "ofType": {
+              "name": "UserSetCompanyRoleInput",
+              "kind": "INPUT_OBJECT"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "accountSignupQuestionnaireSubmit",
+      "description": "Submit the signup questionnaire for a specific account.",
+      "args": [
+        {
+          "name": "input",
+          "type": {
+            "name": null,
+            "kind": "NON_NULL",
+            "ofType": {
+              "name": "QuestionnaireInput",
+              "kind": "INPUT_OBJECT"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "setOnboardingStep",
+      "description": "Set status of an onboarding-step to keep track of the onboarding progress.",
+      "args": [
+        {
+          "name": "input",
+          "type": {
+            "name": null,
+            "kind": "NON_NULL",
+            "ofType": {
+              "name": "OnboardingStepInput",
+              "kind": "INPUT_OBJECT"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "applyFlags",
+      "description": "Report a flag apply event",
+      "args": [
+        {
+          "name": "events",
+          "type": {
+            "name": null,
+            "kind": "NON_NULL",
+            "ofType": {
+              "name": null,
+              "kind": "LIST"
+            }
+          }
+        },
+        {
+          "name": "resolveToken",
+          "type": {
+            "name": null,
+            "kind": "NON_NULL",
+            "ofType": {
+              "name": "String",
+              "kind": "SCALAR"
+            }
+          }
+        },
+        {
+          "name": "currentClientTime",
+          "type": {
+            "name": null,
+            "kind": "NON_NULL",
+            "ofType": {
+              "name": "DateTime",
+              "kind": "SCALAR"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "billingGroupUpdate",
+      "description": "Update a billingGroup and its properties.",
+      "args": [
+        {
+          "name": "input",
+          "type": {
+            "name": null,
+            "kind": "NON_NULL",
+            "ofType": {
+              "name": "BillingGroupUpdateInput",
+              "kind": "INPUT_OBJECT"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "billingCycleUpdate",
+      "description": "Update the billing cycle for an account.",
+      "args": [
+        {
+          "name": "input",
+          "type": {
+            "name": null,
+            "kind": "NON_NULL",
+            "ofType": {
+              "name": "UpdateBillingCycleInput",
+              "kind": "INPUT_OBJECT"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "subscriptionCancel",
+      "description": "Cancel a subscription. The sound zone will still be able to play music until its paid until date is passed.",
+      "args": [
+        {
+          "name": "input",
+          "type": {
+            "name": null,
+            "kind": "NON_NULL",
+            "ofType": {
+              "name": "SubscriptionCancelInput",
+              "kind": "INPUT_OBJECT"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "subscriptionActivate",
+      "description": "Activate a subscription.",
+      "args": [
+        {
+          "name": "input",
+          "type": {
+            "name": null,
+            "kind": "NON_NULL",
+            "ofType": {
+              "name": "SubscriptionActivateInput",
+              "kind": "INPUT_OBJECT"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "cartCreate",
+      "description": "Create a cart for an account.",
+      "args": [
+        {
+          "name": "input",
+          "type": {
+            "name": null,
+            "kind": "NON_NULL",
+            "ofType": {
+              "name": "CartCreateInput",
+              "kind": "INPUT_OBJECT"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "addToCart",
+      "description": "Add an add-on or similar product to a cart. For streaming music, use addStreamingToCart.",
+      "args": [
+        {
+          "name": "input",
+          "type": {
+            "name": null,
+            "kind": "NON_NULL",
+            "ofType": {
+              "name": "AddToCartInput",
+              "kind": "INPUT_OBJECT"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "addStreamingToCart",
+      "description": "Add a sound zone to a cart.",
+      "args": [
+        {
+          "name": "input",
+          "type": {
+            "name": null,
+            "kind": "NON_NULL",
+            "ofType": {
+              "name": "AddStreamingToCartInput",
+              "kind": "INPUT_OBJECT"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "cartUpdate",
+      "description": "Update a cart.",
+      "args": [
+        {
+          "name": "input",
+          "type": {
+            "name": null,
+            "kind": "NON_NULL",
+            "ofType": {
+              "name": "UpdateCartInput",
+              "kind": "INPUT_OBJECT"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "cartCheckout",
+      "description": "Check out a cart.",
+      "args": [
+        {
+          "name": "input",
+          "type": {
+            "name": null,
+            "kind": "NON_NULL",
+            "ofType": {
+              "name": "CartCheckoutInput",
+              "kind": "INPUT_OBJECT"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "cartCheckoutAsync",
+      "description": "Check out a cart.",
+      "args": [
+        {
+          "name": "input",
+          "type": {
+            "name": null,
+            "kind": "NON_NULL",
+            "ofType": {
+              "name": "CartCheckoutInput",
+              "kind": "INPUT_OBJECT"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "addOnDeactivate",
+      "description": "Deactivate an add-on.",
+      "args": [
+        {
+          "name": "input",
+          "type": {
+            "name": null,
+            "kind": "NON_NULL",
+            "ofType": {
+              "name": "AddOnDeactivateInput",
+              "kind": "INPUT_OBJECT"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "addOnReactivate",
+      "description": "Reactivate an add-on that has not yet expired.",
+      "args": [
+        {
+          "name": "input",
+          "type": {
+            "name": null,
+            "kind": "NON_NULL",
+            "ofType": {
+              "name": "AddOnReactivateInput",
+              "kind": "INPUT_OBJECT"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "accountChangePlan",
+      "description": "Change an account plan.",
+      "args": [
+        {
+          "name": "accountId",
+          "type": {
+            "name": null,
+            "kind": "NON_NULL",
+            "ofType": {
+              "name": "ID",
+              "kind": "SCALAR"
+            }
+          }
+        },
+        {
+          "name": "toPlan",
+          "type": {
+            "name": null,
+            "kind": "NON_NULL",
+            "ofType": {
+              "name": "Plan",
+              "kind": "ENUM"
+            }
+          }
+        },
+        {
+          "name": "priceToken",
+          "type": {
+            "name": null,
+            "kind": "NON_NULL",
+            "ofType": {
+              "name": "String",
+              "kind": "SCALAR"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "taxExemptFormSubmit",
+      "description": "Submit a tax exempt form.",
+      "args": [
+        {
+          "name": "input",
+          "type": {
+            "name": null,
+            "kind": "NON_NULL",
+            "ofType": {
+              "name": "AccountTaxExemptFormUpsertInput",
+              "kind": "INPUT_OBJECT"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "taxExemptFormDelete",
+      "description": "Delete a tax exempt form.",
+      "args": [
+        {
+          "name": "id",
+          "type": {
+            "name": null,
+            "kind": "NON_NULL",
+            "ofType": {
+              "name": "String",
+              "kind": "SCALAR"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "createPlaylist",
+      "description": "",
+      "args": [
+        {
+          "name": "input",
+          "type": {
+            "name": null,
+            "kind": "NON_NULL",
+            "ofType": {
+              "name": "CreatePlaylistInput",
+              "kind": "INPUT_OBJECT"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "createManualPlaylist",
+      "description": "Creates an new `manual` playlist.",
+      "args": [
+        {
+          "name": "input",
+          "type": {
+            "name": null,
+            "kind": "NON_NULL",
+            "ofType": {
+              "name": "CreateManualPlaylistInput",
+              "kind": "INPUT_OBJECT"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "updateManualPlaylist",
+      "description": "Updates info for a `manual` playlist.",
+      "args": [
+        {
+          "name": "input",
+          "type": {
+            "name": null,
+            "kind": "NON_NULL",
+            "ofType": {
+              "name": "UpdateManualPlaylistInfoInput",
+              "kind": "INPUT_OBJECT"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "createSpotifySyncedPlaylist",
+      "description": "Creates an new `spotify-composer` playlist.",
+      "args": [
+        {
+          "name": "input",
+          "type": {
+            "name": null,
+            "kind": "NON_NULL",
+            "ofType": {
+              "name": "CreateSpotifySyncedPlaylistInput",
+              "kind": "INPUT_OBJECT"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "updateSpotifyPlaylist",
+      "description": "Updates info for a `spotify-composer` playlist.",
+      "args": [
+        {
+          "name": "input",
+          "type": {
+            "name": null,
+            "kind": "NON_NULL",
+            "ofType": {
+              "name": "UpdateSpotifySyncedPlaylistInput",
+              "kind": "INPUT_OBJECT"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "syncSpotifySyncedPlaylist",
+      "description": "Force a sync between the underlying Spotify Playlist and the `spotify-composer` playlist",
+      "args": [
+        {
+          "name": "input",
+          "type": {
+            "name": null,
+            "kind": "NON_NULL",
+            "ofType": {
+              "name": "SyncSpotifySyncedPlaylistInput",
+              "kind": "INPUT_OBJECT"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "createStationFromPlaylist",
+      "description": "Creates an new `seed-composer` playlist.",
+      "args": [
+        {
+          "name": "input",
+          "type": {
+            "name": null,
+            "kind": "NON_NULL",
+            "ofType": {
+              "name": "CreateStationFromPlaylistInput",
+              "kind": "INPUT_OBJECT"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "updateStationFromPlaylist",
+      "description": "Updates info for a `seed-composer` playlist.",
+      "args": [
+        {
+          "name": "input",
+          "type": {
+            "name": null,
+            "kind": "NON_NULL",
+            "ofType": {
+              "name": "UpdateStationFromPlaylistInput",
+              "kind": "INPUT_OBJECT"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "spliceManualPlaylist",
+      "description": "Splices the tracks of a `manual` playlist. This mutation changes the contents of a playlist by removing or replacing existing tracks and/or adding new tracks in place. API inspired by the JS `Array.splice` method.",
+      "args": [
+        {
+          "name": "input",
+          "type": {
+            "name": null,
+            "kind": "NON_NULL",
+            "ofType": {
+              "name": "SplicePlaylistInput",
+              "kind": "INPUT_OBJECT"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "addToMusicLibrary",
+      "description": "Add a playlist or a schedule to a music library.",
+      "args": [
+        {
+          "name": "input",
+          "type": {
+            "name": null,
+            "kind": "NON_NULL",
+            "ofType": {
+              "name": "AddToMusicLibraryInput",
+              "kind": "INPUT_OBJECT"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "removeFromMusicLibrary",
+      "description": "Remove a playlist or a schedule from a music library.",
+      "args": [
+        {
+          "name": "input",
+          "type": {
+            "name": null,
+            "kind": "NON_NULL",
+            "ofType": {
+              "name": "RemoveFromMusicLibraryInput",
+              "kind": "INPUT_OBJECT"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "blockTrack",
+      "description": "block a track for a sound zone.",
+      "args": [
+        {
+          "name": "input",
+          "type": {
+            "name": null,
+            "kind": "NON_NULL",
+            "ofType": {
+              "name": "BlockTrackInput",
+              "kind": "INPUT_OBJECT"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "unblockTrack",
+      "description": "unblock a track for a sound zone.",
+      "args": [
+        {
+          "name": "input",
+          "type": {
+            "name": null,
+            "kind": "NON_NULL",
+            "ofType": {
+              "name": "UnblockTrackInput",
+              "kind": "INPUT_OBJECT"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "createSchedule",
+      "description": "Create a schedule.",
+      "args": [
+        {
+          "name": "input",
+          "type": {
+            "name": null,
+            "kind": "NON_NULL",
+            "ofType": {
+              "name": "CreateScheduleInput",
+              "kind": "INPUT_OBJECT"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "updateSchedule",
+      "description": "Update a schedule.",
+      "args": [
+        {
+          "name": "input",
+          "type": {
+            "name": null,
+            "kind": "NON_NULL",
+            "ofType": {
+              "name": "UpdateScheduleInput",
+              "kind": "INPUT_OBJECT"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "addToLibrary",
+      "description": "Add items to library.",
+      "args": [
+        {
+          "name": "owner",
+          "type": {
+            "name": null,
+            "kind": "NON_NULL",
+            "ofType": {
+              "name": "ID",
+              "kind": "SCALAR"
+            }
+          }
+        },
+        {
+          "name": "input",
+          "type": {
+            "name": null,
+            "kind": "NON_NULL",
+            "ofType": {
+              "name": "AddToLibraryInput",
+              "kind": "INPUT_OBJECT"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "removeFromLibrary",
+      "description": "Remove items from library.",
+      "args": [
+        {
+          "name": "owner",
+          "type": {
+            "name": null,
+            "kind": "NON_NULL",
+            "ofType": {
+              "name": "ID",
+              "kind": "SCALAR"
+            }
+          }
+        },
+        {
+          "name": "input",
+          "type": {
+            "name": null,
+            "kind": "NON_NULL",
+            "ofType": {
+              "name": "RemoveFromLibraryInput",
+              "kind": "INPUT_OBJECT"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "tagLibraryItems",
+      "description": "Tag library items",
+      "args": [
+        {
+          "name": "owner",
+          "type": {
+            "name": null,
+            "kind": "NON_NULL",
+            "ofType": {
+              "name": "ID",
+              "kind": "SCALAR"
+            }
+          }
+        },
+        {
+          "name": "input",
+          "type": {
+            "name": null,
+            "kind": "NON_NULL",
+            "ofType": {
+              "name": "TagLibraryItemsInput",
+              "kind": "INPUT_OBJECT"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "untagLibraryItems",
+      "description": "Untag library items",
+      "args": [
+        {
+          "name": "owner",
+          "type": {
+            "name": null,
+            "kind": "NON_NULL",
+            "ofType": {
+              "name": "ID",
+              "kind": "SCALAR"
+            }
+          }
+        },
+        {
+          "name": "input",
+          "type": {
+            "name": null,
+            "kind": "NON_NULL",
+            "ofType": {
+              "name": "UntagLibraryItemsInput",
+              "kind": "INPUT_OBJECT"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "loginUser",
+      "description": "Login a user with a email/password combination.",
+      "args": [
+        {
+          "name": "input",
+          "type": {
+            "name": null,
+            "kind": "NON_NULL",
+            "ofType": {
+              "name": "LoginUserInput",
+              "kind": "INPUT_OBJECT"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "loginDevice",
+      "description": "Login using a device's credentials.",
+      "args": [
+        {
+          "name": "input",
+          "type": {
+            "name": null,
+            "kind": "NON_NULL",
+            "ofType": {
+              "name": "LoginDeviceInput",
+              "kind": "INPUT_OBJECT"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "generateOTP",
+      "description": "Generate an OTP (one time password) using a users tokens.",
+      "args": [
+        {
+          "name": "input",
+          "type": {
+            "name": null,
+            "kind": "NON_NULL",
+            "ofType": {
+              "name": "GenerateOTPInput",
+              "kind": "INPUT_OBJECT"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "loginOTP",
+      "description": "Login using an OTP (one time password).",
+      "args": [
+        {
+          "name": "input",
+          "type": {
+            "name": null,
+            "kind": "NON_NULL",
+            "ofType": {
+              "name": "LoginOTPInput",
+              "kind": "INPUT_OBJECT"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "refreshLogin",
+      "description": "Request a new token using a refresh token.",
+      "args": [
+        {
+          "name": "input",
+          "type": {
+            "name": null,
+            "kind": "NON_NULL",
+            "ofType": {
+              "name": "RefreshLoginInput",
+              "kind": "INPUT_OBJECT"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "generateStreamingUrl",
+      "description": "Generate a streaming url for playback from a sound zone. Requires the url stream add-on.",
+      "args": [
+        {
+          "name": "input",
+          "type": {
+            "name": null,
+            "kind": "NON_NULL",
+            "ofType": {
+              "name": "GenerateStreamingUrlInput",
+              "kind": "INPUT_OBJECT"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "devicePair",
+      "description": "Pair a device using a code.",
+      "args": [
+        {
+          "name": "input",
+          "type": {
+            "name": null,
+            "kind": "NON_NULL",
+            "ofType": {
+              "name": "DevicePairInput",
+              "kind": "INPUT_OBJECT"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "play",
+      "description": "Start playback for a sound zone.",
+      "args": [
+        {
+          "name": "input",
+          "type": {
+            "name": null,
+            "kind": "NON_NULL",
+            "ofType": {
+              "name": "PlayInput",
+              "kind": "INPUT_OBJECT"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "pause",
+      "description": "Pause playback for a sound zone.",
+      "args": [
+        {
+          "name": "input",
+          "type": {
+            "name": null,
+            "kind": "NON_NULL",
+            "ofType": {
+              "name": "PauseInput",
+              "kind": "INPUT_OBJECT"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "skipTrack",
+      "description": "Skip the current playing track for a sound zone.",
+      "args": [
+        {
+          "name": "input",
+          "type": {
+            "name": null,
+            "kind": "NON_NULL",
+            "ofType": {
+              "name": "SkipTrackInput",
+              "kind": "INPUT_OBJECT"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "skipTracks",
+      "description": "Skip x number of tracks for a playing sound zone.",
+      "args": [
+        {
+          "name": "input",
+          "type": {
+            "name": null,
+            "kind": "NON_NULL",
+            "ofType": {
+              "name": "SkipTracksInput",
+              "kind": "INPUT_OBJECT"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "setVolume",
+      "description": "Set the volume of a sound zone.",
+      "args": [
+        {
+          "name": "input",
+          "type": {
+            "name": null,
+            "kind": "NON_NULL",
+            "ofType": {
+              "name": "SetVolumeInput",
+              "kind": "INPUT_OBJECT"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "soundZonePairDevice",
+      "description": "Pair a device to a sound zone using a pairing code.",
+      "args": [
+        {
+          "name": "input",
+          "type": {
+            "name": null,
+            "kind": "NON_NULL",
+            "ofType": {
+              "name": "SoundZonePairDeviceInput",
+              "kind": "INPUT_OBJECT"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "soundZoneUnpair",
+      "description": "Unpair a device paired to a sound zone.",
+      "args": [
+        {
+          "name": "input",
+          "type": {
+            "name": null,
+            "kind": "NON_NULL",
+            "ofType": {
+              "name": "SoundZoneUnpairInput",
+              "kind": "INPUT_OBJECT"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "soundZoneInitiatePairing",
+      "description": "Initiate a pairing process for a sound zone.",
+      "args": [
+        {
+          "name": "input",
+          "type": {
+            "name": null,
+            "kind": "NON_NULL",
+            "ofType": {
+              "name": "SoundZoneInitiatePairingInput",
+              "kind": "INPUT_OBJECT"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "setPlayFrom",
+      "description": "Change playback source of a sound zone.",
+      "args": [
+        {
+          "name": "input",
+          "type": {
+            "name": null,
+            "kind": "NON_NULL",
+            "ofType": {
+              "name": "SetPlayFromInput",
+              "kind": "INPUT_OBJECT"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "locationCreate",
+      "description": "Create a location and a first sound zone under it.",
+      "args": [
+        {
+          "name": "input",
+          "type": {
+            "name": null,
+            "kind": "NON_NULL",
+            "ofType": {
+              "name": "LocationCreateInput",
+              "kind": "INPUT_OBJECT"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "locationUpdate",
+      "description": "Update a location and its properties.",
+      "args": [
+        {
+          "name": "input",
+          "type": {
+            "name": null,
+            "kind": "NON_NULL",
+            "ofType": {
+              "name": "LocationUpdateInput",
+              "kind": "INPUT_OBJECT"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "soundZoneCreate",
+      "description": "Create a sound zone under a location.",
+      "args": [
+        {
+          "name": "input",
+          "type": {
+            "name": null,
+            "kind": "NON_NULL",
+            "ofType": {
+              "name": "SoundZoneCreateInput",
+              "kind": "INPUT_OBJECT"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "soundZoneUpdate",
+      "description": "Update a sound zones properties.",
+      "args": [
+        {
+          "name": "input",
+          "type": {
+            "name": null,
+            "kind": "NON_NULL",
+            "ofType": {
+              "name": "SoundZoneUpdateMutationInput",
+              "kind": "INPUT_OBJECT"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "soundZoneDelete",
+      "description": "Deletes a sound zone.",
+      "args": [
+        {
+          "name": "input",
+          "type": {
+            "name": null,
+            "kind": "NON_NULL",
+            "ofType": {
+              "name": "SoundZoneDeleteInput",
+              "kind": "INPUT_OBJECT"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "soundZoneUpdateSettings",
+      "description": "Set settings on sound zones.",
+      "args": [
+        {
+          "name": "input",
+          "type": {
+            "name": null,
+            "kind": "NON_NULL",
+            "ofType": {
+              "name": "SoundZoneUpdateSettingsInput",
+              "kind": "INPUT_OBJECT"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "soundZoneAssignSource",
+      "description": "Assign play source to sound zones.",
+      "args": [
+        {
+          "name": "input",
+          "type": {
+            "name": null,
+            "kind": "NON_NULL",
+            "ofType": {
+              "name": "SoundZoneAssignSourceInput",
+              "kind": "INPUT_OBJECT"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "soundZoneQueueTracks",
+      "description": "Queue tracks to a sound zone.",
+      "args": [
+        {
+          "name": "input",
+          "type": {
+            "name": null,
+            "kind": "NON_NULL",
+            "ofType": {
+              "name": "SoundZoneQueueTracksInput",
+              "kind": "INPUT_OBJECT"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "soundZoneClearQueuedTracks",
+      "description": "Clear all queued tracks for a sound zone.",
+      "args": [
+        {
+          "name": "input",
+          "type": {
+            "name": null,
+            "kind": "NON_NULL",
+            "ofType": {
+              "name": "SoundZoneClearQueuedTracksInput",
+              "kind": "INPUT_OBJECT"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "soundZoneSetPlaybackOrder",
+      "description": "Sets the playback order of a sound zone.",
+      "args": [
+        {
+          "name": "input",
+          "type": {
+            "name": null,
+            "kind": "NON_NULL",
+            "ofType": {
+              "name": "SoundZoneSetPlaybackOrderInput",
+              "kind": "INPUT_OBJECT"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "soundZoneGenerateRemoteCode",
+      "description": "Generates a new remote code for the sound zone, used by our remotes.",
+      "args": [
+        {
+          "name": "input",
+          "type": {
+            "name": null,
+            "kind": "NON_NULL",
+            "ofType": {
+              "name": "SoundZoneGenerateRemoteCodeInput",
+              "kind": "INPUT_OBJECT"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "soundZoneSubmitCancellationReason",
+      "description": "Submit a cancellation reason for a sound zone.",
+      "args": [
+        {
+          "name": "input",
+          "type": {
+            "name": null,
+            "kind": "NON_NULL",
+            "ofType": {
+              "name": "SoundZoneSubmitCancellationReasonInput",
+              "kind": "INPUT_OBJECT"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "samlConfigCreate",
+      "description": "Create SAML config for an account.",
+      "args": [
+        {
+          "name": "input",
+          "type": {
+            "name": null,
+            "kind": "NON_NULL",
+            "ofType": {
+              "name": "SAMLConfigCreateInput",
+              "kind": "INPUT_OBJECT"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "samlConfigUpdate",
+      "description": "Update SAML config for an account.",
+      "args": [
+        {
+          "name": "input",
+          "type": {
+            "name": null,
+            "kind": "NON_NULL",
+            "ofType": {
+              "name": "SAMLConfigUpdateInput",
+              "kind": "INPUT_OBJECT"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "accountUpdate",
+      "description": "Update an account and its properties.",
+      "args": [
+        {
+          "name": "input",
+          "type": {
+            "name": null,
+            "kind": "NON_NULL",
+            "ofType": {
+              "name": "AccountUpdateInput",
+              "kind": "INPUT_OBJECT"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "accountAddUser",
+      "description": "Add a user to an account.",
+      "args": [
+        {
+          "name": "input",
+          "type": {
+            "name": null,
+            "kind": "NON_NULL",
+            "ofType": {
+              "name": "AccountAddUserInput",
+              "kind": "INPUT_OBJECT"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "accountRemoveUser",
+      "description": "Remove a user from an account.",
+      "args": [
+        {
+          "name": "input",
+          "type": {
+            "name": null,
+            "kind": "NON_NULL",
+            "ofType": {
+              "name": "AccountRemoveUserInput",
+              "kind": "INPUT_OBJECT"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "accountUpdateUserRoles",
+      "description": "Update a user's role for a specific account.",
+      "args": [
+        {
+          "name": "input",
+          "type": {
+            "name": null,
+            "kind": "NON_NULL",
+            "ofType": {
+              "name": "AccountUpdateUserRolesInput",
+              "kind": "INPUT_OBJECT"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "userUpdate",
+      "description": "Update a users properties.",
+      "args": [
+        {
+          "name": "input",
+          "type": {
+            "name": null,
+            "kind": "NON_NULL",
+            "ofType": {
+              "name": "UserUpdateMutationInput",
+              "kind": "INPUT_OBJECT"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "userChangeEmail",
+      "description": "Update a users email.",
+      "args": [
+        {
+          "name": "input",
+          "type": {
+            "name": null,
+            "kind": "NON_NULL",
+            "ofType": {
+              "name": "UserChangeEmailMutationInput",
+              "kind": "INPUT_OBJECT"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "userChangePassword",
+      "description": "Change a users password.",
+      "args": [
+        {
+          "name": "input",
+          "type": {
+            "name": null,
+            "kind": "NON_NULL",
+            "ofType": {
+              "name": "UserChangePasswordMutationInput",
+              "kind": "INPUT_OBJECT"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "accountRegister",
+      "description": "Register a new account. Only allowed if the client is a distributor.",
+      "args": [
+        {
+          "name": "input",
+          "type": {
+            "name": null,
+            "kind": "NON_NULL",
+            "ofType": {
+              "name": "AccountRegisterInput",
+              "kind": "INPUT_OBJECT"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "locationInviteUser",
+      "description": "Invite a user to a location.",
+      "args": [
+        {
+          "name": "input",
+          "type": {
+            "name": null,
+            "kind": "NON_NULL",
+            "ofType": {
+              "name": "LocationInviteUserInput",
+              "kind": "INPUT_OBJECT"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "invitationRemove",
+      "description": "Remove an invitation from a location.",
+      "args": [
+        {
+          "name": "input",
+          "type": {
+            "name": null,
+            "kind": "NON_NULL",
+            "ofType": {
+              "name": "LocationRemoveInvitationInput",
+              "kind": "INPUT_OBJECT"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "locationRemoveUser",
+      "description": "Remove a user from a location.",
+      "args": [
+        {
+          "name": "input",
+          "type": {
+            "name": null,
+            "kind": "NON_NULL",
+            "ofType": {
+              "name": "LocationRemoveUserInput",
+              "kind": "INPUT_OBJECT"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "userAcceptInvitation",
+      "description": "Accept a user invitation",
+      "args": [
+        {
+          "name": "input",
+          "type": {
+            "name": null,
+            "kind": "NON_NULL",
+            "ofType": {
+              "name": "UserAcceptInvitationInput",
+              "kind": "INPUT_OBJECT"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "userUpdateLocationRoles",
+      "description": "Update the role for a user on a location.",
+      "args": [
+        {
+          "name": "input",
+          "type": {
+            "name": null,
+            "kind": "NON_NULL",
+            "ofType": {
+              "name": "UserUpdateLocationRolesInput",
+              "kind": "INPUT_OBJECT"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "updateLocationUserInvitationRoles",
+      "description": "Update the role for a user invitation to a location.",
+      "args": [
+        {
+          "name": "input",
+          "type": {
+            "name": null,
+            "kind": "NON_NULL",
+            "ofType": {
+              "name": "UserUpdateLocationInvitationRolesInput",
+              "kind": "INPUT_OBJECT"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "invitationResend",
+      "description": "Resend the invitation",
+      "args": [
+        {
+          "name": "input",
+          "type": {
+            "name": null,
+            "kind": "NON_NULL",
+            "ofType": {
+              "name": "LocationResendInvitationInput",
+              "kind": "INPUT_OBJECT"
+            }
+          }
+        }
+      ]
+    }
+  ],
+  "zone_test_results": {
+    "U291bmRab25lLCwxbjFteGk0NHJnZy9Mb2NhdGlvbiwsMWdoZXh3eDdhNGcvQWNjb3VudCwsMW1sbTJ0ZW52OWMv": {
+      "zone_info": {
+        "id": "U291bmRab25lLCwxbjFteGk0NHJnZy9Mb2NhdGlvbiwsMWdoZXh3eDdhNGcvQWNjb3VudCwsMW1sbTJ0ZW52OWMv",
+        "name": "Trial Zone",
+        "streamingType": "TIER_3",
+        "device": {
+          "id": "RGV2aWNlLCwxcnJsdjhsaGo0MC8.",
+          "name": "ADES\u2019s iPad 2"
+        },
+        "schedule": {
+          "id": "U2NoZWR1bGUsbG9jYWwtdjEsMC9Tb3VuZFpvbmUsLDFuMW14aTQ0cmdnL0xvY2F0aW9uLCwxZ2hleHd4N2E0Zy9BY2NvdW50LCwxbWxtMnRlbnY5Yy8.",
+          "name": "Trial Zone Schedule"
+        },
+        "nowPlaying": {
+          "__typename": "NowPlaying"
+        }
+      },
+      "basic_controls": {
+        "volume": {
+          "success": false,
+          "error": "Zone not controllable (trial/demo zone or insufficient permissions)"
+        },
+        "play": {
+          "success": false,
+          "error": "Zone not controllable (trial/demo zone or insufficient permissions)"
+        },
+        "pause": {
+          "success": false,
+          "error": "Zone not controllable (trial/demo zone or insufficient permissions)"
+        },
+        "skip": {
+          "success": false,
+          "error": "Zone not controllable (trial/demo zone or insufficient permissions)"
+        }
+      },
+      "mutations_tested": {
+        "playlist": {
+          "switchPlaylist": {
+            "exists": true,
+            "result": {
+              "error": [
+                {
+                  "message": "Type of variable 'input' is not a valid input type."
+                }
+              ]
+            }
+          },
+          "setPlaylist": {
+            "exists": true,
+            "result": {
+              "error": [
+                {
+                  "message": "Type of variable 'input' is not a valid input type."
+                }
+              ]
+            }
+          },
+          "changePlaylist": {
+            "exists": true,
+            "result": {
+              "error": [
+                {
+                  "message": "Type of variable 'input' is not a valid input type."
+                }
+              ]
+            }
+          },
+          "assignPlaylist": {
+            "exists": true,
+            "result": {
+              "error": [
+                {
+                  "message": "Type of variable 'input' is not a valid input type."
+                }
+              ]
+            }
+          },
+          "updatePlaylist": {
+            "exists": true,
+            "result": {
+              "error": [
+                {
+                  "message": "Type of variable 'input' is not a valid input type."
+                }
+              ]
+            }
+          }
+        },
+        "schedule": {
+          "setSchedule": {
+            "exists": true,
+            "result": {
+              "error": [
+                {
+                  "message": "Type of variable 'input' is not a valid input type."
+                }
+              ]
+            }
+          },
+          "updateSchedule": {
+            "exists": true,
+            "result": {
+              "error": [
+                {
+                  "message": "Type of variable 'input' is not a valid input type."
+                }
+              ]
+            }
+          },
+          "switchSchedule": {
+            "exists": true,
+            "result": {
+              "error": [
+                {
+                  "message": "Type of variable 'input' is not a valid input type."
+                }
+              ]
+            }
+          },
+          "overrideSchedule": {
+            "exists": true,
+            "result": {
+              "error": [
+                {
+                  "message": "Type of variable 'input' is not a valid input type."
+                }
+              ]
+            }
+          },
+          "enableSchedule": {
+            "exists": true,
+            "result": {
+              "error": [
+                {
+                  "message": "Type of variable 'input' is not a valid input type."
+                }
+              ]
+            }
+          },
+          "disableSchedule": {
+            "exists": true,
+            "result": {
+              "error": [
+                {
+                  "message": "Type of variable 'input' is not a valid input type."
+                }
+              ]
+            }
+          }
+        },
+        "track": {
+          "blockTrack": {
+            "exists": true,
+            "result": {
+              "error": [
+                {
+                  "message": "Type of variable 'input' is not a valid input type."
+                }
+              ]
+            }
+          },
+          "unblockTrack": {
+            "exists": true,
+            "result": {
+              "error": [
+                {
+                  "message": "Type of variable 'input' is not a valid input type."
+                }
+              ]
+            }
+          },
+          "banTrack": {
+            "exists": true,
+            "result": {
+              "error": [
+                {
+                  "message": "Type of variable 'input' is not a valid input type."
+                }
+              ]
+            }
+          },
+          "likeTrack": {
+            "exists": true,
+            "result": {
+              "error": [
+                {
+                  "message": "Type of variable 'input' is not a valid input type."
+                }
+              ]
+            }
+          },
+          "dislikeTrack": {
+            "exists": true,
+            "result": {
+              "error": [
+                {
+                  "message": "Type of variable 'input' is not a valid input type."
+                }
+              ]
+            }
+          },
+          "skipTrack": {
+            "exists": true,
+            "result": {
+              "error": [
+                {
+                  "message": "Type of variable 'input' is not a valid input type."
+                }
+              ]
+            }
+          }
+        },
+        "mode": {
+          "setMode": {
+            "exists": true,
+            "result": {
+              "error": [
+                {
+                  "message": "Type of variable 'input' is not a valid input type."
+                }
+              ]
+            }
+          },
+          "switchToManual": {
+            "exists": true,
+            "result": {
+              "error": [
+                {
+                  "message": "Type of variable 'input' is not a valid input type."
+                }
+              ]
+            }
+          },
+          "switchToScheduled": {
+            "exists": true,
+            "result": {
+              "error": [
+                {
+                  "message": "Type of variable 'input' is not a valid input type."
+                }
+              ]
+            }
+          },
+          "enableManualMode": {
+            "exists": true,
+            "result": {
+              "error": [
+                {
+                  "message": "Type of variable 'input' is not a valid input type."
+                }
+              ]
+            }
+          },
+          "enableScheduledMode": {
+            "exists": true,
+            "result": {
+              "error": [
+                {
+                  "message": "Type of variable 'input' is not a valid input type."
+                }
+              ]
+            }
+          }
+        },
+        "control": {
+          "muteZone": {
+            "exists": true,
+            "result": {
+              "error": [
+                {
+                  "message": "Type of variable 'input' is not a valid input type."
+                }
+              ]
+            }
+          },
+          "unmuteZone": {
+            "exists": true,
+            "result": {
+              "error": [
+                {
+                  "message": "Type of variable 'input' is not a valid input type."
+                }
+              ]
+            }
+          },
+          "restartZone": {
+            "exists": true,
+            "result": {
+              "error": [
+                {
+                  "message": "Type of variable 'input' is not a valid input type."
+                }
+              ]
+            }
+          },
+          "resetZone": {
+            "exists": true,
+            "result": {
+              "error": [
+                {
+                  "message": "Type of variable 'input' is not a valid input type."
+                }
+              ]
+            }
+          },
+          "syncZone": {
+            "exists": true,
+            "result": {
+              "error": [
+                {
+                  "message": "Type of variable 'input' is not a valid input type."
+                }
+              ]
+            }
+          }
+        }
+      },
+      "query_capabilities": {
+        "playlists": {
+          "available": false,
+          "result": [
+            {
+              "message": "Field 'playlists' does not exist on type 'Query'."
+            }
+          ]
+        },
+        "schedules": {
+          "available": false,
+          "result": [
+            {
+              "message": "Field 'schedules' does not exist on type 'Query'."
+            }
+          ]
+        },
+        "tracks": {
+          "available": false,
+          "result": [
+            {
+              "message": "Field 'edges' does not exist on type 'Track'."
+            }
+          ]
+        },
+        "genres": {
+          "available": false,
+          "result": [
+            {
+              "message": "Field 'genres' does not exist on type 'Query'."
+            }
+          ]
+        },
+        "artists": {
+          "available": false,
+          "result": [
+            {
+              "message": "Field 'artists' does not exist on type 'Query'."
+            }
+          ]
+        }
+      }
+    },
+    "U291bmRab25lLCwxbnNrdnVtdXd3MC9Mb2NhdGlvbiwsMWo3d2pxM3ZhNGcvQWNjb3VudCwsMWNqMTM3Ymp3MXMv": {
+      "zone_info": {
+        "id": "U291bmRab25lLCwxbnNrdnVtdXd3MC9Mb2NhdGlvbiwsMWo3d2pxM3ZhNGcvQWNjb3VudCwsMWNqMTM3Ymp3MXMv",
+        "name": "Basalt",
+        "streamingType": "TIER_3",
+        "device": {
+          "id": "RGV2aWNlLCwxY2VkYXN1MGc3NC8.",
+          "name": "DRMR-SVR-BGM-01"
+        },
+        "schedule": {
+          "id": "U2NoZWR1bGUsbG9jYWwtdjEsMC9Tb3VuZFpvbmUsLDFuc2t2dW11d3cwL0xvY2F0aW9uLCwxajd3anEzdmE0Zy9BY2NvdW50LCwxY2oxMzdiancxcy8.",
+          "name": "Basalt Schedule"
+        },
+        "nowPlaying": {
+          "__typename": "NowPlaying"
+        }
+      },
+      "basic_controls": {
+        "volume": {
+          "success": true
+        },
+        "play": {
+          "success": true
+        },
+        "pause": {
+          "success": true
+        },
+        "skip": {
+          "success": true
+        }
+      },
+      "mutations_tested": {
+        "playlist": {
+          "switchPlaylist": {
+            "exists": true,
+            "result": {
+              "error": [
+                {
+                  "message": "Type of variable 'input' is not a valid input type."
+                }
+              ]
+            }
+          },
+          "setPlaylist": {
+            "exists": true,
+            "result": {
+              "error": [
+                {
+                  "message": "Type of variable 'input' is not a valid input type."
+                }
+              ]
+            }
+          },
+          "changePlaylist": {
+            "exists": true,
+            "result": {
+              "error": [
+                {
+                  "message": "Type of variable 'input' is not a valid input type."
+                }
+              ]
+            }
+          },
+          "assignPlaylist": {
+            "exists": true,
+            "result": {
+              "error": [
+                {
+                  "message": "Type of variable 'input' is not a valid input type."
+                }
+              ]
+            }
+          },
+          "updatePlaylist": {
+            "exists": true,
+            "result": {
+              "error": [
+                {
+                  "message": "Type of variable 'input' is not a valid input type."
+                }
+              ]
+            }
+          }
+        },
+        "schedule": {
+          "setSchedule": {
+            "exists": true,
+            "result": {
+              "error": [
+                {
+                  "message": "Type of variable 'input' is not a valid input type."
+                }
+              ]
+            }
+          },
+          "updateSchedule": {
+            "exists": true,
+            "result": {
+              "error": [
+                {
+                  "message": "Type of variable 'input' is not a valid input type."
+                }
+              ]
+            }
+          },
+          "switchSchedule": {
+            "exists": true,
+            "result": {
+              "error": [
+                {
+                  "message": "Type of variable 'input' is not a valid input type."
+                }
+              ]
+            }
+          },
+          "overrideSchedule": {
+            "exists": true,
+            "result": {
+              "error": [
+                {
+                  "message": "Type of variable 'input' is not a valid input type."
+                }
+              ]
+            }
+          },
+          "enableSchedule": {
+            "exists": true,
+            "result": {
+              "error": [
+                {
+                  "message": "Type of variable 'input' is not a valid input type."
+                }
+              ]
+            }
+          },
+          "disableSchedule": {
+            "exists": true,
+            "result": {
+              "error": [
+                {
+                  "message": "Type of variable 'input' is not a valid input type."
+                }
+              ]
+            }
+          }
+        },
+        "track": {
+          "blockTrack": {
+            "exists": true,
+            "result": {
+              "error": [
+                {
+                  "message": "Type of variable 'input' is not a valid input type."
+                }
+              ]
+            }
+          },
+          "unblockTrack": {
+            "exists": true,
+            "result": {
+              "error": [
+                {
+                  "message": "Type of variable 'input' is not a valid input type."
+                }
+              ]
+            }
+          },
+          "banTrack": {
+            "exists": true,
+            "result": {
+              "error": [
+                {
+                  "message": "Type of variable 'input' is not a valid input type."
+                }
+              ]
+            }
+          },
+          "likeTrack": {
+            "exists": true,
+            "result": {
+              "error": [
+                {
+                  "message": "Type of variable 'input' is not a valid input type."
+                }
+              ]
+            }
+          },
+          "dislikeTrack": {
+            "exists": true,
+            "result": {
+              "error": [
+                {
+                  "message": "Type of variable 'input' is not a valid input type."
+                }
+              ]
+            }
+          },
+          "skipTrack": {
+            "exists": true,
+            "result": {
+              "error": [
+                {
+                  "message": "Type of variable 'input' is not a valid input type."
+                }
+              ]
+            }
+          }
+        },
+        "mode": {
+          "setMode": {
+            "exists": true,
+            "result": {
+              "error": [
+                {
+                  "message": "Type of variable 'input' is not a valid input type."
+                }
+              ]
+            }
+          },
+          "switchToManual": {
+            "exists": true,
+            "result": {
+              "error": [
+                {
+                  "message": "Type of variable 'input' is not a valid input type."
+                }
+              ]
+            }
+          },
+          "switchToScheduled": {
+            "exists": true,
+            "result": {
+              "error": [
+                {
+                  "message": "Type of variable 'input' is not a valid input type."
+                }
+              ]
+            }
+          },
+          "enableManualMode": {
+            "exists": true,
+            "result": {
+              "error": [
+                {
+                  "message": "Type of variable 'input' is not a valid input type."
+                }
+              ]
+            }
+          },
+          "enableScheduledMode": {
+            "exists": true,
+            "result": {
+              "error": [
+                {
+                  "message": "Type of variable 'input' is not a valid input type."
+                }
+              ]
+            }
+          }
+        },
+        "control": {
+          "muteZone": {
+            "exists": true,
+            "result": {
+              "error": [
+                {
+                  "message": "Type of variable 'input' is not a valid input type."
+                }
+              ]
+            }
+          },
+          "unmuteZone": {
+            "exists": true,
+            "result": {
+              "error": [
+                {
+                  "message": "Type of variable 'input' is not a valid input type."
+                }
+              ]
+            }
+          },
+          "restartZone": {
+            "exists": true,
+            "result": {
+              "error": [
+                {
+                  "message": "Type of variable 'input' is not a valid input type."
+                }
+              ]
+            }
+          },
+          "resetZone": {
+            "exists": true,
+            "result": {
+              "error": [
+                {
+                  "message": "Type of variable 'input' is not a valid input type."
+                }
+              ]
+            }
+          },
+          "syncZone": {
+            "exists": true,
+            "result": {
+              "error": [
+                {
+                  "message": "Type of variable 'input' is not a valid input type."
+                }
+              ]
+            }
+          }
+        }
+      },
+      "query_capabilities": {
+        "playlists": {
+          "available": false,
+          "result": [
+            {
+              "message": "Field 'playlists' does not exist on type 'Query'."
+            }
+          ]
+        },
+        "schedules": {
+          "available": false,
+          "result": [
+            {
+              "message": "Field 'schedules' does not exist on type 'Query'."
+            }
+          ]
+        },
+        "tracks": {
+          "available": false,
+          "result": [
+            {
+              "message": "Field 'edges' does not exist on type 'Track'."
+            }
+          ]
+        },
+        "genres": {
+          "available": false,
+          "result": [
+            {
+              "message": "Field 'genres' does not exist on type 'Query'."
+            }
+          ]
+        },
+        "artists": {
+          "available": false,
+          "result": [
+            {
+              "message": "Field 'artists' does not exist on type 'Query'."
+            }
+          ]
+        }
+      }
+    },
+    "U291bmRab25lLCwxbGRxZ2cwcG12NC9Mb2NhdGlvbiwsMWo3d2pxM3ZhNGcvQWNjb3VudCwsMWNqMTM3Ymp3MXMv": {
+      "zone_info": {
+        "id": "U291bmRab25lLCwxbGRxZ2cwcG12NC9Mb2NhdGlvbiwsMWo3d2pxM3ZhNGcvQWNjb3VudCwsMWNqMTM3Ymp3MXMv",
+        "name": "Gym",
+        "streamingType": "TIER_3",
+        "device": {
+          "id": "RGV2aWNlLCwxc2QzcTA5NDV4Yy8.",
+          "name": "DRMR-SVR-BGM-02"
+        },
+        "schedule": {
+          "id": "U2NoZWR1bGUsbG9jYWwtdjEsMC9Tb3VuZFpvbmUsLDFsZHFnZzBwbXY0L0xvY2F0aW9uLCwxajd3anEzdmE0Zy9BY2NvdW50LCwxY2oxMzdiancxcy8.",
+          "name": "Gym Schedule"
+        },
+        "nowPlaying": {
+          "__typename": "NowPlaying"
+        }
+      },
+      "basic_controls": {
+        "volume": {
+          "success": true
+        },
+        "play": {
+          "success": true
+        },
+        "pause": {
+          "success": true
+        },
+        "skip": {
+          "success": true
+        }
+      },
+      "mutations_tested": {
+        "playlist": {
+          "switchPlaylist": {
+            "exists": true,
+            "result": {
+              "error": [
+                {
+                  "message": "Type of variable 'input' is not a valid input type."
+                }
+              ]
+            }
+          },
+          "setPlaylist": {
+            "exists": true,
+            "result": {
+              "error": [
+                {
+                  "message": "Type of variable 'input' is not a valid input type."
+                }
+              ]
+            }
+          },
+          "changePlaylist": {
+            "exists": true,
+            "result": {
+              "error": [
+                {
+                  "message": "Type of variable 'input' is not a valid input type."
+                }
+              ]
+            }
+          },
+          "assignPlaylist": {
+            "exists": true,
+            "result": {
+              "error": [
+                {
+                  "message": "Type of variable 'input' is not a valid input type."
+                }
+              ]
+            }
+          },
+          "updatePlaylist": {
+            "exists": true,
+            "result": {
+              "error": [
+                {
+                  "message": "Type of variable 'input' is not a valid input type."
+                }
+              ]
+            }
+          }
+        },
+        "schedule": {
+          "setSchedule": {
+            "exists": true,
+            "result": {
+              "error": [
+                {
+                  "message": "Type of variable 'input' is not a valid input type."
+                }
+              ]
+            }
+          },
+          "updateSchedule": {
+            "exists": true,
+            "result": {
+              "error": [
+                {
+                  "message": "Type of variable 'input' is not a valid input type."
+                }
+              ]
+            }
+          },
+          "switchSchedule": {
+            "exists": true,
+            "result": {
+              "error": [
+                {
+                  "message": "Type of variable 'input' is not a valid input type."
+                }
+              ]
+            }
+          },
+          "overrideSchedule": {
+            "exists": true,
+            "result": {
+              "error": [
+                {
+                  "message": "Type of variable 'input' is not a valid input type."
+                }
+              ]
+            }
+          },
+          "enableSchedule": {
+            "exists": true,
+            "result": {
+              "error": [
+                {
+                  "message": "Type of variable 'input' is not a valid input type."
+                }
+              ]
+            }
+          },
+          "disableSchedule": {
+            "exists": true,
+            "result": {
+              "error": [
+                {
+                  "message": "Type of variable 'input' is not a valid input type."
+                }
+              ]
+            }
+          }
+        },
+        "track": {
+          "blockTrack": {
+            "exists": true,
+            "result": {
+              "error": [
+                {
+                  "message": "Type of variable 'input' is not a valid input type."
+                }
+              ]
+            }
+          },
+          "unblockTrack": {
+            "exists": true,
+            "result": {
+              "error": [
+                {
+                  "message": "Type of variable 'input' is not a valid input type."
+                }
+              ]
+            }
+          },
+          "banTrack": {
+            "exists": true,
+            "result": {
+              "error": [
+                {
+                  "message": "Type of variable 'input' is not a valid input type."
+                }
+              ]
+            }
+          },
+          "likeTrack": {
+            "exists": true,
+            "result": {
+              "error": [
+                {
+                  "message": "Type of variable 'input' is not a valid input type."
+                }
+              ]
+            }
+          },
+          "dislikeTrack": {
+            "exists": true,
+            "result": {
+              "error": [
+                {
+                  "message": "Type of variable 'input' is not a valid input type."
+                }
+              ]
+            }
+          },
+          "skipTrack": {
+            "exists": true,
+            "result": {
+              "error": [
+                {
+                  "message": "Type of variable 'input' is not a valid input type."
+                }
+              ]
+            }
+          }
+        },
+        "mode": {
+          "setMode": {
+            "exists": true,
+            "result": {
+              "error": [
+                {
+                  "message": "Type of variable 'input' is not a valid input type."
+                }
+              ]
+            }
+          },
+          "switchToManual": {
+            "exists": true,
+            "result": {
+              "error": [
+                {
+                  "message": "Type of variable 'input' is not a valid input type."
+                }
+              ]
+            }
+          },
+          "switchToScheduled": {
+            "exists": true,
+            "result": {
+              "error": [
+                {
+                  "message": "Type of variable 'input' is not a valid input type."
+                }
+              ]
+            }
+          },
+          "enableManualMode": {
+            "exists": true,
+            "result": {
+              "error": [
+                {
+                  "message": "Type of variable 'input' is not a valid input type."
+                }
+              ]
+            }
+          },
+          "enableScheduledMode": {
+            "exists": true,
+            "result": {
+              "error": [
+                {
+                  "message": "Type of variable 'input' is not a valid input type."
+                }
+              ]
+            }
+          }
+        },
+        "control": {
+          "muteZone": {
+            "exists": true,
+            "result": {
+              "error": [
+                {
+                  "message": "Type of variable 'input' is not a valid input type."
+                }
+              ]
+            }
+          },
+          "unmuteZone": {
+            "exists": true,
+            "result": {
+              "error": [
+                {
+                  "message": "Type of variable 'input' is not a valid input type."
+                }
+              ]
+            }
+          },
+          "restartZone": {
+            "exists": true,
+            "result": {
+              "error": [
+                {
+                  "message": "Type of variable 'input' is not a valid input type."
+                }
+              ]
+            }
+          },
+          "resetZone": {
+            "exists": true,
+            "result": {
+              "error": [
+                {
+                  "message": "Type of variable 'input' is not a valid input type."
+                }
+              ]
+            }
+          },
+          "syncZone": {
+            "exists": true,
+            "result": {
+              "error": [
+                {
+                  "message": "Type of variable 'input' is not a valid input type."
+                }
+              ]
+            }
+          }
+        }
+      },
+      "query_capabilities": {
+        "playlists": {
+          "available": false,
+          "result": [
+            {
+              "message": "Field 'playlists' does not exist on type 'Query'."
+            }
+          ]
+        },
+        "schedules": {
+          "available": false,
+          "result": [
+            {
+              "message": "Field 'schedules' does not exist on type 'Query'."
+            }
+          ]
+        },
+        "tracks": {
+          "available": false,
+          "result": [
+            {
+              "message": "Field 'edges' does not exist on type 'Track'."
+            }
+          ]
+        },
+        "genres": {
+          "available": false,
+          "result": [
+            {
+              "message": "Field 'genres' does not exist on type 'Query'."
+            }
+          ]
+        },
+        "artists": {
+          "available": false,
+          "result": [
+            {
+              "message": "Field 'artists' does not exist on type 'Query'."
+            }
+          ]
+        }
+      }
+    }
+  },
+  "summary": {
+    "total_mutations_found": 113,
+    "zones_tested": 3,
+    "capabilities_confirmed": []
+  }
+}

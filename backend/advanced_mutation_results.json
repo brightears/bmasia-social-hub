@@ -1,0 +1,74 @@
+{
+  "zone_id": "U291bmRab25lLCwxbnNrdnVtdXd3MC9Mb2NhdGlvbiwsMWo3d2pxM3ZhNGcvQWNjb3VudCwsMWNqMTM3Ymp3MXMv",
+  "timestamp": "2025-01-20T00:00:00Z",
+  "track_blocking": {
+    "blockTrack_basic": {
+      "error": [
+        {
+          "message": "Variable 'input' field 'soundZone' does not exist"
+        }
+      ]
+    }
+  },
+  "queue_management": {
+    "queueTracks": {
+      "soundZoneQueueTracks": {
+        "__typename": "SoundZoneQueueTracksPayload"
+      }
+    },
+    "clearQueue": {
+      "soundZoneClearQueuedTracks": {
+        "__typename": "SoundZoneClearQueuedTracksPayload"
+      }
+    }
+  },
+  "playback_source": {
+    "setPlayFrom": {
+      "error": [
+        {
+          "message": "Variable 'input' field 'playFrom' does not exist"
+        }
+      ]
+    },
+    "assignSource": {
+      "error": [
+        {
+          "message": "Validation failed",
+          "path": [
+            "soundZoneAssignSource"
+          ],
+          "extensions": {
+            "code": "BAD_USER_INPUT",
+            "exception": {
+              "validationErrors": {
+                "source": "invalid id format"
+              }
+            }
+          }
+        }
+      ]
+    }
+  },
+  "multi_skip": {
+    "skipTracks": {
+      "error": [
+        {
+          "message": "Variable 'input' field 'count' does not exist"
+        }
+      ]
+    }
+  },
+  "source_discovery": {
+    "zone_details": {
+      "soundZone": {
+        "id": "U291bmRab25lLCwxbnNrdnVtdXd3MC9Mb2NhdGlvbiwsMWo3d2pxM3ZhNGcvQWNjb3VudCwsMWNqMTM3Ymp3MXMv",
+        "name": "Basalt",
+        "playFrom": {
+          "__typename": "Schedule",
+          "id": "U2NoZWR1bGUsLDFpOWEzdXo3NHprL0FjY291bnQsLDFjajEzN2JqdzFzLw..",
+          "name": "DR : Basalt | SCHD"
+        }
+      }
+    }
+  }
+}

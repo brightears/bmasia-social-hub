@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-FastAPI application with database connection
+FastAPI application with BMA Social Music Bot
 """
 
 import os
@@ -8,8 +8,9 @@ import logging
 from datetime import datetime
 from typing import Dict, Any, Optional
 
-from fastapi import FastAPI, Response, Depends, HTTPException
+from fastapi import FastAPI, Response, Depends, HTTPException, Request
 from fastapi.responses import JSONResponse
+from pydantic import BaseModel
 import uvicorn
 
 # Try to import psycopg2, but make it optional
@@ -40,15 +41,36 @@ logger = logging.getLogger(__name__)
 # Create FastAPI app
 app = FastAPI(
     title="BMA Social API",
-    description="AI-powered music operations platform with database",
-    version="0.2.0"
+    description="AI-powered music operations platform with intelligent bot",
+    version="0.3.0"
 )
+
+# Request models
+class BotMessage(BaseModel):
+    message: str
+    user_phone: str
+    user_name: Optional[str] = None
+    
+class WebhookMessage(BaseModel):
+    from_number: str
+    body: str
+    message_sid: Optional[str] = None
 
 # Global state
 startup_time = datetime.utcnow()
 request_count = 0
 db_connection = None
 redis_client = None
+
+# Initialize the music bot
+music_bot = None
+try:
+    from bot_final import music_bot as bot_instance
+    music_bot = bot_instance
+    logger.info("✅ Music bot initialized successfully")
+except Exception as e:
+    logger.error(f"❌ Failed to initialize music bot: {e}")
+    music_bot = None
 
 def get_db_connection():
     """Get database connection"""
@@ -176,6 +198,79 @@ async def webhook_diagnostics():
         "service_status": "active",
         "timestamp": datetime.utcnow().isoformat()
     }
+
+@app.post("/api/v1/bot/message")
+async def bot_message(message: BotMessage):
+    """Process a message through the music bot"""
+    if not music_bot:
+        raise HTTPException(status_code=503, detail="Bot service unavailable")
+    
+    try:
+        response = music_bot.process_message(
+            message.message,
+            message.user_phone,
+            message.user_name
+        )
+        return {
+            "success": True,
+            "response": response,
+            "timestamp": datetime.utcnow().isoformat()
+        }
+    except Exception as e:
+        logger.error(f"Bot error: {e}")
+        return {
+            "success": False,
+            "error": str(e),
+            "response": "I apologize, but I encountered an error. Please try again or contact support.",
+            "timestamp": datetime.utcnow().isoformat()
+        }
+
+@app.post("/webhooks/whatsapp")
+async def whatsapp_webhook(request: Request):
+    """Handle WhatsApp webhook"""
+    try:
+        data = await request.json()
+        logger.info(f"WhatsApp webhook received: {data}")
+        
+        # Extract message from WhatsApp format
+        if "entry" in data:
+            for entry in data["entry"]:
+                for change in entry.get("changes", []):
+                    if change.get("field") == "messages":
+                        messages = change.get("value", {}).get("messages", [])
+                        for msg in messages:
+                            if msg.get("type") == "text":
+                                text = msg.get("text", {}).get("body", "")
+                                from_number = msg.get("from", "")
+                                
+                                if music_bot and text:
+                                    response = music_bot.process_message(
+                                        text,
+                                        from_number,
+                                        None
+                                    )
+                                    logger.info(f"Bot response: {response}")
+                                    # In production, send response back via WhatsApp API
+        
+        return {"status": "success"}
+        
+    except Exception as e:
+        logger.error(f"WhatsApp webhook error: {e}")
+        return {"status": "error", "message": str(e)}
+
+@app.get("/webhooks/whatsapp")
+async def whatsapp_verify(request: Request):
+    """WhatsApp webhook verification"""
+    verify_token = "bma_whatsapp_verify_2024"
+    mode = request.query_params.get("hub.mode")
+    token = request.query_params.get("hub.verify_token")
+    challenge = request.query_params.get("hub.challenge")
+    
+    if mode == "subscribe" and token == verify_token:
+        logger.info("WhatsApp webhook verified")
+        return Response(content=challenge, media_type="text/plain")
+    
+    return {"status": "failed"}
 
 @app.get("/api/v1/status")
 async def api_status():

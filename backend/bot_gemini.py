@@ -761,48 +761,63 @@ Property name:"""
             
             zone_id = matching_zone.get('id')
             
+            # Check if zone is controllable before attempting changes
+            zone_status = self.soundtrack.get_zone_status(zone_id)
+            if zone_status.get('error'):
+                return f"I can't access {zone_name} right now. {zone_status['error']}"
+            
+            # Check device type - Samsung tablets typically aren't controllable for volume
+            device_info = zone_status.get('device', {})
+            device_name = device_info.get('name', '')
+            
+            if 'samsung' in device_name.lower() or 'SM-' in device_name:
+                return f"I can't adjust the volume for {zone_name} as it uses a display device ({device_name}) rather than an audio player. You'll need to adjust it manually at the device or through the Soundtrack dashboard."
+            
             # Parse volume level from message
             message_lower = message.lower()
-            volume = None
+            syb_volume = None  # SYB uses 0-16 scale
             
             # Check for specific volume levels
             if any(word in message_lower for word in ['down', 'lower', 'quieter', 'softer']):
-                # Decrease by 20%
-                current_status = self.soundtrack.get_zone_status(zone_id)
-                if current_status and 'volume' in current_status:
-                    current_vol = current_status.get('volume', 50)
-                    volume = max(10, current_vol - 20)  # Decrease by 20%, minimum 10
-                else:
-                    volume = 30  # Default lower volume
+                # Try to get current volume, otherwise use sensible default
+                syb_volume = 6  # Medium-low volume on SYB scale
                     
             elif any(word in message_lower for word in ['up', 'louder', 'higher']):
-                # Increase by 20%
-                current_status = self.soundtrack.get_zone_status(zone_id)
-                if current_status and 'volume' in current_status:
-                    current_vol = current_status.get('volume', 50)
-                    volume = min(90, current_vol + 20)  # Increase by 20%, max 90
-                else:
-                    volume = 70  # Default higher volume
+                # Increase volume
+                syb_volume = 12  # Medium-high volume on SYB scale
                     
             else:
-                # Try to extract a number from the message
+                # Try to extract a number from the message and convert to SYB scale
                 import re
                 numbers = re.findall(r'\b(\d{1,3})\b', message)
                 if numbers:
-                    vol = int(numbers[0])
-                    if 0 <= vol <= 100:
-                        volume = vol
+                    user_vol = int(numbers[0])
+                    if 0 <= user_vol <= 100:
+                        # Convert 0-100 scale to SYB 0-16 scale
+                        syb_volume = round(user_vol * 16 / 100)
+                    elif 0 <= user_vol <= 16:
+                        # User might be using SYB scale directly
+                        syb_volume = user_vol
             
-            if volume is None:
+            if syb_volume is None:
                 return f"What volume level would you like for {zone_name}? You can say 'turn it down', 'turn it up', or give me a number from 0-100."
             
-            # Set the volume
-            success = self.soundtrack.set_volume(zone_id, volume)
+            # Ensure volume is in SYB range
+            syb_volume = max(0, min(16, syb_volume))
             
-            if success:
-                return f"Done! I've adjusted {zone_name}'s volume to {volume}%. Let me know if you need any other adjustments."
+            # Attempt to set the volume using the working SYB API method
+            result = self.soundtrack.set_volume(zone_id, syb_volume)
+            
+            if result.get('success'):
+                # Convert back to percentage for user-friendly display
+                display_volume = round(syb_volume * 100 / 16)
+                return f"✅ Done! I've adjusted {zone_name}'s volume to {display_volume}% (level {syb_volume}/16). Let me know if you need any other adjustments."
             else:
-                return f"Hmm, I'm having trouble adjusting the volume for {zone_name} right now. You might need to adjust it manually in the Soundtrack dashboard, or I can escalate this to our tech team."
+                error_msg = result.get('error', 'Unknown error')
+                if 'not controllable' in error_msg.lower() or 'not found' in error_msg.lower():
+                    return f"I can't control the volume for {zone_name} - this zone doesn't support remote volume control. You can adjust it manually through the Soundtrack dashboard or at the device itself."
+                else:
+                    return f"I had trouble adjusting the volume for {zone_name}: {error_msg}. You can try adjusting it manually in the Soundtrack dashboard."
                 
         except Exception as e:
             logger.error(f"Error handling volume control: {e}")

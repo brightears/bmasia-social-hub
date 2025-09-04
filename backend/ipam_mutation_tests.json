@@ -1,0 +1,87 @@
+{
+  "zone_info": {
+    "id": "U291bmRab25lLCwxbnFvZmdicDR3MC9Mb2NhdGlvbiwsMTkweHVzb3RhMHcvQWNjb3VudCwsMWRnMWR4bjdobW8v",
+    "name": "The Corner (Formerly Henry J. Bean\u2019s Bar & Grill)",
+    "device_name": "IPAM400 v1.0 (17/10/2018)",
+    "account": "Amari Don Muang Airport Bangkok (Premium)",
+    "location": "Amari Don Muang Airport"
+  },
+  "working_mutations": {},
+  "failed_mutations": {
+    "setVolume": [
+      {
+        "message": "Not found",
+        "path": [
+          "setVolume"
+        ],
+        "extensions": {
+          "code": "NOT_FOUND"
+        }
+      }
+    ],
+    "play": [
+      {
+        "message": "Not found",
+        "path": [
+          "play"
+        ],
+        "extensions": {
+          "code": "NOT_FOUND"
+        }
+      }
+    ],
+    "pause": [
+      {
+        "message": "Not found",
+        "path": [
+          "pause"
+        ],
+        "extensions": {
+          "code": "NOT_FOUND"
+        }
+      }
+    ],
+    "skipTrack": [
+      {
+        "message": "Not found",
+        "path": [
+          "skipTrack"
+        ],
+        "extensions": {
+          "code": "NOT_FOUND"
+        }
+      }
+    ]
+  },
+  "promising_mutations": {
+    "mute": {
+      "available": true,
+      "result": {
+        "error": [
+          {
+            "message": "Type of variable 'input' is not a valid input type."
+          }
+        ]
+      }
+    },
+    "unmute": {
+      "available": true,
+      "result": {
+        "error": [
+          {
+            "message": "Type of variable 'input' is not a valid input type."
+          }
+        ]
+      }
+    }
+  },
+  "query_results": {
+    "zone_schedule": {
+      "error": [
+        {
+          "message": "Field 'timezone' does not exist on type 'Schedule'."
+        }
+      ]
+    }
+  }
+}

@@ -352,39 +352,24 @@ class SoundtrackAPI:
         return matches
     
     def get_zone_status(self, zone_id: str) -> Dict:
-        """Get detailed status for a specific zone"""
+        """Get detailed status for a specific zone (limited to available fields)"""
         
         query = """
         query GetZoneStatus($zoneId: ID!) {
             soundZone(id: $zoneId) {
                 id
                 name
-                isPaired
-                isOnline
-                volume
-                nowPlaying {
-                    track {
-                        id
-                        name
-                        artists
-                        album
-                        duration
-                    }
-                    isPlaying
-                    position
-                    startedAt
-                }
-                currentPlaylist {
-                    id
-                    name
-                    trackCount
-                }
+                streamingType
                 device {
                     id
                     name
-                    model
-                    firmwareVersion
-                    lastSeen
+                }
+                schedule {
+                    id
+                    name
+                }
+                nowPlaying {
+                    __typename
                 }
             }
         }
@@ -397,28 +382,28 @@ class SoundtrackAPI:
         
         return result.get('soundZone', {})
     
-    def control_playback(self, zone_id: str, action: str) -> bool:
-        """Control playback (play/pause/skip)"""
+    def control_playback(self, zone_id: str, action: str) -> Dict:
+        """Control playback - ALWAYS attempt regardless of device type (control is cloud-level)"""
         
         mutations = {
             'play': """
-                mutation PlayZone($zoneId: ID!) {
-                    play(soundZone: $zoneId) {
-                        success
+                mutation PlayZone($input: PlayInput!) {
+                    play(input: $input) {
+                        __typename
                     }
                 }
             """,
             'pause': """
-                mutation PauseZone($zoneId: ID!) {
-                    pause(soundZone: $zoneId) {
-                        success
+                mutation PauseZone($input: PauseInput!) {
+                    pause(input: $input) {
+                        __typename
                     }
                 }
             """,
             'skip': """
-                mutation SkipTrack($zoneId: ID!) {
-                    skip(soundZone: $zoneId) {
-                        success
+                mutation SkipTrack($input: SkipTrackInput!) {
+                    skipTrack(input: $input) {
+                        __typename
                     }
                 }
             """
@@ -426,54 +411,232 @@ class SoundtrackAPI:
         
         if action not in mutations:
             logger.error(f"Invalid playback action: {action}")
-            return False
+            return {'success': False, 'error': 'Invalid action', 'error_type': 'invalid_action'}
         
-        result = self._execute_query(mutations[action], {'zoneId': zone_id})
+        result = self._execute_query(mutations[action], {
+            'input': {
+                'soundZone': zone_id
+            }
+        })
         
         if 'error' in result:
-            return False
+            error_msg = str(result['error'])
+            
+            # Categorize errors properly
+            if 'Not found' in error_msg:
+                return {
+                    'success': False, 
+                    'error': 'Zone not controllable (trial/demo zone or insufficient permissions)',
+                    'error_type': 'no_api_control',
+                    'raw_error': error_msg
+                }
+            elif 'Unauthorized' in error_msg:
+                return {
+                    'success': False,
+                    'error': 'Authentication or permission error',
+                    'error_type': 'auth_error',
+                    'raw_error': error_msg
+                }
+            else:
+                return {
+                    'success': False,
+                    'error': f'API error: {error_msg}',
+                    'error_type': 'api_error',
+                    'raw_error': error_msg
+                }
         
-        return True
+        return {'success': True}
     
-    def set_volume(self, zone_id: str, volume: int) -> bool:
-        """Set volume for a zone (0-100)"""
+    def set_volume(self, zone_id: str, volume: int) -> Dict:
+        """Set volume for a zone (0-16 scale) - ALWAYS attempt regardless of device type"""
         
-        if not 0 <= volume <= 100:
-            logger.error(f"Invalid volume: {volume}")
-            return False
+        if not 0 <= volume <= 16:
+            logger.error(f"Invalid volume: {volume} (must be 0-16)")
+            return {'success': False, 'error': 'Volume must be between 0 and 16', 'error_type': 'invalid_parameter'}
         
         query = """
-        mutation SetVolume($zoneId: ID!, $volume: Int!) {
-            setVolume(soundZone: $zoneId, volume: $volume) {
-                success
+        mutation SetVolume($input: SetVolumeInput!) {
+            setVolume(input: $input) {
+                __typename
             }
         }
         """
         
         result = self._execute_query(query, {
-            'zoneId': zone_id,
-            'volume': volume
+            'input': {
+                'soundZone': zone_id,
+                'volume': volume
+            }
         })
         
         if 'error' in result:
-            return False
+            error_msg = str(result['error'])
+            
+            # Categorize errors properly
+            if 'Not found' in error_msg:
+                return {
+                    'success': False, 
+                    'error': 'Zone not controllable (trial/demo zone or insufficient permissions)',
+                    'error_type': 'no_api_control',
+                    'raw_error': error_msg
+                }
+            elif 'Unauthorized' in error_msg:
+                return {
+                    'success': False,
+                    'error': 'Authentication or permission error',
+                    'error_type': 'auth_error', 
+                    'raw_error': error_msg
+                }
+            else:
+                return {
+                    'success': False,
+                    'error': f'API error: {error_msg}',
+                    'error_type': 'api_error',
+                    'raw_error': error_msg
+                }
         
-        return result.get('setVolume', {}).get('success', False)
+        return {'success': True}
+    
+    def set_playlist(self, zone_id: str, playlist_id: str) -> Dict:
+        """Set playlist for a zone - app-level control, device type irrelevant"""
+        
+        query = """
+        mutation SetPlaylist($input: SetPlaylistInput!) {
+            setPlaylist(input: $input) {
+                __typename
+            }
+        }
+        """
+        
+        result = self._execute_query(query, {
+            'input': {
+                'soundZone': zone_id,
+                'playlist': playlist_id
+            }
+        })
+        
+        if 'error' in result:
+            error_msg = str(result['error'])
+            
+            if 'Not found' in error_msg:
+                return {
+                    'success': False,
+                    'error': 'Zone not controllable or playlist not found',
+                    'error_type': 'no_api_control',
+                    'raw_error': error_msg
+                }
+            else:
+                return {
+                    'success': False,
+                    'error': f'API error: {error_msg}',
+                    'error_type': 'api_error',
+                    'raw_error': error_msg
+                }
+        
+        return {'success': True, 'message': 'Playlist changed successfully'}
+    
+    def get_playlists(self, zone_id: str) -> List[Dict]:
+        """Get available playlists for a zone's account"""
+        
+        # First find which account owns this zone
+        zone_info = self.get_zone_status(zone_id)
+        if 'error' in zone_info:
+            logger.error(f"Could not get zone info: {zone_info['error']}")
+            return []
+        
+        # Get all accounts and their playlists
+        query = """
+        query GetPlaylists {
+            me {
+                accounts(first: 100) {
+                    edges {
+                        node {
+                            id
+                            name
+                            playlists(first: 100) {
+                                edges {
+                                    node {
+                                        id
+                                        name
+                                        description
+                                        trackCount
+                                    }
+                                }
+                            }
+                            locations(first: 100) {
+                                edges {
+                                    node {
+                                        soundZones(first: 100) {
+                                            edges {
+                                                node {
+                                                    id
+                                                    name
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        """
+        
+        result = self._execute_query(query)
+        
+        if 'error' in result:
+            logger.error(f"Error getting playlists: {result['error']}")
+            return []
+        
+        try:
+            playlists = []
+            
+            # Find the account that owns this zone and get its playlists
+            if result.get('data', {}).get('me'):
+                for account_edge in result['data']['me']['accounts']['edges']:
+                    account = account_edge['node']
+                    
+                    # Check if this account owns the zone
+                    zone_found = False
+                    for loc_edge in account.get('locations', {}).get('edges', []):
+                        for zone_edge in loc_edge['node'].get('soundZones', {}).get('edges', []):
+                            if zone_edge['node']['id'] == zone_id:
+                                zone_found = True
+                                break
+                        if zone_found:
+                            break
+                    
+                    if zone_found:
+                        # Get playlists for this account
+                        for playlist_edge in account.get('playlists', {}).get('edges', []):
+                            playlist = playlist_edge['node']
+                            playlists.append({
+                                'id': playlist['id'],
+                                'name': playlist['name'],
+                                'description': playlist.get('description', ''),
+                                'track_count': playlist.get('trackCount', 0)
+                            })
+                        break
+            
+            return playlists
+            
+        except Exception as e:
+            logger.error(f"Error parsing playlists: {e}")
+            return []
     
     def get_now_playing(self, zone_id: str) -> Dict:
-        """Get current playing track information"""
+        """Get current playing track information (limited availability)"""
         
         query = """
         query NowPlaying($zoneId: ID!) {
-            nowPlaying(soundZone: $zoneId) {
-                track {
-                    id
-                    name
-                    artists {
-                        name
-                    }
+            soundZone(id: $zoneId) {
+                id
+                name
+                nowPlaying {
+                    __typename
                 }
-                startedAt
             }
         }
         """
@@ -483,7 +646,20 @@ class SoundtrackAPI:
         if 'error' in result:
             return {'error': result['error']}
         
-        return result.get('nowPlaying', {})
+        sound_zone = result.get('soundZone', {})
+        now_playing = sound_zone.get('nowPlaying')
+        
+        if now_playing:
+            return {
+                'has_playback': True,
+                'type': now_playing.get('__typename', 'Unknown'),
+                'zone_name': sound_zone.get('name')
+            }
+        else:
+            return {
+                'has_playback': False,
+                'zone_name': sound_zone.get('name')
+            }
     
     def diagnose_venue_issues(self, venue_name: str) -> Dict:
         """Comprehensive diagnosis of venue music issues"""
@@ -558,8 +734,199 @@ class SoundtrackAPI:
         
         return diagnosis
     
+    def detect_zone_mode(self, zone_id: str) -> str:
+        """Detect if zone is in scheduled or manual mode"""
+        
+        status = self.get_zone_status(zone_id)
+        
+        if 'error' in status:
+            return 'unknown'
+        
+        schedule = status.get('schedule')
+        if schedule and schedule.get('name'):
+            return 'scheduled'
+        else:
+            return 'manual'
+    
+    def get_zone_capabilities(self, zone_id: str) -> Dict:
+        """Test zone capabilities - ALWAYS try control first regardless of device type"""
+        
+        status = self.get_zone_status(zone_id)
+        
+        if 'error' in status:
+            return {
+                'error': status['error'],
+                'controllable': False,
+                'readable': False
+            }
+        
+        capabilities = {
+            'readable': True,
+            'basic_info': True,
+            'device_info': bool(status.get('device')),
+            'schedule_detection': bool(status.get('schedule')),
+            'playback_detection': bool(status.get('nowPlaying')),
+            'streaming_type': status.get('streamingType'),
+            'zone_name': status.get('name'),
+            'device_name': status.get('device', {}).get('name'),
+            'mode': self.detect_zone_mode(zone_id)
+        }
+        
+        logger.info(f"Testing capabilities for {capabilities['zone_name']} - Device: {capabilities['device_name']}, StreamingType: {capabilities['streaming_type']}")
+        
+        # Test control capabilities - CRITICAL: Control is cloud-level, not device-dependent
+        
+        # Test volume control (safest test)
+        volume_test = self.set_volume(zone_id, 8)  # Middle of 0-16 range
+        capabilities['volume_control'] = volume_test.get('success', False)
+        capabilities['volume_error_type'] = volume_test.get('error_type')
+        
+        # Test playback control 
+        play_test = self.control_playback(zone_id, 'play')
+        capabilities['playback_control'] = play_test.get('success', False)
+        capabilities['playback_error_type'] = play_test.get('error_type')
+        
+        # Determine overall controllability
+        capabilities['controllable'] = capabilities['volume_control'] or capabilities['playback_control']
+        
+        # Analyze control failure reasons
+        if not capabilities['controllable']:
+            error_types = {capabilities.get('volume_error_type'), capabilities.get('playback_error_type')}
+            error_types.discard(None)
+            
+            if 'no_api_control' in error_types:
+                capabilities['control_failure_reason'] = 'trial_or_demo_zone'
+                capabilities['control_failure_message'] = 'Zone appears to be trial/demo or lacks API control permissions'
+            elif 'auth_error' in error_types:
+                capabilities['control_failure_reason'] = 'authentication_error'
+                capabilities['control_failure_message'] = 'Authentication or permission issue'
+            else:
+                capabilities['control_failure_reason'] = 'unknown'
+                capabilities['control_failure_message'] = 'Unable to determine why control failed'
+        
+        return capabilities
+    
+    def create_music_change_request(self, zone_info: Dict, request: str) -> Dict:
+        """Create a structured request for manual music changes"""
+        
+        zone_id = zone_info.get('id')
+        capabilities = self.get_zone_capabilities(zone_id) if zone_id else {}
+        
+        request_data = {
+            'timestamp': datetime.now().isoformat(),
+            'venue_info': {
+                'account_name': zone_info.get('account_name'),
+                'location_name': zone_info.get('location_name'),
+                'zone_name': zone_info.get('name')
+            },
+            'technical_info': {
+                'zone_id': zone_id,
+                'device_name': capabilities.get('device_name'),
+                'streaming_type': capabilities.get('streaming_type'),
+                'current_mode': capabilities.get('mode'),
+                'controllable_via_api': capabilities.get('controllable', False)
+            },
+            'request_details': {
+                'description': request,
+                'urgency': 'normal',
+                'requires_manual_intervention': not capabilities.get('controllable', False)
+            }
+        }
+        
+        return request_data
+    
+    def queue_tracks(self, zone_id: str, track_ids: List[str]) -> Dict:
+        """Queue tracks to a sound zone (NEW capability discovered)"""
+        
+        if not track_ids:
+            return {'success': False, 'error': 'No track IDs provided'}
+        
+        query = """
+        mutation QueueTracks($input: SoundZoneQueueTracksInput!) {
+            soundZoneQueueTracks(input: $input) {
+                __typename
+            }
+        }
+        """
+        
+        result = self._execute_query(query, {
+            'input': {
+                'soundZone': zone_id,
+                'tracks': track_ids
+            }
+        })
+        
+        if 'error' in result:
+            return {'success': False, 'error': result['error']}
+        
+        return {'success': True}
+    
+    def clear_queue(self, zone_id: str) -> Dict:
+        """Clear all queued tracks for a sound zone (NEW capability discovered)"""
+        
+        query = """
+        mutation ClearQueue($input: SoundZoneClearQueuedTracksInput!) {
+            soundZoneClearQueuedTracks(input: $input) {
+                __typename
+            }
+        }
+        """
+        
+        result = self._execute_query(query, {
+            'input': {
+                'soundZone': zone_id
+            }
+        })
+        
+        if 'error' in result:
+            return {'success': False, 'error': result['error']}
+        
+        return {'success': True}
+    
+    def get_enhanced_zone_status(self, zone_id: str) -> Dict:
+        """Get enhanced zone status including current source details"""
+        
+        query = """
+        query GetEnhancedZoneStatus($zoneId: ID!) {
+            soundZone(id: $zoneId) {
+                id
+                name
+                streamingType
+                device {
+                    id
+                    name
+                }
+                schedule {
+                    id
+                    name
+                }
+                playFrom {
+                    __typename
+                    ... on Schedule {
+                        id
+                        name
+                    }
+                    ... on Playlist {
+                        id
+                        name
+                    }
+                }
+                nowPlaying {
+                    __typename
+                }
+            }
+        }
+        """
+        
+        result = self._execute_query(query, {'zoneId': zone_id})
+        
+        if 'error' in result:
+            return {'error': result['error']}
+        
+        return result.get('soundZone', {})
+    
     def quick_fix_zone(self, zone_id: str) -> Dict:
-        """Attempt to fix common zone issues"""
+        """Attempt to fix common zone issues - ALWAYS try control first regardless of device type"""
         
         fixes_attempted = []
         status = self.get_zone_status(zone_id)
@@ -571,40 +938,83 @@ class SoundtrackAPI:
                 'error': status['error']
             }
         
-        # Check if zone is online
-        if not status.get('isOnline'):
-            return {
-                'success': False,
-                'message': 'Zone is offline - please check device power and network connection'
-            }
+        zone_name = status.get('name', 'Unknown Zone')
+        device_name = status.get('device', {}).get('name', 'Unknown Device')
+        mode = self.detect_zone_mode(zone_id)
+        streaming_type = status.get('streamingType', 'Unknown')
         
-        # Check if music is playing
-        now_playing = status.get('nowPlaying', {})
-        if not now_playing.get('isPlaying'):
-            # Try to resume playback
-            if self.control_playback(zone_id, 'play'):
-                fixes_attempted.append('Resumed playback')
-            else:
-                fixes_attempted.append('Failed to resume playback')
+        # CRITICAL: Always try control first - control happens at SYB cloud level, NOT device level
+        logger.info(f"Attempting control for zone '{zone_name}' - Device: {device_name}, StreamingType: {streaming_type}")
         
-        # Check volume
-        current_volume = status.get('volume', 0)
-        if current_volume < 20:
-            # Set to reasonable volume
-            if self.set_volume(zone_id, 50):
-                fixes_attempted.append(f'Increased volume from {current_volume} to 50')
-            else:
-                fixes_attempted.append('Failed to adjust volume')
+        # Try volume adjustment first (safest test)
+        volume_result = self.set_volume(zone_id, 8)
+        if volume_result.get('success'):
+            fixes_attempted.append('Successfully adjusted volume to moderate level')
+        else:
+            fixes_attempted.append(f"Volume control failed: {volume_result.get('error')}")
         
-        return {
-            'success': len(fixes_attempted) > 0,
+        # Try play command
+        play_result = self.control_playback(zone_id, 'play')
+        if play_result.get('success'):
+            fixes_attempted.append('Successfully sent play command')
+        else:
+            fixes_attempted.append(f"Play control failed: {play_result.get('error')}")
+        
+        success = any('Successfully' in fix for fix in fixes_attempted)
+        
+        # Analyze WHY control failed (if it did)
+        failure_reason = None
+        if not success:
+            common_errors = [fix for fix in fixes_attempted if 'failed:' in fix]
+            if common_errors:
+                error_text = common_errors[0].split('failed: ')[-1]
+                if 'trial/demo zone or insufficient permissions' in error_text:
+                    failure_reason = 'trial_or_demo_zone'
+                elif 'Not found' in error_text:
+                    failure_reason = 'api_control_not_available'
+                else:
+                    failure_reason = 'unknown_error'
+        
+        result = {
+            'success': success,
+            'zone_info': {
+                'name': zone_name,
+                'device': device_name,
+                'mode': mode,
+                'streaming_type': streaming_type
+            },
             'fixes_attempted': fixes_attempted,
-            'current_status': {
-                'is_playing': now_playing.get('isPlaying'),
-                'volume': status.get('volume'),
-                'track': now_playing.get('track', {}).get('name')
-            }
+            'requires_manual_intervention': not success
         }
+        
+        # Add appropriate recommendations based on actual failure reason
+        if not success:
+            if failure_reason == 'trial_or_demo_zone':
+                result['message'] = f'Zone "{zone_name}" appears to be a trial/demo zone or lacks API control permissions'
+                result['recommendations'] = [
+                    'Check if this is a trial/demo account that needs upgrading',
+                    'Verify API control permissions are enabled for this zone',
+                    'Contact venue staff to use SYB app/dashboard directly',
+                    'Consider upgrading subscription if needed'
+                ]
+            elif failure_reason == 'api_control_not_available':
+                result['message'] = f'Zone "{zone_name}" does not support remote API control'
+                result['recommendations'] = [
+                    'Use SYB mobile app or web dashboard for manual control',
+                    'Contact venue staff directly',
+                    'Check zone settings in SYB dashboard'
+                ]
+            else:
+                result['message'] = f'Could not control zone "{zone_name}" - reason unclear'
+                result['recommendations'] = [
+                    'Try controlling via SYB app/dashboard',
+                    'Contact venue staff',
+                    'Check zone connectivity and status'
+                ]
+        else:
+            result['message'] = f'Successfully applied fixes to zone "{zone_name}"'
+        
+        return result
 
 
 # Global instance

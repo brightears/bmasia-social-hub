@@ -1,0 +1,2069 @@
+{
+  "timestamp": "2025-01-20T00:00:00Z",
+  "control_mutations": {
+    "playbackReporting": {
+      "description": "",
+      "args": [
+        {
+          "name": "input",
+          "description": "",
+          "type": {
+            "name": null,
+            "kind": "NON_NULL",
+            "ofType": {
+              "name": "PlaybackReportingInput",
+              "kind": "INPUT_OBJECT",
+              "inputFields": [
+                {
+                  "name": "reportingId",
+                  "type": {
+                    "name": null,
+                    "kind": "NON_NULL",
+                    "ofType": {
+                      "name": "ID",
+                      "kind": "SCALAR"
+                    }
+                  }
+                },
+                {
+                  "name": "startedAt",
+                  "type": {
+                    "name": null,
+                    "kind": "NON_NULL",
+                    "ofType": {
+                      "name": "Date",
+                      "kind": "SCALAR"
+                    }
+                  }
+                },
+                {
+                  "name": "finishedAt",
+                  "type": {
+                    "name": null,
+                    "kind": "NON_NULL",
+                    "ofType": {
+                      "name": "Date",
+                      "kind": "SCALAR"
+                    }
+                  }
+                },
+                {
+                  "name": "totalDurationPlayedMs",
+                  "type": {
+                    "name": null,
+                    "kind": "NON_NULL",
+                    "ofType": {
+                      "name": "Int",
+                      "kind": "SCALAR"
+                    }
+                  }
+                },
+                {
+                  "name": "transition",
+                  "type": {
+                    "name": null,
+                    "kind": "NON_NULL",
+                    "ofType": {
+                      "name": "PlaybackReportingTransition",
+                      "kind": "ENUM"
+                    }
+                  }
+                },
+                {
+                  "name": "track",
+                  "type": {
+                    "name": null,
+                    "kind": "NON_NULL",
+                    "ofType": {
+                      "name": "TrackReportingInput",
+                      "kind": "INPUT_OBJECT"
+                    }
+                  }
+                },
+                {
+                  "name": "device",
+                  "type": {
+                    "name": null,
+                    "kind": "NON_NULL",
+                    "ofType": {
+                      "name": "DeviceReportingInput",
+                      "kind": "INPUT_OBJECT"
+                    }
+                  }
+                },
+                {
+                  "name": "context",
+                  "type": {
+                    "name": null,
+                    "kind": "NON_NULL",
+                    "ofType": {
+                      "name": "PlaybackReportingContextInput",
+                      "kind": "INPUT_OBJECT"
+                    }
+                  }
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    "assignAnnouncementCampaignToSoundZones": {
+      "description": "",
+      "args": [
+        {
+          "name": "options",
+          "description": "",
+          "type": {
+            "name": null,
+            "kind": "NON_NULL",
+            "ofType": {
+              "name": "AnnouncementCampaignAssignmentInput",
+              "kind": "INPUT_OBJECT",
+              "inputFields": [
+                {
+                  "name": "campaignId",
+                  "type": {
+                    "name": null,
+                    "kind": "NON_NULL",
+                    "ofType": {
+                      "name": "ID",
+                      "kind": "SCALAR"
+                    }
+                  }
+                },
+                {
+                  "name": "soundZoneIds",
+                  "type": {
+                    "name": null,
+                    "kind": "NON_NULL",
+                    "ofType": {
+                      "name": null,
+                      "kind": "LIST"
+                    }
+                  }
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    "unassignAnnouncementCampaignFromSoundZones": {
+      "description": "",
+      "args": [
+        {
+          "name": "options",
+          "description": "",
+          "type": {
+            "name": null,
+            "kind": "NON_NULL",
+            "ofType": {
+              "name": "AnnouncementCampaignAssignmentInput",
+              "kind": "INPUT_OBJECT",
+              "inputFields": [
+                {
+                  "name": "campaignId",
+                  "type": {
+                    "name": null,
+                    "kind": "NON_NULL",
+                    "ofType": {
+                      "name": "ID",
+                      "kind": "SCALAR"
+                    }
+                  }
+                },
+                {
+                  "name": "soundZoneIds",
+                  "type": {
+                    "name": null,
+                    "kind": "NON_NULL",
+                    "ofType": {
+                      "name": null,
+                      "kind": "LIST"
+                    }
+                  }
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    "importSpotifyPlaylists": {
+      "description": "Import playlists from Spotify, optionally adding them to the account music library.",
+      "args": [
+        {
+          "name": "connectionId",
+          "description": "",
+          "type": {
+            "name": null,
+            "kind": "NON_NULL",
+            "ofType": {
+              "name": "String",
+              "kind": "SCALAR",
+              "inputFields": null
+            }
+          }
+        },
+        {
+          "name": "spotifyPlaylistUris",
+          "description": "",
+          "type": {
+            "name": null,
+            "kind": "NON_NULL",
+            "ofType": {
+              "name": null,
+              "kind": "LIST",
+              "inputFields": null
+            }
+          }
+        },
+        {
+          "name": "addToLibrary",
+          "description": "",
+          "type": {
+            "name": "Boolean",
+            "kind": "SCALAR",
+            "ofType": null
+          }
+        }
+      ]
+    },
+    "getTracksFromSpotifyPlaylists": {
+      "description": "Get Soundtrack tracks using Spotify playlist uris.",
+      "args": [
+        {
+          "name": "connectionId",
+          "description": "",
+          "type": {
+            "name": null,
+            "kind": "NON_NULL",
+            "ofType": {
+              "name": "String",
+              "kind": "SCALAR",
+              "inputFields": null
+            }
+          }
+        },
+        {
+          "name": "spotifyPlaylistUris",
+          "description": "",
+          "type": {
+            "name": null,
+            "kind": "NON_NULL",
+            "ofType": {
+              "name": null,
+              "kind": "LIST",
+              "inputFields": null
+            }
+          }
+        }
+      ]
+    },
+    "updateSpotifyPlaylistMetadata": {
+      "description": "Update metadata on playlists imported from Spotify",
+      "args": [
+        {
+          "name": "playlistId",
+          "description": "",
+          "type": {
+            "name": null,
+            "kind": "NON_NULL",
+            "ofType": {
+              "name": "ID",
+              "kind": "SCALAR",
+              "inputFields": null
+            }
+          }
+        },
+        {
+          "name": "playOrder",
+          "description": "",
+          "type": {
+            "name": "PlayOrder",
+            "kind": "ENUM",
+            "ofType": null
+          }
+        }
+      ]
+    },
+    "refreshSpotifyPlaylists": {
+      "description": "Refresh playlists imported from Spotify",
+      "args": [
+        {
+          "name": "playlistIds",
+          "description": "",
+          "type": {
+            "name": null,
+            "kind": "NON_NULL",
+            "ofType": {
+              "name": null,
+              "kind": "LIST",
+              "inputFields": null
+            }
+          }
+        }
+      ]
+    },
+    "setSpotifyPlaylistAutoRefreshFrequency": {
+      "description": "Set automatic refresh policy for a playlist",
+      "args": [
+        {
+          "name": "input",
+          "description": "",
+          "type": {
+            "name": null,
+            "kind": "NON_NULL",
+            "ofType": {
+              "name": "SpotifyPlaylistRefreshFrequencyInput",
+              "kind": "INPUT_OBJECT",
+              "inputFields": [
+                {
+                  "name": "playlistId",
+                  "type": {
+                    "name": null,
+                    "kind": "NON_NULL",
+                    "ofType": {
+                      "name": "String",
+                      "kind": "SCALAR"
+                    }
+                  }
+                },
+                {
+                  "name": "refreshFrequency",
+                  "type": {
+                    "name": null,
+                    "kind": "NON_NULL",
+                    "ofType": {
+                      "name": "SpotifyPlaylistRefreshFrequency",
+                      "kind": "ENUM"
+                    }
+                  }
+                },
+                {
+                  "name": "market",
+                  "type": {
+                    "name": null,
+                    "kind": "NON_NULL",
+                    "ofType": {
+                      "name": "IsoCountry",
+                      "kind": "ENUM"
+                    }
+                  }
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    "createPlaylist": {
+      "description": "",
+      "args": [
+        {
+          "name": "input",
+          "description": "",
+          "type": {
+            "name": null,
+            "kind": "NON_NULL",
+            "ofType": {
+              "name": "CreatePlaylistInput",
+              "kind": "INPUT_OBJECT",
+              "inputFields": [
+                {
+                  "name": "ownerId",
+                  "type": {
+                    "name": null,
+                    "kind": "NON_NULL",
+                    "ofType": {
+                      "name": "ID",
+                      "kind": "SCALAR"
+                    }
+                  }
+                },
+                {
+                  "name": "name",
+                  "type": {
+                    "name": null,
+                    "kind": "NON_NULL",
+                    "ofType": {
+                      "name": "String",
+                      "kind": "SCALAR"
+                    }
+                  }
+                },
+                {
+                  "name": "annotations",
+                  "type": {
+                    "name": null,
+                    "kind": "LIST",
+                    "ofType": {
+                      "name": null,
+                      "kind": "NON_NULL"
+                    }
+                  }
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    "createManualPlaylist": {
+      "description": "Creates an new `manual` playlist.",
+      "args": [
+        {
+          "name": "input",
+          "description": "",
+          "type": {
+            "name": null,
+            "kind": "NON_NULL",
+            "ofType": {
+              "name": "CreateManualPlaylistInput",
+              "kind": "INPUT_OBJECT",
+              "inputFields": [
+                {
+                  "name": "ownerId",
+                  "type": {
+                    "name": null,
+                    "kind": "NON_NULL",
+                    "ofType": {
+                      "name": "ID",
+                      "kind": "SCALAR"
+                    }
+                  }
+                },
+                {
+                  "name": "name",
+                  "type": {
+                    "name": null,
+                    "kind": "NON_NULL",
+                    "ofType": {
+                      "name": "String",
+                      "kind": "SCALAR"
+                    }
+                  }
+                },
+                {
+                  "name": "description",
+                  "type": {
+                    "name": "String",
+                    "kind": "SCALAR",
+                    "ofType": null
+                  }
+                },
+                {
+                  "name": "shortDescription",
+                  "type": {
+                    "name": "String",
+                    "kind": "SCALAR",
+                    "ofType": null
+                  }
+                },
+                {
+                  "name": "playbackMode",
+                  "type": {
+                    "name": "PlaybackMode",
+                    "kind": "ENUM",
+                    "ofType": null
+                  }
+                },
+                {
+                  "name": "imageId",
+                  "type": {
+                    "name": "String",
+                    "kind": "SCALAR",
+                    "ofType": null
+                  }
+                },
+                {
+                  "name": "trackIds",
+                  "type": {
+                    "name": null,
+                    "kind": "LIST",
+                    "ofType": {
+                      "name": null,
+                      "kind": "NON_NULL"
+                    }
+                  }
+                },
+                {
+                  "name": "annotations",
+                  "type": {
+                    "name": null,
+                    "kind": "LIST",
+                    "ofType": {
+                      "name": null,
+                      "kind": "NON_NULL"
+                    }
+                  }
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    "updateManualPlaylist": {
+      "description": "Updates info for a `manual` playlist.",
+      "args": [
+        {
+          "name": "input",
+          "description": "",
+          "type": {
+            "name": null,
+            "kind": "NON_NULL",
+            "ofType": {
+              "name": "UpdateManualPlaylistInfoInput",
+              "kind": "INPUT_OBJECT",
+              "inputFields": [
+                {
+                  "name": "id",
+                  "type": {
+                    "name": null,
+                    "kind": "NON_NULL",
+                    "ofType": {
+                      "name": "ID",
+                      "kind": "SCALAR"
+                    }
+                  }
+                },
+                {
+                  "name": "name",
+                  "type": {
+                    "name": "String",
+                    "kind": "SCALAR",
+                    "ofType": null
+                  }
+                },
+                {
+                  "name": "description",
+                  "type": {
+                    "name": "String",
+                    "kind": "SCALAR",
+                    "ofType": null
+                  }
+                },
+                {
+                  "name": "shortDescription",
+                  "type": {
+                    "name": "String",
+                    "kind": "SCALAR",
+                    "ofType": null
+                  }
+                },
+                {
+                  "name": "playbackMode",
+                  "type": {
+                    "name": "PlaybackMode",
+                    "kind": "ENUM",
+                    "ofType": null
+                  }
+                },
+                {
+                  "name": "imageId",
+                  "type": {
+                    "name": "String",
+                    "kind": "SCALAR",
+                    "ofType": null
+                  }
+                },
+                {
+                  "name": "annotations",
+                  "type": {
+                    "name": null,
+                    "kind": "LIST",
+                    "ofType": {
+                      "name": null,
+                      "kind": "NON_NULL"
+                    }
+                  }
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    "createSpotifySyncedPlaylist": {
+      "description": "Creates an new `spotify-composer` playlist.",
+      "args": [
+        {
+          "name": "input",
+          "description": "",
+          "type": {
+            "name": null,
+            "kind": "NON_NULL",
+            "ofType": {
+              "name": "CreateSpotifySyncedPlaylistInput",
+              "kind": "INPUT_OBJECT",
+              "inputFields": [
+                {
+                  "name": "ownerId",
+                  "type": {
+                    "name": null,
+                    "kind": "NON_NULL",
+                    "ofType": {
+                      "name": "ID",
+                      "kind": "SCALAR"
+                    }
+                  }
+                },
+                {
+                  "name": "playlistUri",
+                  "type": {
+                    "name": null,
+                    "kind": "NON_NULL",
+                    "ofType": {
+                      "name": "String",
+                      "kind": "SCALAR"
+                    }
+                  }
+                },
+                {
+                  "name": "name",
+                  "type": {
+                    "name": "String",
+                    "kind": "SCALAR",
+                    "ofType": null
+                  }
+                },
+                {
+                  "name": "description",
+                  "type": {
+                    "name": "String",
+                    "kind": "SCALAR",
+                    "ofType": null
+                  }
+                },
+                {
+                  "name": "shortDescription",
+                  "type": {
+                    "name": "String",
+                    "kind": "SCALAR",
+                    "ofType": null
+                  }
+                },
+                {
+                  "name": "playbackMode",
+                  "type": {
+                    "name": "PlaybackMode",
+                    "kind": "ENUM",
+                    "ofType": null
+                  }
+                },
+                {
+                  "name": "imageId",
+                  "type": {
+                    "name": "String",
+                    "kind": "SCALAR",
+                    "ofType": null
+                  }
+                },
+                {
+                  "name": "annotations",
+                  "type": {
+                    "name": null,
+                    "kind": "LIST",
+                    "ofType": {
+                      "name": null,
+                      "kind": "NON_NULL"
+                    }
+                  }
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    "updateSpotifyPlaylist": {
+      "description": "Updates info for a `spotify-composer` playlist.",
+      "args": [
+        {
+          "name": "input",
+          "description": "",
+          "type": {
+            "name": null,
+            "kind": "NON_NULL",
+            "ofType": {
+              "name": "UpdateSpotifySyncedPlaylistInput",
+              "kind": "INPUT_OBJECT",
+              "inputFields": [
+                {
+                  "name": "id",
+                  "type": {
+                    "name": null,
+                    "kind": "NON_NULL",
+                    "ofType": {
+                      "name": "ID",
+                      "kind": "SCALAR"
+                    }
+                  }
+                },
+                {
+                  "name": "name",
+                  "type": {
+                    "name": "String",
+                    "kind": "SCALAR",
+                    "ofType": null
+                  }
+                },
+                {
+                  "name": "description",
+                  "type": {
+                    "name": "String",
+                    "kind": "SCALAR",
+                    "ofType": null
+                  }
+                },
+                {
+                  "name": "shortDescription",
+                  "type": {
+                    "name": "String",
+                    "kind": "SCALAR",
+                    "ofType": null
+                  }
+                },
+                {
+                  "name": "playbackMode",
+                  "type": {
+                    "name": "PlaybackMode",
+                    "kind": "ENUM",
+                    "ofType": null
+                  }
+                },
+                {
+                  "name": "imageId",
+                  "type": {
+                    "name": "String",
+                    "kind": "SCALAR",
+                    "ofType": null
+                  }
+                },
+                {
+                  "name": "annotations",
+                  "type": {
+                    "name": null,
+                    "kind": "LIST",
+                    "ofType": {
+                      "name": null,
+                      "kind": "NON_NULL"
+                    }
+                  }
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    "syncSpotifySyncedPlaylist": {
+      "description": "Force a sync between the underlying Spotify Playlist and the `spotify-composer` playlist",
+      "args": [
+        {
+          "name": "input",
+          "description": "",
+          "type": {
+            "name": null,
+            "kind": "NON_NULL",
+            "ofType": {
+              "name": "SyncSpotifySyncedPlaylistInput",
+              "kind": "INPUT_OBJECT",
+              "inputFields": [
+                {
+                  "name": "id",
+                  "type": {
+                    "name": null,
+                    "kind": "NON_NULL",
+                    "ofType": {
+                      "name": "ID",
+                      "kind": "SCALAR"
+                    }
+                  }
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    "createStationFromPlaylist": {
+      "description": "Creates an new `seed-composer` playlist.",
+      "args": [
+        {
+          "name": "input",
+          "description": "",
+          "type": {
+            "name": null,
+            "kind": "NON_NULL",
+            "ofType": {
+              "name": "CreateStationFromPlaylistInput",
+              "kind": "INPUT_OBJECT",
+              "inputFields": [
+                {
+                  "name": "ownerId",
+                  "type": {
+                    "name": null,
+                    "kind": "NON_NULL",
+                    "ofType": {
+                      "name": "ID",
+                      "kind": "SCALAR"
+                    }
+                  }
+                },
+                {
+                  "name": "name",
+                  "type": {
+                    "name": "String",
+                    "kind": "SCALAR",
+                    "ofType": null
+                  }
+                },
+                {
+                  "name": "description",
+                  "type": {
+                    "name": "String",
+                    "kind": "SCALAR",
+                    "ofType": null
+                  }
+                },
+                {
+                  "name": "shortDescription",
+                  "type": {
+                    "name": "String",
+                    "kind": "SCALAR",
+                    "ofType": null
+                  }
+                },
+                {
+                  "name": "imageId",
+                  "type": {
+                    "name": "String",
+                    "kind": "SCALAR",
+                    "ofType": null
+                  }
+                },
+                {
+                  "name": "playlistUri",
+                  "type": {
+                    "name": null,
+                    "kind": "NON_NULL",
+                    "ofType": {
+                      "name": "String",
+                      "kind": "SCALAR"
+                    }
+                  }
+                },
+                {
+                  "name": "annotations",
+                  "type": {
+                    "name": null,
+                    "kind": "LIST",
+                    "ofType": {
+                      "name": null,
+                      "kind": "NON_NULL"
+                    }
+                  }
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    "updateStationFromPlaylist": {
+      "description": "Updates info for a `seed-composer` playlist.",
+      "args": [
+        {
+          "name": "input",
+          "description": "",
+          "type": {
+            "name": null,
+            "kind": "NON_NULL",
+            "ofType": {
+              "name": "UpdateStationFromPlaylistInput",
+              "kind": "INPUT_OBJECT",
+              "inputFields": [
+                {
+                  "name": "id",
+                  "type": {
+                    "name": null,
+                    "kind": "NON_NULL",
+                    "ofType": {
+                      "name": "ID",
+                      "kind": "SCALAR"
+                    }
+                  }
+                },
+                {
+                  "name": "name",
+                  "type": {
+                    "name": "String",
+                    "kind": "SCALAR",
+                    "ofType": null
+                  }
+                },
+                {
+                  "name": "description",
+                  "type": {
+                    "name": "String",
+                    "kind": "SCALAR",
+                    "ofType": null
+                  }
+                },
+                {
+                  "name": "shortDescription",
+                  "type": {
+                    "name": "String",
+                    "kind": "SCALAR",
+                    "ofType": null
+                  }
+                },
+                {
+                  "name": "imageId",
+                  "type": {
+                    "name": "String",
+                    "kind": "SCALAR",
+                    "ofType": null
+                  }
+                },
+                {
+                  "name": "annotations",
+                  "type": {
+                    "name": null,
+                    "kind": "LIST",
+                    "ofType": {
+                      "name": null,
+                      "kind": "NON_NULL"
+                    }
+                  }
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    "spliceManualPlaylist": {
+      "description": "Splices the tracks of a `manual` playlist. This mutation changes the contents of a playlist by removing or replacing existing tracks and/or adding new tracks in place. API inspired by the JS `Array.splice` method.",
+      "args": [
+        {
+          "name": "input",
+          "description": "",
+          "type": {
+            "name": null,
+            "kind": "NON_NULL",
+            "ofType": {
+              "name": "SplicePlaylistInput",
+              "kind": "INPUT_OBJECT",
+              "inputFields": [
+                {
+                  "name": "id",
+                  "type": {
+                    "name": null,
+                    "kind": "NON_NULL",
+                    "ofType": {
+                      "name": "ID",
+                      "kind": "SCALAR"
+                    }
+                  }
+                },
+                {
+                  "name": "snapshot",
+                  "type": {
+                    "name": "String",
+                    "kind": "SCALAR",
+                    "ofType": null
+                  }
+                },
+                {
+                  "name": "start",
+                  "type": {
+                    "name": null,
+                    "kind": "NON_NULL",
+                    "ofType": {
+                      "name": "Int",
+                      "kind": "SCALAR"
+                    }
+                  }
+                },
+                {
+                  "name": "length",
+                  "type": {
+                    "name": null,
+                    "kind": "NON_NULL",
+                    "ofType": {
+                      "name": "Int",
+                      "kind": "SCALAR"
+                    }
+                  }
+                },
+                {
+                  "name": "trackIds",
+                  "type": {
+                    "name": null,
+                    "kind": "NON_NULL",
+                    "ofType": {
+                      "name": null,
+                      "kind": "LIST"
+                    }
+                  }
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    "blockTrack": {
+      "description": "block a track for a sound zone.",
+      "args": [
+        {
+          "name": "input",
+          "description": "",
+          "type": {
+            "name": null,
+            "kind": "NON_NULL",
+            "ofType": {
+              "name": "BlockTrackInput",
+              "kind": "INPUT_OBJECT",
+              "inputFields": [
+                {
+                  "name": "parent",
+                  "type": {
+                    "name": null,
+                    "kind": "NON_NULL",
+                    "ofType": {
+                      "name": "ID",
+                      "kind": "SCALAR"
+                    }
+                  }
+                },
+                {
+                  "name": "source",
+                  "type": {
+                    "name": null,
+                    "kind": "NON_NULL",
+                    "ofType": {
+                      "name": "ID",
+                      "kind": "SCALAR"
+                    }
+                  }
+                },
+                {
+                  "name": "playFrom",
+                  "type": {
+                    "name": "ID",
+                    "kind": "SCALAR",
+                    "ofType": null
+                  }
+                },
+                {
+                  "name": "reasons",
+                  "type": {
+                    "name": null,
+                    "kind": "NON_NULL",
+                    "ofType": {
+                      "name": null,
+                      "kind": "LIST"
+                    }
+                  }
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    "unblockTrack": {
+      "description": "unblock a track for a sound zone.",
+      "args": [
+        {
+          "name": "input",
+          "description": "",
+          "type": {
+            "name": null,
+            "kind": "NON_NULL",
+            "ofType": {
+              "name": "UnblockTrackInput",
+              "kind": "INPUT_OBJECT",
+              "inputFields": [
+                {
+                  "name": "parent",
+                  "type": {
+                    "name": null,
+                    "kind": "NON_NULL",
+                    "ofType": {
+                      "name": "ID",
+                      "kind": "SCALAR"
+                    }
+                  }
+                },
+                {
+                  "name": "source",
+                  "type": {
+                    "name": null,
+                    "kind": "NON_NULL",
+                    "ofType": {
+                      "name": "ID",
+                      "kind": "SCALAR"
+                    }
+                  }
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    "play": {
+      "description": "Start playback for a sound zone.",
+      "args": [
+        {
+          "name": "input",
+          "description": "",
+          "type": {
+            "name": null,
+            "kind": "NON_NULL",
+            "ofType": {
+              "name": "PlayInput",
+              "kind": "INPUT_OBJECT",
+              "inputFields": [
+                {
+                  "name": "clientMutationId",
+                  "type": {
+                    "name": "String",
+                    "kind": "SCALAR",
+                    "ofType": null
+                  }
+                },
+                {
+                  "name": "soundZone",
+                  "type": {
+                    "name": null,
+                    "kind": "NON_NULL",
+                    "ofType": {
+                      "name": "ID",
+                      "kind": "SCALAR"
+                    }
+                  }
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    "pause": {
+      "description": "Pause playback for a sound zone.",
+      "args": [
+        {
+          "name": "input",
+          "description": "",
+          "type": {
+            "name": null,
+            "kind": "NON_NULL",
+            "ofType": {
+              "name": "PauseInput",
+              "kind": "INPUT_OBJECT",
+              "inputFields": [
+                {
+                  "name": "clientMutationId",
+                  "type": {
+                    "name": "String",
+                    "kind": "SCALAR",
+                    "ofType": null
+                  }
+                },
+                {
+                  "name": "soundZone",
+                  "type": {
+                    "name": null,
+                    "kind": "NON_NULL",
+                    "ofType": {
+                      "name": "ID",
+                      "kind": "SCALAR"
+                    }
+                  }
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    "skipTrack": {
+      "description": "Skip the current playing track for a sound zone.",
+      "args": [
+        {
+          "name": "input",
+          "description": "",
+          "type": {
+            "name": null,
+            "kind": "NON_NULL",
+            "ofType": {
+              "name": "SkipTrackInput",
+              "kind": "INPUT_OBJECT",
+              "inputFields": [
+                {
+                  "name": "clientMutationId",
+                  "type": {
+                    "name": "String",
+                    "kind": "SCALAR",
+                    "ofType": null
+                  }
+                },
+                {
+                  "name": "soundZone",
+                  "type": {
+                    "name": null,
+                    "kind": "NON_NULL",
+                    "ofType": {
+                      "name": "ID",
+                      "kind": "SCALAR"
+                    }
+                  }
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    "skipTracks": {
+      "description": "Skip x number of tracks for a playing sound zone.",
+      "args": [
+        {
+          "name": "input",
+          "description": "",
+          "type": {
+            "name": null,
+            "kind": "NON_NULL",
+            "ofType": {
+              "name": "SkipTracksInput",
+              "kind": "INPUT_OBJECT",
+              "inputFields": [
+                {
+                  "name": "clientMutationId",
+                  "type": {
+                    "name": "String",
+                    "kind": "SCALAR",
+                    "ofType": null
+                  }
+                },
+                {
+                  "name": "soundZone",
+                  "type": {
+                    "name": null,
+                    "kind": "NON_NULL",
+                    "ofType": {
+                      "name": "ID",
+                      "kind": "SCALAR"
+                    }
+                  }
+                },
+                {
+                  "name": "tracksToSkip",
+                  "type": {
+                    "name": "Int",
+                    "kind": "SCALAR",
+                    "ofType": null
+                  }
+                },
+                {
+                  "name": "crossfade",
+                  "type": {
+                    "name": "Boolean",
+                    "kind": "SCALAR",
+                    "ofType": null
+                  }
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    "setVolume": {
+      "description": "Set the volume of a sound zone.",
+      "args": [
+        {
+          "name": "input",
+          "description": "",
+          "type": {
+            "name": null,
+            "kind": "NON_NULL",
+            "ofType": {
+              "name": "SetVolumeInput",
+              "kind": "INPUT_OBJECT",
+              "inputFields": [
+                {
+                  "name": "clientMutationId",
+                  "type": {
+                    "name": "String",
+                    "kind": "SCALAR",
+                    "ofType": null
+                  }
+                },
+                {
+                  "name": "soundZone",
+                  "type": {
+                    "name": null,
+                    "kind": "NON_NULL",
+                    "ofType": {
+                      "name": "ID",
+                      "kind": "SCALAR"
+                    }
+                  }
+                },
+                {
+                  "name": "volume",
+                  "type": {
+                    "name": null,
+                    "kind": "NON_NULL",
+                    "ofType": {
+                      "name": "Volume",
+                      "kind": "SCALAR"
+                    }
+                  }
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    "soundZonePairDevice": {
+      "description": "Pair a device to a sound zone using a pairing code.",
+      "args": [
+        {
+          "name": "input",
+          "description": "",
+          "type": {
+            "name": null,
+            "kind": "NON_NULL",
+            "ofType": {
+              "name": "SoundZonePairDeviceInput",
+              "kind": "INPUT_OBJECT",
+              "inputFields": [
+                {
+                  "name": "pairingCode",
+                  "type": {
+                    "name": null,
+                    "kind": "NON_NULL",
+                    "ofType": {
+                      "name": "String",
+                      "kind": "SCALAR"
+                    }
+                  }
+                },
+                {
+                  "name": "soundZone",
+                  "type": {
+                    "name": null,
+                    "kind": "NON_NULL",
+                    "ofType": {
+                      "name": "String",
+                      "kind": "SCALAR"
+                    }
+                  }
+                },
+                {
+                  "name": "clientMutationId",
+                  "type": {
+                    "name": "String",
+                    "kind": "SCALAR",
+                    "ofType": null
+                  }
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    "soundZoneUnpair": {
+      "description": "Unpair a device paired to a sound zone.",
+      "args": [
+        {
+          "name": "input",
+          "description": "",
+          "type": {
+            "name": null,
+            "kind": "NON_NULL",
+            "ofType": {
+              "name": "SoundZoneUnpairInput",
+              "kind": "INPUT_OBJECT",
+              "inputFields": [
+                {
+                  "name": "clientMutationId",
+                  "type": {
+                    "name": "String",
+                    "kind": "SCALAR",
+                    "ofType": null
+                  }
+                },
+                {
+                  "name": "soundZone",
+                  "type": {
+                    "name": null,
+                    "kind": "NON_NULL",
+                    "ofType": {
+                      "name": "ID",
+                      "kind": "SCALAR"
+                    }
+                  }
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    "soundZoneInitiatePairing": {
+      "description": "Initiate a pairing process for a sound zone.",
+      "args": [
+        {
+          "name": "input",
+          "description": "",
+          "type": {
+            "name": null,
+            "kind": "NON_NULL",
+            "ofType": {
+              "name": "SoundZoneInitiatePairingInput",
+              "kind": "INPUT_OBJECT",
+              "inputFields": [
+                {
+                  "name": "soundZone",
+                  "type": {
+                    "name": null,
+                    "kind": "NON_NULL",
+                    "ofType": {
+                      "name": "ID",
+                      "kind": "SCALAR"
+                    }
+                  }
+                },
+                {
+                  "name": "clientMutationId",
+                  "type": {
+                    "name": "String",
+                    "kind": "SCALAR",
+                    "ofType": null
+                  }
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    "setPlayFrom": {
+      "description": "Change playback source of a sound zone.",
+      "args": [
+        {
+          "name": "input",
+          "description": "",
+          "type": {
+            "name": null,
+            "kind": "NON_NULL",
+            "ofType": {
+              "name": "SetPlayFromInput",
+              "kind": "INPUT_OBJECT",
+              "inputFields": [
+                {
+                  "name": "soundZone",
+                  "type": {
+                    "name": null,
+                    "kind": "NON_NULL",
+                    "ofType": {
+                      "name": "ID",
+                      "kind": "SCALAR"
+                    }
+                  }
+                },
+                {
+                  "name": "source",
+                  "type": {
+                    "name": null,
+                    "kind": "NON_NULL",
+                    "ofType": {
+                      "name": "ID",
+                      "kind": "SCALAR"
+                    }
+                  }
+                },
+                {
+                  "name": "clientMutationId",
+                  "type": {
+                    "name": "String",
+                    "kind": "SCALAR",
+                    "ofType": null
+                  }
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    "soundZoneCreate": {
+      "description": "Create a sound zone under a location.",
+      "args": [
+        {
+          "name": "input",
+          "description": "",
+          "type": {
+            "name": null,
+            "kind": "NON_NULL",
+            "ofType": {
+              "name": "SoundZoneCreateInput",
+              "kind": "INPUT_OBJECT",
+              "inputFields": [
+                {
+                  "name": "location",
+                  "type": {
+                    "name": null,
+                    "kind": "NON_NULL",
+                    "ofType": {
+                      "name": "ID",
+                      "kind": "SCALAR"
+                    }
+                  }
+                },
+                {
+                  "name": "name",
+                  "type": {
+                    "name": null,
+                    "kind": "NON_NULL",
+                    "ofType": {
+                      "name": "String",
+                      "kind": "SCALAR"
+                    }
+                  }
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    "soundZoneUpdate": {
+      "description": "Update a sound zones properties.",
+      "args": [
+        {
+          "name": "input",
+          "description": "",
+          "type": {
+            "name": null,
+            "kind": "NON_NULL",
+            "ofType": {
+              "name": "SoundZoneUpdateMutationInput",
+              "kind": "INPUT_OBJECT",
+              "inputFields": [
+                {
+                  "name": "id",
+                  "type": {
+                    "name": null,
+                    "kind": "NON_NULL",
+                    "ofType": {
+                      "name": "ID",
+                      "kind": "SCALAR"
+                    }
+                  }
+                },
+                {
+                  "name": "name",
+                  "type": {
+                    "name": "String",
+                    "kind": "SCALAR",
+                    "ofType": null
+                  }
+                },
+                {
+                  "name": "settings",
+                  "type": {
+                    "name": "SoundZoneSettingsInput",
+                    "kind": "INPUT_OBJECT",
+                    "ofType": null
+                  }
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    "soundZoneDelete": {
+      "description": "Deletes a sound zone.",
+      "args": [
+        {
+          "name": "input",
+          "description": "",
+          "type": {
+            "name": null,
+            "kind": "NON_NULL",
+            "ofType": {
+              "name": "SoundZoneDeleteInput",
+              "kind": "INPUT_OBJECT",
+              "inputFields": [
+                {
+                  "name": "id",
+                  "type": {
+                    "name": null,
+                    "kind": "NON_NULL",
+                    "ofType": {
+                      "name": "ID",
+                      "kind": "SCALAR"
+                    }
+                  }
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    "soundZoneUpdateSettings": {
+      "description": "Set settings on sound zones.",
+      "args": [
+        {
+          "name": "input",
+          "description": "",
+          "type": {
+            "name": null,
+            "kind": "NON_NULL",
+            "ofType": {
+              "name": "SoundZoneUpdateSettingsInput",
+              "kind": "INPUT_OBJECT",
+              "inputFields": [
+                {
+                  "name": "soundZones",
+                  "type": {
+                    "name": null,
+                    "kind": "NON_NULL",
+                    "ofType": {
+                      "name": null,
+                      "kind": "LIST"
+                    }
+                  }
+                },
+                {
+                  "name": "settings",
+                  "type": {
+                    "name": null,
+                    "kind": "NON_NULL",
+                    "ofType": {
+                      "name": "SoundZoneSettingsInput",
+                      "kind": "INPUT_OBJECT"
+                    }
+                  }
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    "soundZoneAssignSource": {
+      "description": "Assign play source to sound zones.",
+      "args": [
+        {
+          "name": "input",
+          "description": "",
+          "type": {
+            "name": null,
+            "kind": "NON_NULL",
+            "ofType": {
+              "name": "SoundZoneAssignSourceInput",
+              "kind": "INPUT_OBJECT",
+              "inputFields": [
+                {
+                  "name": "soundZones",
+                  "type": {
+                    "name": null,
+                    "kind": "NON_NULL",
+                    "ofType": {
+                      "name": null,
+                      "kind": "LIST"
+                    }
+                  }
+                },
+                {
+                  "name": "source",
+                  "type": {
+                    "name": null,
+                    "kind": "NON_NULL",
+                    "ofType": {
+                      "name": "ID",
+                      "kind": "SCALAR"
+                    }
+                  }
+                },
+                {
+                  "name": "sourceSnapshot",
+                  "type": {
+                    "name": "String",
+                    "kind": "SCALAR",
+                    "ofType": null
+                  }
+                },
+                {
+                  "name": "sourceTrackIndex",
+                  "type": {
+                    "name": "Int",
+                    "kind": "SCALAR",
+                    "ofType": null
+                  }
+                },
+                {
+                  "name": "track",
+                  "type": {
+                    "name": "ID",
+                    "kind": "SCALAR",
+                    "ofType": null
+                  }
+                },
+                {
+                  "name": "immediate",
+                  "type": {
+                    "name": "Boolean",
+                    "kind": "SCALAR",
+                    "ofType": null
+                  }
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    "soundZoneQueueTracks": {
+      "description": "Queue tracks to a sound zone.",
+      "args": [
+        {
+          "name": "input",
+          "description": "",
+          "type": {
+            "name": null,
+            "kind": "NON_NULL",
+            "ofType": {
+              "name": "SoundZoneQueueTracksInput",
+              "kind": "INPUT_OBJECT",
+              "inputFields": [
+                {
+                  "name": "soundZone",
+                  "type": {
+                    "name": null,
+                    "kind": "NON_NULL",
+                    "ofType": {
+                      "name": "ID",
+                      "kind": "SCALAR"
+                    }
+                  }
+                },
+                {
+                  "name": "tracks",
+                  "type": {
+                    "name": null,
+                    "kind": "NON_NULL",
+                    "ofType": {
+                      "name": null,
+                      "kind": "LIST"
+                    }
+                  }
+                },
+                {
+                  "name": "immediate",
+                  "type": {
+                    "name": "Boolean",
+                    "kind": "SCALAR",
+                    "ofType": null
+                  }
+                },
+                {
+                  "name": "clearQueuedTracks",
+                  "type": {
+                    "name": "Boolean",
+                    "kind": "SCALAR",
+                    "ofType": null
+                  }
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    "soundZoneClearQueuedTracks": {
+      "description": "Clear all queued tracks for a sound zone.",
+      "args": [
+        {
+          "name": "input",
+          "description": "",
+          "type": {
+            "name": null,
+            "kind": "NON_NULL",
+            "ofType": {
+              "name": "SoundZoneClearQueuedTracksInput",
+              "kind": "INPUT_OBJECT",
+              "inputFields": [
+                {
+                  "name": "soundZone",
+                  "type": {
+                    "name": null,
+                    "kind": "NON_NULL",
+                    "ofType": {
+                      "name": "ID",
+                      "kind": "SCALAR"
+                    }
+                  }
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    "soundZoneSetPlaybackOrder": {
+      "description": "Sets the playback order of a sound zone.",
+      "args": [
+        {
+          "name": "input",
+          "description": "",
+          "type": {
+            "name": null,
+            "kind": "NON_NULL",
+            "ofType": {
+              "name": "SoundZoneSetPlaybackOrderInput",
+              "kind": "INPUT_OBJECT",
+              "inputFields": [
+                {
+                  "name": "soundZone",
+                  "type": {
+                    "name": null,
+                    "kind": "NON_NULL",
+                    "ofType": {
+                      "name": "ID",
+                      "kind": "SCALAR"
+                    }
+                  }
+                },
+                {
+                  "name": "playbackOrder",
+                  "type": {
+                    "name": null,
+                    "kind": "NON_NULL",
+                    "ofType": {
+                      "name": "PlaybackOrder",
+                      "kind": "ENUM"
+                    }
+                  }
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    "soundZoneGenerateRemoteCode": {
+      "description": "Generates a new remote code for the sound zone, used by our remotes.",
+      "args": [
+        {
+          "name": "input",
+          "description": "",
+          "type": {
+            "name": null,
+            "kind": "NON_NULL",
+            "ofType": {
+              "name": "SoundZoneGenerateRemoteCodeInput",
+              "kind": "INPUT_OBJECT",
+              "inputFields": [
+                {
+                  "name": "id",
+                  "type": {
+                    "name": null,
+                    "kind": "NON_NULL",
+                    "ofType": {
+                      "name": "ID",
+                      "kind": "SCALAR"
+                    }
+                  }
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    "soundZoneSubmitCancellationReason": {
+      "description": "Submit a cancellation reason for a sound zone.",
+      "args": [
+        {
+          "name": "input",
+          "description": "",
+          "type": {
+            "name": null,
+            "kind": "NON_NULL",
+            "ofType": {
+              "name": "SoundZoneSubmitCancellationReasonInput",
+              "kind": "INPUT_OBJECT",
+              "inputFields": [
+                {
+                  "name": "soundZoneId",
+                  "type": {
+                    "name": null,
+                    "kind": "NON_NULL",
+                    "ofType": {
+                      "name": "ID",
+                      "kind": "SCALAR"
+                    }
+                  }
+                },
+                {
+                  "name": "name",
+                  "type": {
+                    "name": null,
+                    "kind": "NON_NULL",
+                    "ofType": {
+                      "name": "CancellationReasonName",
+                      "kind": "ENUM"
+                    }
+                  }
+                },
+                {
+                  "name": "text",
+                  "type": {
+                    "name": null,
+                    "kind": "NON_NULL",
+                    "ofType": {
+                      "name": "String",
+                      "kind": "SCALAR"
+                    }
+                  }
+                },
+                {
+                  "name": "detailedText",
+                  "type": {
+                    "name": null,
+                    "kind": "NON_NULL",
+                    "ofType": {
+                      "name": "String",
+                      "kind": "SCALAR"
+                    }
+                  }
+                },
+                {
+                  "name": "feedback",
+                  "type": {
+                    "name": null,
+                    "kind": "NON_NULL",
+                    "ofType": {
+                      "name": "String",
+                      "kind": "SCALAR"
+                    }
+                  }
+                }
+              ]
+            }
+          }
+        }
+      ]
+    }
+  },
+  "zone_permissions": {
+    "U291bmRab25lLCwxbjFteGk0NHJnZy9Mb2NhdGlvbiwsMWdoZXh3eDdhNGcvQWNjb3VudCwsMW1sbTJ0ZW52OWMv": {
+      "zone_name": "Trial Zone",
+      "location": " Anantara Desaru Coast Resort & Villas",
+      "account": " Anantara Desaru Coast Resort & Villas",
+      "device_name": "ADES\u2019s iPad 2",
+      "streaming_type": "TIER_3",
+      "volume_control": false,
+      "volume_error": "Zone not controllable (trial/demo zone or insufficient permissions)",
+      "play_control": false,
+      "play_error": "Zone not controllable (trial/demo zone or insufficient permissions)",
+      "is_controllable": false
+    },
+    "U291bmRab25lLCwxcDEzcWhzYTBhby9Mb2NhdGlvbiwsMThscnUwenZldjQvQWNjb3VudCwsMWVuaXV0emJhYmsv": {
+      "zone_name": "Kids\u00b4 Club Room 1",
+      "location": " Baltic Sport- und Ferienhotel (Unlimited)",
+      "account": " Baltic Sport- und Ferienhotel (Unlimited)",
+      "device_name": "iPad von Kids Club",
+      "streaming_type": "TIER_3",
+      "volume_control": false,
+      "volume_error": "Zone not controllable (trial/demo zone or insufficient permissions)",
+      "play_control": false,
+      "play_error": "Zone not controllable (trial/demo zone or insufficient permissions)",
+      "is_controllable": false
+    },
+    "U291bmRab25lLCwxbnNrdnVtdXd3MC9Mb2NhdGlvbiwsMWo3d2pxM3ZhNGcvQWNjb3VudCwsMWNqMTM3Ymp3MXMv": {
+      "zone_name": "Basalt",
+      "location": " Desert Rock Resort",
+      "account": " Desert Rock Resort",
+      "device_name": "DRMR-SVR-BGM-01",
+      "streaming_type": "TIER_3",
+      "volume_control": true,
+      "volume_error": "",
+      "play_control": true,
+      "play_error": "",
+      "is_controllable": true
+    },
+    "U291bmRab25lLCwxanU5NGtyMmViay9Mb2NhdGlvbiwsMWc5OGI1dm5jM2svQWNjb3VudCwsMWZ0eGhhYTl0a3cv": {
+      "zone_name": "Kids\u00b4 Club Room 1",
+      "location": " GF ISABEL (Unlimited)",
+      "account": " GF ISABEL (Unlimited)",
+      "device_name": "",
+      "streaming_type": "TIER_3",
+      "volume_control": false,
+      "volume_error": "Zone not controllable (trial/demo zone or insufficient permissions)",
+      "play_control": false,
+      "play_error": "Zone not controllable (trial/demo zone or insufficient permissions)",
+      "is_controllable": false
+    },
+    "U291bmRab25lLCwxc21hNTdwOXN6ay9Mb2NhdGlvbiwsMWo3aTdjYmczY3cvQWNjb3VudCwsMWU1OTBhenpremsv": {
+      "zone_name": "Hotel Made In Louise",
+      "location": "Hotel Made In Louise",
+      "account": " HOTEL MADE IN LOUISE (Free Trial)",
+      "device_name": "",
+      "streaming_type": "TIER_1",
+      "volume_control": false,
+      "volume_error": "Zone not controllable (trial/demo zone or insufficient permissions)",
+      "play_control": false,
+      "play_error": "Zone not controllable (trial/demo zone or insufficient permissions)",
+      "is_controllable": false
+    }
+  },
+  "advanced_tests": {
+    "setVolume_v1": {
+      "error": [
+        {
+          "message": "Inline fragment spread is not possible: possible types are 'SetVolumePayload' and possible fragment types are 'SoundZone'."
+        }
+      ]
+    },
+    "play_direct": {
+      "error": [
+        {
+          "message": "Inline fragment spread is not possible: possible types are 'PlayPayload' and possible fragment types are 'SoundZone'."
+        }
+      ]
+    },
+    "mute_direct": {
+      "error": [
+        {
+          "message": "Field 'mute' does not exist on type 'Mutation'."
+        }
+      ]
+    }
+  },
+  "summary": {
+    "total_control_mutations": 38,
+    "total_zones_tested": 5,
+    "controllable_zones": 1,
+    "working_zone_ids": [
+      "U291bmRab25lLCwxbnNrdnVtdXd3MC9Mb2NhdGlvbiwsMWo3d2pxM3ZhNGcvQWNjb3VudCwsMWNqMTM3Ymp3MXMv"
+    ]
+  }
+}

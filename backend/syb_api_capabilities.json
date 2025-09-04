@@ -1,0 +1,25 @@
+{
+  "detection": {
+    "basic_info": false
+  },
+  "control": {
+    "volume": false,
+    "play": false,
+    "pause": false,
+    "skipTrack": false
+  },
+  "playlists": {
+    "searchPlaylists": false,
+    "browsePlaylists": false,
+    "playlists": false,
+    "can_switch": "requires_playlist_id"
+  },
+  "schedules": {
+    "detection": false
+  },
+  "limitations": [
+    "Zone not controllable (playback device not found)",
+    "Zone not controllable (playback device not found)",
+    "Zone not controllable (playback device not found)"
+  ]
+}
