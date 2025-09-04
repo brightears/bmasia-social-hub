@@ -196,12 +196,18 @@ async def whatsapp_webhook(
                     # Generate and send response if bot is enabled
                     if BOT_ENABLED and bot and sender:
                         try:
-                            # Use integrated bot's process_message if available
-                            if hasattr(bot, 'process_message'):
-                                response_text = bot.process_message(content, from_number, contact_name, platform="WhatsApp")
-                            else:
-                                # Fallback to simple generate_response
-                                response_text = bot.generate_response(content, contact_name)
+                            # Use safe bot wrapper to prevent hallucination
+                            try:
+                                from bot_anti_hallucination import process_message as safe_process
+                                response_text = safe_process(content, from_number, contact_name, platform="WhatsApp")
+                                logger.info("Using anti-hallucination bot wrapper")
+                            except ImportError:
+                                # Fallback to regular bot if safe wrapper not available
+                                if hasattr(bot, 'process_message'):
+                                    response_text = bot.process_message(content, from_number, contact_name, platform="WhatsApp")
+                                else:
+                                    # Fallback to simple generate_response
+                                    response_text = bot.generate_response(content, contact_name)
                             logger.info(f"Generated response: {response_text[:100]}...")
                             
                             # Send response back via WhatsApp

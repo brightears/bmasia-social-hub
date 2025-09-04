@@ -16,7 +16,14 @@ from email_verification import email_verifier
 try:
     from google_sheets_client import GoogleSheetsClient
     sheets_client = GoogleSheetsClient()
-    SHEETS_AVAILABLE = True
+    # Test if sheets client can actually access data
+    test_venues = sheets_client.get_all_venues()
+    if test_venues:
+        SHEETS_AVAILABLE = True
+        logger.info(f"Google Sheets integration active - {len(test_venues)} venues loaded")
+    else:
+        SHEETS_AVAILABLE = False
+        logger.warning("Google Sheets client created but no data accessible - credentials may be missing")
 except Exception as e:
     logger.warning(f"Google Sheets not available: {e}")
     sheets_client = None
@@ -129,14 +136,14 @@ class GeminiBot:
                 return "Which zone's volume do you want to adjust? Let me know the zone name and what level you'd like."
         
         # For specific zone/music queries - check Soundtrack API
+        # Only return direct data if it's a simple status query
         zone_name = self._extract_zone_name(message)
-        if zone_name and venue:
+        if zone_name and venue and any(phrase in message_lower for phrase in ['what\'s playing', 'now playing', 'playing at', 'music at']):
             zone_data = self._fetch_zone_data(zone_name, venue)
-            if zone_data:
+            if zone_data and 'offline' not in zone_data.lower():
                 return zone_data
         
-        # Note: Removed early returns to prevent duplicate responses
-        # All queries will now be handled by Gemini with the combined data context
+        # Note: Most queries will be handled by Gemini with combined data context
         # This prevents duplicate responses while ensuring all data sources are available
         
         # Build the system prompt with context
@@ -148,12 +155,19 @@ class GeminiBot:
         # Add combined data context
         data_context = ""
         
-        # If we have a pre-formatted response, use it directly
-        if combined_data.get('sheets_response'):
-            # Return the pre-formatted response immediately for direct questions
-            message_lower = message.lower()
-            if any(word in message_lower for word in ['rate', 'price', 'cost', 'contract', 'expire', 'renewal']):
-                return combined_data['sheets_response']
+        # CRITICAL: Only use pre-formatted response if we have VERIFIED data
+        if combined_data.get('sheets_response') and combined_data.get('sheets_data'):
+            # Double-check the response contains real information (not fallback text)
+            response = combined_data['sheets_response']
+            if response and not any(phrase in response for phrase in [
+                "I don't see that information",
+                "Let me find the right contact", 
+                "Let me check with the team"
+            ]):
+                message_lower = message.lower()
+                if any(word in message_lower for word in ['rate', 'price', 'cost', 'contract', 'expire', 'renewal']):
+                    logger.info(f"Returning verified sheets data for {venue.get('name')}")
+                    return response
         
         if combined_data:
             data_context = "\n\nAvailable Data:\n"
@@ -199,9 +213,19 @@ Response Guidelines:
 7. CRITICAL: Give ONE response only - never repeat the same information twice
 8. If you have contract/rate data, give it once clearly and stop there
 9. Property identification: Always treat property names as containing zones, never AS zones
+10. ANTI-HALLUCINATION: Never make up information. If you don't have data, say so honestly
+11. VERIFIED DATA ONLY: Only provide information that comes from verified sources (sheets, API)
+12. NO SPECULATION: Don't guess rates, dates, or contact details
 
 Remember: You're Scott, a real person helping via WhatsApp. Be human, be helpful, be brief.
 NEVER give duplicate responses or repeat information unnecessarily.
+
+🚨 CRITICAL ANTI-HALLUCINATION RULES:
+- If you don't have contract/pricing data from Google Sheets, say "I need to check with our team"
+- Never invent contract rates, expiry dates, or contact information
+- If sheets integration is down, admit it: "I'm having trouble accessing our records right now"
+- Only state facts from verified API responses or sheets data
+- When in doubt, offer to escalate rather than guess
 
 Response:"""
         
@@ -261,25 +285,45 @@ Response:"""
         if not venue_name:
             return combined_data
         
-        # 1. Get Google Sheets data
-        try:
-            if self.sheets:
+        # 1. Get Google Sheets data - STRICT DATA VALIDATION
+        sheets_venue = None
+        if SHEETS_AVAILABLE and self.sheets:
+            try:
                 sheets_venue = self.sheets.find_venue_by_name(venue_name)
-                if sheets_venue:
-                    combined_data['sheets_data'] = sheets_venue
-                    # Pre-format common queries
-                    message_lower = message.lower()
-                    if any(word in message_lower for word in ['rate', 'price', 'cost', 'fee', 'pricing', 'charge']):
-                        # Include rate in contract info
-                        combined_data['sheets_response'] = self._format_contract_info(sheets_venue, venue_name, include_rate=True)
-                    elif any(word in message_lower for word in ['contract', 'renewal', 'expire']):
-                        # Check if also asking about rate
-                        include_rate = any(word in message_lower for word in ['rate', 'price', 'cost'])
-                        combined_data['sheets_response'] = self._format_contract_info(sheets_venue, venue_name, include_rate=include_rate)
-                    elif any(word in message_lower for word in ['contact', 'email', 'phone']):
-                        combined_data['sheets_response'] = self._format_contact_info(sheets_venue, venue_name)
-        except Exception as e:
-            logger.debug(f"Could not get sheets data: {e}")
+                if sheets_venue and isinstance(sheets_venue, dict):
+                    # Verify we have meaningful data
+                    has_real_data = any(
+                        sheets_venue.get(key) and str(sheets_venue.get(key)).strip() != ''
+                        for key in ['property_name', 'current_price_per_zone_venue_per_year', 'annual_price_per_zone', 'contract_expiry', 'expiry_date']
+                    )
+                    
+                    if has_real_data:
+                        combined_data['sheets_data'] = sheets_venue
+                        logger.info(f"Retrieved valid sheets data for {venue_name}")
+                        
+                        # Pre-format common queries ONLY if we have actual data
+                        message_lower = message.lower()
+                        if any(word in message_lower for word in ['rate', 'price', 'cost', 'fee', 'pricing', 'charge']):
+                            rate_response = self._format_contract_info(sheets_venue, venue_name, include_rate=True)
+                            if rate_response and "I don't see that information" not in rate_response:
+                                combined_data['sheets_response'] = rate_response
+                        elif any(word in message_lower for word in ['contract', 'renewal', 'expire']):
+                            include_rate = any(word in message_lower for word in ['rate', 'price', 'cost'])
+                            contract_response = self._format_contract_info(sheets_venue, venue_name, include_rate=include_rate)
+                            if contract_response and "I don't see that information" not in contract_response:
+                                combined_data['sheets_response'] = contract_response
+                        elif any(word in message_lower for word in ['contact', 'email', 'phone']):
+                            contact_response = self._format_contact_info(sheets_venue, venue_name)
+                            if contact_response and "Let me find the right contact" not in contact_response:
+                                combined_data['sheets_response'] = contact_response
+                    else:
+                        logger.warning(f"Found venue {venue_name} in sheets but data appears empty")
+                else:
+                    logger.info(f"Venue {venue_name} not found in Google Sheets")
+            except Exception as e:
+                logger.error(f"Error accessing sheets data for {venue_name}: {e}")
+        else:
+            logger.warning("Google Sheets integration not available - cannot access contract/pricing data")
         
         # 2. Get Soundtrack zones data
         try:
@@ -308,23 +352,30 @@ Response:"""
         except Exception as e:
             logger.debug(f"Could not search Drive: {e}")
         
-        # 4. Smart Email Search (only when relevant)
-        try:
-            if GMAIL_AVAILABLE and smart_email_searcher:
-                # Extract domain from sheets data if available
-                domain = None
-                if sheets_venue:
-                    email = sheets_venue.get('client_contact', '')
-                    if '@' in email:
-                        domain = email.split('@')[1]
+        # 4. Smart Email Search (only when contextually relevant to avoid noise)
+        if GMAIL_AVAILABLE and smart_email_searcher:
+            try:
+                # Only search emails if the query is support-related or historical
+                search_relevant = any(word in message.lower() for word in [
+                    'previous', 'before', 'last time', 'history', 'earlier', 'problem', 'issue', 'support', 'help'
+                ])
                 
-                # Perform smart search
-                email_results = smart_email_searcher.smart_search(message, venue_name, domain)
-                if email_results and email_results.get('found'):
-                    combined_data['email_context'] = email_results
-                    combined_data['email_summary'] = smart_email_searcher.format_for_bot(email_results)
-        except Exception as e:
-            logger.debug(f"Could not search emails: {e}")
+                if search_relevant:
+                    # Extract domain from sheets data if available
+                    domain = None
+                    if sheets_venue:
+                        email = sheets_venue.get('client_contact', '')
+                        if '@' in email:
+                            domain = email.split('@')[1]
+                    
+                    # Perform targeted search
+                    email_results = smart_email_searcher.smart_search(message, venue_name, domain)
+                    if email_results and email_results.get('found') and email_results.get('relevance_score', 0) > 0.7:
+                        combined_data['email_context'] = email_results
+                        combined_data['email_summary'] = smart_email_searcher.format_for_bot(email_results)
+                        logger.info(f"Added relevant email context for {venue_name}")
+            except Exception as e:
+                logger.debug(f"Could not search emails: {e}")
         
         return combined_data
     
@@ -774,7 +825,7 @@ Property name:"""
             is_online = matching_zone.get('online') or matching_zone.get('isOnline')
             
             if not is_online:
-                return f"Zone '{zone_name}' is currently offline"
+                return f"Zone '{zone_name}' is currently offline. Let me know if you need help getting it back online!"
             
             # Fetch now playing
             now_playing = self.soundtrack.get_now_playing(zone_id)
