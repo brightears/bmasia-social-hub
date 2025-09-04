@@ -160,6 +160,10 @@ class VenueDataReader:
         
         return None
     
+    def get_venue(self, venue_name: str) -> Optional[Dict]:
+        """Get a specific venue by name"""
+        return self.find_venue_by_name(venue_name)
+    
     def get_venue_zones(self, venue_name: str) -> List[str]:
         """Get zones for a venue"""
         venue = self.find_venue_by_name(venue_name)
