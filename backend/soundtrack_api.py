@@ -352,17 +352,21 @@ class SoundtrackAPI:
         return matches
     
     def get_zone_status(self, zone_id: str) -> Dict:
-        """Get detailed status for a specific zone (limited to available fields)"""
+        """Get detailed status for a specific zone including playing status and current track"""
         
+        # Try comprehensive query first
         query = """
         query GetZoneStatus($zoneId: ID!) {
             soundZone(id: $zoneId) {
                 id
                 name
                 streamingType
+                isPlaying
+                volume
                 device {
                     id
                     name
+                    online
                 }
                 schedule {
                     id
@@ -370,6 +374,21 @@ class SoundtrackAPI:
                 }
                 nowPlaying {
                     __typename
+                    ... on Track {
+                        id
+                        name
+                        artistName
+                        albumName
+                        duration
+                    }
+                    ... on Announcement {
+                        id
+                        name
+                    }
+                }
+                currentPlaylist {
+                    id
+                    name
                 }
             }
         }
@@ -377,10 +396,63 @@ class SoundtrackAPI:
         
         result = self._execute_query(query, {'zoneId': zone_id})
         
-        if 'error' in result:
-            return {'error': result['error']}
+        # If comprehensive query fails, try basic query
+        if 'error' in result or not result.get('soundZone'):
+            logger.info(f"Comprehensive query failed, trying basic query for zone {zone_id}")
+            basic_query = """
+            query GetZoneStatus($zoneId: ID!) {
+                soundZone(id: $zoneId) {
+                    id
+                    name
+                    streamingType
+                    device {
+                        id
+                        name
+                    }
+                    nowPlaying {
+                        __typename
+                    }
+                }
+            }
+            """
+            result = self._execute_query(basic_query, {'zoneId': zone_id})
         
-        return result.get('soundZone', {})
+        zone_data = result.get('soundZone', {})
+        
+        # Process the response to extract useful information
+        if zone_data:
+            status = {
+                'id': zone_data.get('id'),
+                'name': zone_data.get('name'),
+                'playing': zone_data.get('isPlaying', None),  # Will be None if not available
+                'volume': zone_data.get('volume'),
+                'device_name': zone_data.get('device', {}).get('name'),
+                'device_online': zone_data.get('device', {}).get('online'),
+                'streaming_type': zone_data.get('streamingType')
+            }
+            
+            # Extract now playing information
+            now_playing = zone_data.get('nowPlaying', {})
+            if now_playing and now_playing.get('__typename') == 'Track':
+                status['current_track'] = {
+                    'name': now_playing.get('name'),
+                    'artist': now_playing.get('artistName'),
+                    'album': now_playing.get('albumName')
+                }
+            
+            # Extract playlist info
+            current_playlist = zone_data.get('currentPlaylist', {})
+            if current_playlist:
+                status['current_playlist'] = current_playlist.get('name')
+            
+            # If playing status is not available, check if we have nowPlaying data
+            if status['playing'] is None and now_playing:
+                # If there's something in nowPlaying, assume it's playing
+                status['playing'] = True
+            
+            return status
+        
+        return {'error': 'Zone not found'}
     
     def control_playback(self, zone_id: str, action: str) -> Dict:
         """Control playback - ALWAYS attempt regardless of device type (control is cloud-level)"""

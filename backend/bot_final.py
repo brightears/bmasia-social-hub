@@ -451,23 +451,44 @@ Important: "Edge", "Drift Bar", "Horizon", "Shore" are zone names, not venue nam
         
         # Get zone status from API
         zone_id = self._find_zone_id(venue_display_name, zone_name)
+        logger.info(f"Initial zone_id search for {zone_name} at {venue_display_name}: {zone_id}")
+        
         if not zone_id:
             # Try to find zone in Soundtrack system
             venue_zones = soundtrack_api.find_venue_zones(venue_display_name)
+            logger.info(f"Found {len(venue_zones)} zones for {venue_display_name}")
             for z in venue_zones:
+                logger.info(f"Checking zone: {z.get('name')} (id: {z.get('id')})")
                 if zone_name.lower() in z.get('name', '').lower():
                     zone_id = z.get('id')
+                    logger.info(f"Matched zone {zone_name} to ID: {zone_id}")
                     break
         
         if not zone_id:
-            return f"I couldn't find the '{zone_name}' zone in the Soundtrack system for {venue_display_name}. The zone might be named differently in the system."
+            # Log available zones for debugging
+            zone_names = [z.get('name', 'unknown') for z in soundtrack_api.find_venue_zones(venue_display_name)]
+            logger.warning(f"Could not find zone '{zone_name}' for {venue_display_name}. Available: {zone_names}")
+            return f"I couldn't find the '{zone_name}' zone in the Soundtrack system for {venue_display_name}. The zone might be named differently in the system. Please try the exact zone name as it appears in your Soundtrack dashboard."
         
+        logger.info(f"Getting status for zone_id: {zone_id}")
         status = soundtrack_api.get_zone_status(zone_id)
-        if status:
-            playing = status.get('playing', False)
-            volume = status.get('volume', 'unknown')
+        logger.info(f"Zone status response: {status}")
+        
+        if status and 'error' not in status:
+            # Check if we have real data or just basic info
+            playing = status.get('playing')
+            volume = status.get('volume')
             current_track = status.get('current_track')
-            playlist = status.get('current_playlist', 'unknown')
+            playlist = status.get('current_playlist')
+            device_online = status.get('device_online')
+            
+            # Don't make up status if we don't have it
+            if playing is None:
+                # We don't have playing status from API
+                if device_online is False:
+                    return f"The {zone_name} zone at {venue_display_name} appears to be offline."
+                else:
+                    return f"I can see the {zone_name} zone at {venue_display_name} in the system, but I cannot determine what's currently playing. You may need to check the Soundtrack dashboard directly."
             
             # Build natural response about what's playing
             if current_track:
@@ -475,23 +496,31 @@ Important: "Edge", "Drift Bar", "Horizon", "Shore" are zone names, not venue nam
                 artist = current_track.get('artist', 'Unknown artist')
                 if playing:
                     response = f"At {zone_name} in {venue_display_name}, \"{track_name}\" by {artist} is currently playing"
-                    if playlist != 'unknown':
+                    if playlist:
                         response += f" from the {playlist} playlist"
-                    response += f". Volume is set to {volume}/16."
+                    if volume is not None:
+                        response += f". Volume is set to {volume}/16."
+                    else:
+                        response += "."
                 else:
                     response = f"Music is currently paused at {zone_name} in {venue_display_name}."
             else:
                 if playing:
                     response = f"Music is playing at {zone_name} in {venue_display_name}"
-                    if playlist != 'unknown':
+                    if playlist:
                         response += f" from the {playlist} playlist"
-                    response += f". Volume is set to {volume}/16."
+                    if volume is not None:
+                        response += f". Volume is set to {volume}/16."
+                    else:
+                        response += "."
                 else:
                     response = f"Music is currently paused at {zone_name} in {venue_display_name}."
             
             return response
         else:
-            return f"Unable to retrieve status for {zone_name}. The zone may be offline or experiencing issues."
+            error = status.get('error', 'Unknown error') if status else 'No response'
+            logger.error(f"Failed to get zone status: {error}")
+            return f"I found the {zone_name} zone at {venue_display_name} but couldn't retrieve its current status. The zone might be offline or there may be a connection issue."
     
     def _handle_troubleshooting(self, analysis: Dict, user_phone: str) -> str:
         """Handle troubleshooting with quick fix attempts"""
