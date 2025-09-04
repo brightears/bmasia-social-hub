@@ -453,9 +453,9 @@ Important: "Edge", "Drift Bar", "Horizon", "Shore" are zone names, not venue nam
         zone_id = self._find_zone_id(venue_display_name, zone_name)
         if not zone_id:
             # Try to find zone in Soundtrack system
-            all_zones = soundtrack_api.get_all_zones()
-            for z in all_zones:
-                if zone_name.lower() in z.get('name', '').lower() and venue_display_name.lower() in z.get('name', '').lower():
+            venue_zones = soundtrack_api.find_venue_zones(venue_display_name)
+            for z in venue_zones:
+                if zone_name.lower() in z.get('name', '').lower():
                     zone_id = z.get('id')
                     break
         
