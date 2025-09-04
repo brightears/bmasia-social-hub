@@ -84,9 +84,15 @@ class GoogleSheetsClient:
                 logger.warning('No data found in master sheet')
                 return []
             
+            # Log what we got from the sheet
+            logger.info(f"Sheet has {len(values)} rows total")
+            
             # Headers are now in row 1 (index 0)
             header_row_idx = 0
             headers = values[0] if values else []
+            
+            # Log the headers we found
+            logger.info(f"Headers found: {headers}")
             
             # Verify we have the expected headers
             expected_headers = ['Business Type', 'Property Name', 'Name of Zones/Venues']
@@ -117,8 +123,10 @@ class GoogleSheetsClient:
                 # Only add if it has meaningful data (must have property name)
                 if venue.get('property_name'):
                     venues.append(venue)
+                else:
+                    logger.debug(f"Skipping row without property_name: {venue}")
             
-            logger.info(f"Loaded {len(venues)} venues from Google Sheets")
+            logger.info(f"Loaded {len(venues)} venues from Google Sheets (processed {len(values)-1} data rows)")
             return venues
             
         except HttpError as error:
