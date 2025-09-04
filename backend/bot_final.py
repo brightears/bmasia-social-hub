@@ -205,7 +205,7 @@ Important: "Edge", "Drift Bar", "Horizon", "Shore" are zone names, not venue nam
         
         # Check platform
         if venue.get('music_platform') != 'Soundtrack Your Brand':
-            return f"Volume control for {venue['name']} requires manual adjustment as it uses {venue.get('music_platform', 'a non-API platform')}."
+            return f"Volume control for {venue.get('property_name', venue_name)} requires manual adjustment as it uses {venue.get('music_platform', 'a non-API platform')}."
         
         # Find the zone
         if zone_name == 'unknown':
@@ -216,9 +216,9 @@ Important: "Edge", "Drift Bar", "Horizon", "Shore" are zone names, not venue nam
                 return f"Which zone needs volume adjustment? Available zones: {', '.join(zones)}"
         
         # Find zone ID in SYB
-        zone_id = self._find_zone_id(venue['name'], zone_name)
+        zone_id = self._find_zone_id(venue.get('property_name', venue_name), zone_name)
         if not zone_id:
-            return f"I couldn't find zone '{zone_name}' in the Soundtrack system for {venue['name']}."
+            return f"I couldn't find zone '{zone_name}' in the Soundtrack system for {venue.get('property_name', venue_name)}."
         
         # ALWAYS attempt control first (app-level, not device-dependent)
         target_volume = self._determine_volume_level(analysis.get('details', ''))
@@ -227,7 +227,7 @@ Important: "Edge", "Drift Bar", "Horizon", "Shore" are zone names, not venue nam
         try:
             result = soundtrack_api.set_volume(zone_id, target_volume)
             if result:
-                return f"✅ Volume adjusted to level {target_volume}/16 for {zone_name} at {venue['name']}."
+                return f"✅ Volume adjusted to level {target_volume}/16 for {zone_name} at {venue.get('property_name', venue_name)}."
             else:
                 # Control failed - check why
                 capabilities = soundtrack_api.get_zone_capabilities(zone_id)
@@ -255,10 +255,10 @@ Important: "Edge", "Drift Bar", "Horizon", "Shore" are zone names, not venue nam
             return f"I couldn't find {venue_name} in our system. Could you provide the full venue name?"
         
         if venue.get('music_platform') != 'Soundtrack Your Brand':
-            return f"Playback control for {venue['name']} requires manual adjustment as it uses {venue.get('music_platform', 'a non-API platform')}."
+            return f"Playback control for {venue.get('property_name', venue_name)} requires manual adjustment as it uses {venue.get('music_platform', 'a non-API platform')}."
         
         # Find zone ID
-        zone_id = self._find_zone_id(venue['name'], zone_name)
+        zone_id = self._find_zone_id(venue.get('property_name', venue_name), zone_name)
         if not zone_id:
             return f"I couldn't find zone '{zone_name}' in the Soundtrack system."
         
@@ -272,7 +272,7 @@ Important: "Edge", "Drift Bar", "Horizon", "Shore" are zone names, not venue nam
                 result = False
             
             if result:
-                return f"✅ Music {action} command sent to {zone_name} at {venue['name']}."
+                return f"✅ Music {action} command sent to {zone_name} at {venue.get('property_name', venue_name)}."
             else:
                 capabilities = soundtrack_api.get_zone_capabilities(zone_id)
                 if 'trial' in capabilities.get('control_failure_reason', ''):
@@ -298,14 +298,14 @@ Important: "Edge", "Drift Bar", "Horizon", "Shore" are zone names, not venue nam
             return f"I couldn't find {venue_name} in our system. Could you provide the full venue name?"
         
         if venue.get('music_platform') != 'Soundtrack Your Brand':
-            return f"Playlist control for {venue['name']} requires manual adjustment as it uses {venue.get('music_platform', 'a non-API platform')}."
+            return f"Playlist control for {venue.get('property_name', venue_name)} requires manual adjustment as it uses {venue.get('music_platform', 'a non-API platform')}."
         
         # Find zone ID
-        zone_id = self._find_zone_id(venue['name'], zone_name)
+        zone_id = self._find_zone_id(venue.get('property_name', venue_name), zone_name)
         if not zone_id:
             zones = venue.get('zone_names', [])
             if len(zones) == 1:
-                zone_id = self._find_zone_id(venue['name'], zones[0])
+                zone_id = self._find_zone_id(venue.get('property_name', venue_name), zones[0])
                 zone_name = zones[0]
             else:
                 return f"Which zone needs a playlist change? Available zones: {', '.join(zones)}"
@@ -327,7 +327,7 @@ Important: "Edge", "Drift Bar", "Horizon", "Shore" are zone names, not venue nam
                     result = soundtrack_api.set_playlist(zone_id, best_match['id'])
                     
                     if result.get('success'):
-                        return f"✅ Changed to '{best_match['name']}' playlist in {zone_name} at {venue['name']}.\n\n{best_match.get('description', '')}"
+                        return f"✅ Changed to '{best_match['name']}' playlist in {zone_name} at {venue.get('property_name', venue_name)}.\n\n{best_match.get('description', '')}"
                     else:
                         # Check failure reason
                         if 'no_api_control' in result.get('error_type', ''):
@@ -388,7 +388,8 @@ Important: "Edge", "Drift Bar", "Horizon", "Shore" are zone names, not venue nam
         
         if not playlist_to_set:
             # Show available playlists
-            response = f"Your account playlists for {zone_name} at {venue['name']}:\n"
+            venue_display_name = venue.get('property_name', venue_name)
+            response = f"Your account playlists for {zone_name} at {venue_display_name}:\n"
             for i, playlist in enumerate(playlists[:10], 1):  # Show max 10
                 response += f"{i}. {playlist['name']}"
                 if playlist.get('description'):
@@ -408,7 +409,7 @@ Important: "Edge", "Drift Bar", "Horizon", "Shore" are zone names, not venue nam
             result = soundtrack_api.set_playlist(zone_id, playlist_to_set['id'])
             
             if result.get('success'):
-                return f"✅ Playlist changed to '{playlist_to_set['name']}' for {zone_name} at {venue['name']}."
+                return f"✅ Playlist changed to '{playlist_to_set['name']}' for {zone_name} at {venue.get('property_name', venue_name)}."
             else:
                 # Check failure reason
                 if 'no_api_control' in result.get('error_type', ''):
@@ -424,6 +425,7 @@ Important: "Edge", "Drift Bar", "Horizon", "Shore" are zone names, not venue nam
         """Check zone status and currently playing music"""
         venue_name = analysis.get('venue', 'unknown')
         zone_name = analysis.get('zone', 'unknown')
+        specific_question = analysis.get('specific_question', '').lower()
         
         if venue_name == 'unknown':
             return "Which venue would you like me to check the music status for?"
@@ -482,6 +484,13 @@ Important: "Edge", "Drift Bar", "Horizon", "Shore" are zone names, not venue nam
             playlist = status.get('current_playlist')
             device_online = status.get('device_online')
             
+            # Check if user is asking about volume specifically
+            if 'volume' in specific_question:
+                if volume is not None:
+                    return f"The volume at {zone_name} is currently set to {volume} out of 16."
+                else:
+                    return f"I couldn't retrieve the volume level for {zone_name}. You can check it in your Soundtrack app."
+            
             # Don't make up status if we don't have it
             if playing is None:
                 # We don't have playing status from API
@@ -538,12 +547,12 @@ Important: "Edge", "Drift Bar", "Horizon", "Shore" are zone names, not venue nam
             return self._provide_manual_troubleshooting(venue)
         
         # Try quick fix
-        zone_id = self._find_zone_id(venue['name'], zone_name)
+        zone_id = self._find_zone_id(venue.get('property_name', venue_name), zone_name)
         if zone_id:
             fix_result = soundtrack_api.quick_fix_zone(zone_id)
             if fix_result.get('success'):
                 fixes = fix_result.get('fixes_attempted', [])
-                response = f"✅ I've attempted to fix {zone_name} at {venue['name']}:\n"
+                response = f"✅ I've attempted to fix {zone_name} at {venue.get('property_name', venue_name)}:\n"
                 for fix in fixes:
                     response += f"• {fix}\n"
                 response += "\nPlease check if the issue is resolved."
@@ -743,14 +752,14 @@ Important: "Edge", "Drift Bar", "Horizon", "Shore" are zone names, not venue nam
     
     def _escalate_api_failure(self, venue: Dict, zone_name: str, action: str, user_phone: str) -> str:
         """Escalate for API failures"""
-        response = f"⚠️ Unable to complete {action} for {zone_name} at {venue['name']}.\n\n"
+        response = f"⚠️ Unable to complete {action} for {zone_name} at {venue.get('property_name', venue_name)}.\n\n"
         response += "I'm escalating this to our technical team who will:\n"
         response += "1. Check the zone connectivity\n"
         response += "2. Verify API permissions\n"
         response += "3. Contact you with a solution\n\n"
         
         # Get venue contacts
-        contacts = self.venue_reader.get_venue_contacts(venue['name'])
+        contacts = self.venue_reader.get_venue_contacts(venue.get('property_name', venue_name))
         if contacts:
             response += "We'll reach out to your registered contacts shortly."
         
@@ -777,7 +786,7 @@ Important: "Edge", "Drift Bar", "Horizon", "Shore" are zone names, not venue nam
         """Log escalation and send to Google Chat"""
         escalation = {
             'timestamp': datetime.now().isoformat(),
-            'venue': venue['name'],
+            'venue': venue.get('property_name', venue_name),
             'zone': zone_name,
             'action': action,
             'reason': reason,
@@ -801,7 +810,7 @@ Important: "Edge", "Drift Bar", "Horizon", "Shore" are zone names, not venue nam
             
             # Build escalation message
             message = f"**{title}**\n\n"
-            message += f"**Venue:** {venue['name']}\n"
+            message += f"**Venue:** {venue.get('property_name', venue_name)}\n"
             message += f"**Zone:** {zone_name}\n"
             message += f"**Requested Action:** {action}\n"
             message += f"**Issue:** "
@@ -819,7 +828,7 @@ Important: "Edge", "Drift Bar", "Horizon", "Shore" are zone names, not venue nam
             message += f"**Time:** {escalation['timestamp']}\n"
             
             # Add venue contact info if available
-            contacts = self.venue_reader.get_venue_contacts(venue['name'])
+            contacts = self.venue_reader.get_venue_contacts(venue.get('property_name', venue_name))
             if contacts:
                 message += "\n**Venue Contacts:**\n"
                 for contact in contacts[:2]:  # Show max 2 contacts
@@ -830,9 +839,9 @@ Important: "Edge", "Drift Bar", "Horizon", "Shore" are zone names, not venue nam
                     message=message,
                     department=department,
                     priority=priority,
-                    venue_name=venue['name']
+                    venue_name=venue.get('property_name', venue_name)
                 )
-                logger.info(f"Escalation sent to Google Chat for {venue['name']}")
+                logger.info(f"Escalation sent to Google Chat for {venue.get('property_name', venue_name)}")
             except Exception as e:
                 logger.error(f"Failed to send to Google Chat: {e}")
         else:
