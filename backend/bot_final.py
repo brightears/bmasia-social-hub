@@ -61,17 +61,38 @@ class BMASocialMusicBot:
             'not_required': 'Subscription tier does not determine control capability'
         }
         
+        # Conversation context tracking (stores recent venue context per user)
+        self.user_context = {}  # {user_phone: {'venue': 'Hilton Pattaya', 'last_update': timestamp}}
+        
         logger.info("BMA Social Music Bot initialized (Final Version)")
         logger.info(f"Control Understanding: {self.control_understanding['principle']}")
         logger.info(f"Google Chat available: {GCHAT_AVAILABLE}")
     
     def process_message(self, message: str, user_phone: str, user_name: str = None) -> str:
         """
-        Process incoming message with corrected control logic
+        Process incoming message with corrected control logic and context tracking
         """
         try:
             # Extract intent and entities
             analysis = self._analyze_message(message)
+            
+            # Check if venue is mentioned or use context
+            if analysis.get('venue') == 'unknown' and user_phone in self.user_context:
+                # Use stored context if venue not mentioned
+                context = self.user_context[user_phone]
+                import time
+                # Context expires after 10 minutes
+                if time.time() - context.get('last_update', 0) < 600:
+                    analysis['venue'] = context['venue']
+                    logger.info(f"Using context venue: {context['venue']} for user {user_phone}")
+            
+            # Update context if venue is mentioned
+            if analysis.get('venue') != 'unknown':
+                import time
+                self.user_context[user_phone] = {
+                    'venue': analysis['venue'],
+                    'last_update': time.time()
+                }
             
             # Route to appropriate handler
             if analysis['intent'] == 'volume_control':
@@ -535,9 +556,23 @@ Response format:
                 return response.strip()
             return f"I don't have contact information for {venue_display_name} in my records."
         
-        elif 'price' in specific_question or 'cost' in specific_question:
+        elif 'price' in specific_question or 'cost' in specific_question or 'pay' in specific_question:
             price = venue.get('annual_price_per_zone', 'Not specified')
             zone_count = venue.get('zone_count', 0)
+            currency = venue.get('currency', 'THB')
+            
+            # Calculate total if possible
+            if 'THB' in price and zone_count:
+                try:
+                    import re
+                    price_match = re.search(r'[\d,]+', price)
+                    if price_match:
+                        price_per_zone = int(price_match.group().replace(',', ''))
+                        total = price_per_zone * int(zone_count)
+                        return f"You're currently paying {currency} {price_per_zone:,} per zone annually. With {zone_count} zones at {venue_display_name}, that's {currency} {total:,} per year."
+                except:
+                    pass
+            
             return f"{venue_display_name} pays {price} per zone annually, with {zone_count} zones."
         
         elif 'platform' in specific_question or 'system' in specific_question:
