@@ -126,6 +126,8 @@ Rules:
 2. Only extract entities that are explicitly mentioned
 3. If venue/zone is unclear, mark as "unknown"
 4. Extract specific questions asked (e.g., "when contract expires", "how many zones", "who is the manager")
+5. Common zone names: Edge, Drift Bar, Horizon, Shore, Lobby, Restaurant, Pool - these are zones, not venues
+6. If a location name could be a zone (like Edge, Lobby, Restaurant), mark it as zone, not venue
 
 Determine the intent and extract entities:
 
@@ -141,12 +143,14 @@ Intents:
 Response format:
 {{
     "intent": "...",
-    "venue": "exact name or unknown",
-    "zone": "exact name or unknown",
+    "venue": "exact venue/hotel name or unknown (e.g., Hilton Pattaya, Marriott)",
+    "zone": "exact zone name or unknown (e.g., Edge, Drift Bar, Lobby)",
     "action": "specific action or null",
     "details": "relevant details",
-    "specific_question": "what specifically they're asking about (e.g., contract_expiry, zone_count, manager_contact, etc.)"
-}}"""
+    "specific_question": "what specifically they're asking about (e.g., contract_expiry, zone_count, manager_contact, what_song_playing, etc.)"
+}}
+
+Important: "Edge", "Drift Bar", "Horizon", "Shore" are zone names, not venue names!"""
         
         try:
             response = self.model.generate_content(prompt)
