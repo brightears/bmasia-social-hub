@@ -133,7 +133,7 @@ Intents:
 - volume_control: User wants to change volume
 - playback_control: User wants to play/pause/skip music
 - playlist_change: User wants to change playlist or mentions music genre/mood (80s, jazz, upbeat, relaxing, etc.)
-- zone_status: User asking about zone status
+- zone_status: User asking what's currently playing, zone status, current song, what music is on
 - troubleshooting: User reporting an issue
 - venue_info: User asking about venue details (contract, zones, contacts, pricing, etc.)
 - general: Other queries
@@ -417,39 +417,73 @@ Response format:
             return self._escalate_api_failure(venue, zone_name, "playlist change", user_phone)
     
     def _handle_zone_status(self, analysis: Dict) -> str:
-        """Check zone status"""
+        """Check zone status and currently playing music"""
         venue_name = analysis.get('venue', 'unknown')
         zone_name = analysis.get('zone', 'unknown')
         
         if venue_name == 'unknown':
-            return "Please provide your venue name so I can check the zone status."
+            return "Which venue would you like me to check the music status for?"
         
         venue = self.venue_reader.get_venue(venue_name)
         if not venue:
             return f"I couldn't find {venue_name} in our system."
         
+        venue_display_name = venue.get('property_name', venue_name)
+        
         if venue.get('music_platform') != 'Soundtrack Your Brand':
-            return f"Status checking for {venue['name']} is limited as it uses {venue.get('music_platform', 'a non-API platform')}."
+            return f"I can't check what's playing at {venue_display_name} as it uses {venue.get('music_platform', 'a non-API platform')}. You'll need to check the music system directly."
+        
+        # If zone not specified, check if venue has only one zone or ask
+        if zone_name == 'unknown':
+            zones = venue.get('zone_names', '')
+            if isinstance(zones, str) and zones:
+                zone_list = [z.strip() for z in zones.split(',')]
+                if len(zone_list) == 1:
+                    zone_name = zone_list[0]
+                else:
+                    return f"Which zone would you like me to check? Available zones at {venue_display_name}: {', '.join(zone_list)}"
+            else:
+                return f"I need to know which zone to check at {venue_display_name}."
         
         # Get zone status from API
-        zone_id = self._find_zone_id(venue['name'], zone_name)
+        zone_id = self._find_zone_id(venue_display_name, zone_name)
         if not zone_id:
-            return f"I couldn't find zone '{zone_name}' in the system."
+            # Try to find zone in Soundtrack system
+            all_zones = soundtrack_api.get_all_zones()
+            for z in all_zones:
+                if zone_name.lower() in z.get('name', '').lower() and venue_display_name.lower() in z.get('name', '').lower():
+                    zone_id = z.get('id')
+                    break
+        
+        if not zone_id:
+            return f"I couldn't find the '{zone_name}' zone in the Soundtrack system for {venue_display_name}. The zone might be named differently in the system."
         
         status = soundtrack_api.get_zone_status(zone_id)
         if status:
-            playing = "▶️ Playing" if status.get('playing') else "⏸️ Paused"
+            playing = status.get('playing', False)
             volume = status.get('volume', 'unknown')
+            current_track = status.get('current_track')
             playlist = status.get('current_playlist', 'unknown')
             
-            response = f"**{zone_name} at {venue['name']}:**\n"
-            response += f"• Status: {playing}\n"
-            response += f"• Volume: {volume}/16\n"
-            response += f"• Playlist: {playlist}"
-            
-            # Add device info without implying it matters for control
-            device = status.get('device_name', 'unknown')
-            response += f"\n• Output device: {device}"
+            # Build natural response about what's playing
+            if current_track:
+                track_name = current_track.get('name', 'Unknown track')
+                artist = current_track.get('artist', 'Unknown artist')
+                if playing:
+                    response = f"At {zone_name} in {venue_display_name}, \"{track_name}\" by {artist} is currently playing"
+                    if playlist != 'unknown':
+                        response += f" from the {playlist} playlist"
+                    response += f". Volume is set to {volume}/16."
+                else:
+                    response = f"Music is currently paused at {zone_name} in {venue_display_name}."
+            else:
+                if playing:
+                    response = f"Music is playing at {zone_name} in {venue_display_name}"
+                    if playlist != 'unknown':
+                        response += f" from the {playlist} playlist"
+                    response += f". Volume is set to {volume}/16."
+                else:
+                    response = f"Music is currently paused at {zone_name} in {venue_display_name}."
             
             return response
         else:
