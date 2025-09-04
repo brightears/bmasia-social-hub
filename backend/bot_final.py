@@ -104,6 +104,7 @@ Rules:
 1. NEVER make up venue names, zone names, or issues
 2. Only extract entities that are explicitly mentioned
 3. If venue/zone is unclear, mark as "unknown"
+4. Extract specific questions asked (e.g., "when contract expires", "how many zones", "who is the manager")
 
 Determine the intent and extract entities:
 
@@ -113,7 +114,7 @@ Intents:
 - playlist_change: User wants to change playlist or mentions music genre/mood (80s, jazz, upbeat, relaxing, etc.)
 - zone_status: User asking about zone status
 - troubleshooting: User reporting an issue
-- venue_info: User asking about venue details
+- venue_info: User asking about venue details (contract, zones, contacts, pricing, etc.)
 - general: Other queries
 
 Response format:
@@ -122,7 +123,8 @@ Response format:
     "venue": "exact name or unknown",
     "zone": "exact name or unknown",
     "action": "specific action or null",
-    "details": "relevant details"
+    "details": "relevant details",
+    "specific_question": "what specifically they're asking about (e.g., contract_expiry, zone_count, manager_contact, etc.)"
 }}"""
         
         try:
@@ -469,56 +471,97 @@ Response format:
         return self._provide_manual_troubleshooting(venue)
     
     def _handle_venue_info(self, analysis: Dict) -> str:
-        """Provide venue information from our data"""
+        """Provide conversational venue information based on what's asked"""
         venue_name = analysis.get('venue', 'unknown')
+        specific_question = analysis.get('specific_question', '').lower()
         
         if venue_name == 'unknown':
-            return "Which venue would you like information about?"
+            return "I'd be happy to help! Which venue are you asking about?"
         
         venue = self.venue_reader.get_venue(venue_name)
         if not venue:
-            return f"I couldn't find {venue_name} in our system."
+            return f"I couldn't find {venue_name} in our system. Could you tell me the full name of your property?"
         
-        # Get venue name from analysis or use property name
         venue_display_name = venue.get('property_name', venue_name)
-        response = f"**{venue_display_name} Information:**\n"
-        response += f"• Music Platform: {venue.get('music_platform', 'Unknown')}\n"
-        response += f"• Total Zones: {venue.get('zone_count', 'Unknown')}\n"
         
-        zones = venue.get('zone_names', '')
-        if zones:
-            # If zones is a string (from venue_data.md), split it
-            if isinstance(zones, str):
+        # Answer specific questions conversationally
+        if 'contract' in specific_question and 'expir' in specific_question:
+            contract_end = venue.get('contract_end', 'Not specified')
+            return f"Your contract at {venue_display_name} expires on {contract_end}."
+        
+        elif 'contract' in specific_question and 'start' in specific_question:
+            contract_start = venue.get('contract_start', 'Not specified')
+            return f"Your contract at {venue_display_name} started on {contract_start}."
+        
+        elif 'zone' in specific_question and ('count' in specific_question or 'many' in specific_question):
+            zone_count = venue.get('zone_count', 'Unknown')
+            zones = venue.get('zone_names', '')
+            if isinstance(zones, str) and zones:
                 zone_list = [z.strip() for z in zones.split(',')]
-            else:
-                zone_list = zones
-            response += f"• Zones: {', '.join(zone_list)}\n"
+                return f"{venue_display_name} has {zone_count} zones: {', '.join(zone_list)}."
+            return f"{venue_display_name} has {zone_count} zones."
         
-        subscription = venue.get('subscription_type')
-        if subscription:
-            response += f"• Subscription: {subscription}\n"
+        elif 'zone' in specific_question and 'name' in specific_question:
+            zones = venue.get('zone_names', '')
+            if isinstance(zones, str) and zones:
+                zone_list = [z.strip() for z in zones.split(',')]
+                return f"The zones at {venue_display_name} are: {', '.join(zone_list)}."
+            return f"I don't have the zone names for {venue_display_name} in my records."
         
-        # Add contract information
-        contract_end = venue.get('contract_end')
-        if contract_end:
-            response += f"• Contract expires: {contract_end}\n"
-        contract_start = venue.get('contract_start')
-        if contract_start:
-            response += f"• Contract started: {contract_start}\n"
+        elif 'manager' in specific_question or 'gm' in specific_question:
+            contacts = venue.get('contacts', [])
+            for contact in contacts:
+                if 'general manager' in contact.get('title', '').lower():
+                    name = contact.get('name', 'Not listed')
+                    email = contact.get('email', '')
+                    phone = contact.get('phone', '')
+                    response = f"The General Manager at {venue_display_name} is {name}."
+                    if email:
+                        response += f" You can reach them at {email}"
+                    if phone and phone != '-':
+                        response += f" or call {phone}"
+                    return response + "."
+            return f"I don't have the General Manager's contact information for {venue_display_name} in my records."
         
-        # Check API control capability
-        if venue.get('music_platform') == 'Soundtrack Your Brand':
-            # Test one zone to see if we have API control
-            first_zone = zone_list[0] if zones and zone_list else None
-            zone_id = self._find_zone_id(venue_display_name, first_zone)
-            if zone_id:
-                capabilities = soundtrack_api.get_zone_capabilities(zone_id)
-                if capabilities.get('controllable'):
-                    response += "• Remote Control: ✅ Available via API\n"
-                else:
-                    response += "• Remote Control: ⚠️ Limited (manual adjustment needed)\n"
+        elif 'contact' in specific_question or 'email' in specific_question or 'phone' in specific_question:
+            contacts = venue.get('contacts', [])
+            if contacts:
+                response = f"Here are the contacts for {venue_display_name}:\n"
+                for contact in contacts[:3]:  # Limit to top 3 contacts
+                    response += f"• {contact.get('title', 'Contact')}: {contact.get('name', 'N/A')}"
+                    if contact.get('email'):
+                        response += f" - {contact.get('email')}"
+                    response += "\n"
+                return response.strip()
+            return f"I don't have contact information for {venue_display_name} in my records."
         
-        return response
+        elif 'price' in specific_question or 'cost' in specific_question:
+            price = venue.get('annual_price_per_zone', 'Not specified')
+            zone_count = venue.get('zone_count', 0)
+            return f"{venue_display_name} pays {price} per zone annually, with {zone_count} zones."
+        
+        elif 'platform' in specific_question or 'system' in specific_question:
+            platform = venue.get('music_platform', 'Unknown')
+            return f"{venue_display_name} uses {platform} for their background music."
+        
+        # Default: provide a brief overview
+        else:
+            zones = venue.get('zone_names', '')
+            zone_count = venue.get('zone_count', 'Unknown')
+            platform = venue.get('music_platform', 'Unknown')
+            contract_end = venue.get('contract_end')
+            
+            response = f"Sure! {venue_display_name} uses {platform} across {zone_count} zones"
+            
+            if isinstance(zones, str) and zones:
+                zone_list = [z.strip() for z in zones.split(',')]
+                response += f" ({', '.join(zone_list)})"
+            
+            if contract_end:
+                response += f". Your contract runs until {contract_end}"
+            
+            response += ". What specific information would you like to know?"
+            return response
     
     def _handle_general_query(self, message: str, analysis: Dict) -> str:
         """Handle general queries"""
