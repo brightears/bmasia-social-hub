@@ -15,18 +15,24 @@ from email_verification import email_verifier
 # Set up logging first
 logger = logging.getLogger(__name__)
 
-# Import Google Sheets client
+# Import venue data reader (using local MD file instead of Google Sheets)
 try:
-    from google_sheets_client import GoogleSheetsClient
-    sheets_client = GoogleSheetsClient()
-    # Test if sheets client can actually access data
-    test_venues = sheets_client.get_all_venues()
+    from venue_data_reader import venue_reader, get_all_venues, find_venue, get_venue_pricing
+    test_venues = get_all_venues()
     if test_venues:
         SHEETS_AVAILABLE = True
-        logger.info(f"Google Sheets integration active - {len(test_venues)} venues loaded")
+        logger.info(f"Venue data loaded from MD file - {len(test_venues)} venues available")
+        # Create a wrapper object for compatibility
+        class SheetsWrapper:
+            def get_all_venues(self):
+                return get_all_venues()
+            def find_venue_by_name(self, name):
+                return find_venue(name)
+        sheets_client = SheetsWrapper()
     else:
         SHEETS_AVAILABLE = False
-        logger.warning("Google Sheets client created but no data accessible - credentials may be missing")
+        sheets_client = None
+        logger.warning("No venue data available from MD file")
 except Exception as e:
     logger.warning(f"Google Sheets not available: {e}")
     sheets_client = None

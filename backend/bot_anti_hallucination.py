@@ -26,19 +26,17 @@ class SafeBot:
         self.bot = GeminiBot()
         self.sheets_available = False
         
-        # Check if sheets are actually working
+        # Check if venue data is actually working
         try:
-            if self.bot.sheets and self.bot.sheets.service:
-                test_venues = self.bot.sheets.get_all_venues()
-                if test_venues:
-                    self.sheets_available = True
-                    logger.info(f"✅ Sheets connected with {len(test_venues)} venues")
-                else:
-                    logger.error("❌ Sheets connected but NO DATA found")
+            from venue_data_reader import get_all_venues
+            test_venues = get_all_venues()
+            if test_venues:
+                self.sheets_available = True
+                logger.info(f"✅ Venue data loaded with {len(test_venues)} venues")
             else:
-                logger.error("❌ Sheets NOT connected")
+                logger.error("❌ No venue data found")
         except Exception as e:
-            logger.error(f"❌ Sheets connection failed: {e}")
+            logger.error(f"❌ Venue data loading failed: {e}")
     
     def process_message(self, message: str, user_phone: str, user_name: str = None, platform: str = "WhatsApp") -> str:
         """Process message with anti-hallucination safeguards"""
