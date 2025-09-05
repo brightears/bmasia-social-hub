@@ -32,10 +32,23 @@ class SimpleMusicBot:
         self.venue_reader = VenueDataReader()
         
         # Initialize Gemini
-        api_key = os.environ.get('GOOGLE_AI_API_KEY', os.environ.get('GEMINI_API_KEY'))
+        api_key = os.environ.get('GEMINI_API_KEY', os.environ.get('GOOGLE_AI_API_KEY'))
         if api_key:
             genai.configure(api_key=api_key)
-            self.model = genai.GenerativeModel('gemini-1.5-flash')
+            model_name = os.environ.get('GEMINI_MODEL', 'gemini-2.5-flash')
+            
+            # Configure generation parameters from environment
+            generation_config = {
+                "temperature": float(os.environ.get('GEMINI_TEMPERATURE', '0.7')),
+                "max_output_tokens": int(os.environ.get('GEMINI_MAX_TOKENS', '8192')),
+                "top_p": 0.9,
+                "top_k": 40,
+            }
+            
+            self.model = genai.GenerativeModel(
+                model_name=model_name,
+                generation_config=generation_config
+            )
         else:
             logger.warning("No Gemini API key found - using basic intent detection")
             self.model = None

@@ -30,8 +30,23 @@ if not GEMINI_API_KEY or GEMINI_API_KEY == "YOUR_GEMINI_API_KEY_HERE":
 # Configure Gemini
 try:
     genai.configure(api_key=GEMINI_API_KEY)
-    model = genai.GenerativeModel('gemini-1.5-flash')
-    print("✅ Gemini configured successfully")
+    model_name = os.getenv('GEMINI_MODEL', 'gemini-2.5-flash')
+    
+    # Configure generation parameters from environment
+    generation_config = {
+        "temperature": float(os.getenv('GEMINI_TEMPERATURE', '0.7')),
+        "max_output_tokens": int(os.getenv('GEMINI_MAX_TOKENS', '8192')),
+        "top_p": 0.9,
+        "top_k": 40,
+    }
+    
+    model = genai.GenerativeModel(
+        model_name=model_name,
+        generation_config=generation_config
+    )
+    print(f"✅ Gemini configured successfully with model: {model_name}")
+    print(f"   Temperature: {generation_config['temperature']}")
+    print(f"   Max tokens: {generation_config['max_output_tokens']}")
 except Exception as e:
     print(f"❌ Failed to configure Gemini: {e}")
     sys.exit(1)
