@@ -99,7 +99,14 @@ class BMASocialMusicBot:
                 }
             
             # Route to appropriate handler
-            if analysis['intent'] == 'volume_control':
+            if analysis['intent'] == 'greeting':
+                # Handle greetings and venue identification
+                if analysis.get('venue') != 'unknown':
+                    venue = self.venue_reader.get_venue(analysis['venue'])
+                    if venue:
+                        return f"Hey there! Welcome from {venue['property_name']}! I can help you control music in your {venue.get('zone_count', '')} zones ({venue.get('zone_names', '')}). What would you like to do?"
+                return self._handle_general_query(message, analysis)
+            elif analysis['intent'] == 'volume_control':
                 return self._handle_volume_control(analysis, user_phone)
             elif analysis['intent'] == 'playback_control':
                 return self._handle_playback_control(analysis, user_phone)
@@ -121,33 +128,34 @@ class BMASocialMusicBot:
     def _analyze_message(self, message: str) -> Dict:
         """Analyze message using GPT-5-Mini for natural understanding"""
         
-        system_prompt = """You're a smart assistant helping venues manage their music. Understand what people are asking naturally.
+        system_prompt = """You help venues manage their music systems. Extract information from messages.
 
-Common zones in venues: Edge, Drift Bar, Horizon, Shore, Lobby, Restaurant, Pool, Spa, Gym
-Common venues: Hilton Pattaya, Marriott, Sheraton, Hyatt, etc.
+IMPORTANT VENUE NAMES (spell exactly like this):
+- Hilton Pattaya (NOT Hilton Pattay)
+- Mana Beach Club
 
-Understand these intents naturally:
-- volume_control: wants to adjust sound levels ("turn it up", "too loud", "make it quieter")
-- playback_control: play, pause, stop, skip music
-- playlist_change: change mood/genre ("play something upbeat", "80s music", "jazz", "chill vibes")
-- zone_status: checking what's playing ("what song is this", "what's on in the lobby")
-- troubleshooting: reporting problems ("music stopped", "no sound", "it's broken")
-- venue_info: questions about their setup (contracts, zones, pricing, contacts)
-- general: anything else
+Common zones: Edge, Drift Bar, Horizon, Shore, Lobby, Restaurant, Pool
 
-Be smart:
-- "Edge" is probably a zone, not a venue
-- "Hilton" is probably a venue
-- Understand natural language ("crank it up" = volume up, "what's that song" = zone_status)
+Intents:
+- venue_info: asking about contracts, pricing, contacts, zones ("when does our contract expire", "how much are we paying")
+- volume_control: adjusting sound ("turn it up", "too loud")
+- playlist_change: changing music ("play jazz", "something upbeat")
+- zone_status: what's playing ("what song is this")
+- playback_control: play, pause, stop
+- troubleshooting: problems ("music stopped")
+- greeting: just saying hi or introducing themselves ("Hi, I'm from Hilton Pattaya")
+- general: other
+
+When someone says "I'm from [venue]" or "Hi from [venue]", extract the venue name and mark intent as 'greeting'.
 
 Return JSON:
 {
-    "intent": "the main intent",
-    "venue": "venue name or unknown",
+    "intent": "intent from list above",
+    "venue": "exact venue name or unknown",
     "zone": "zone name or unknown",
-    "action": "what they want to do",
-    "details": "any extra context",
-    "specific_question": "what they're specifically asking"
+    "action": "what they want",
+    "details": "extra context",
+    "specific_question": "what they're asking (e.g., contract_expiry, zone_count, pricing)"
 }"""
 
         user_prompt = f'Analyze this message: "{message}"'
@@ -627,7 +635,12 @@ Return JSON:
         
         venue = self.venue_reader.get_venue(venue_name)
         if not venue:
-            return f"I couldn't find {venue_name} in our system. Could you tell me the full name of your property?"
+            # Try to fix common misspellings
+            if 'pattay' in venue_name.lower():
+                venue = self.venue_reader.get_venue('Hilton Pattaya')
+            
+            if not venue:
+                return f"I couldn't find {venue_name} in our system. Could you tell me the full name of your property?"
         
         venue_display_name = venue.get('property_name', venue_name)
         
