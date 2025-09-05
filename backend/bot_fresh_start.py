@@ -197,7 +197,7 @@ class ConversationBot:
             response = self.openai.chat.completions.create(
                 model=self.model,
                 messages=messages,
-                temperature=0.7,
+                # GPT-5-Mini only supports default temperature of 1
                 max_completion_tokens=300  # Correct parameter name
             )
             
