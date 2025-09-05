@@ -223,16 +223,18 @@ Important: "Edge", "Drift Bar", "Horizon", "Shore" are zone names, not venue nam
         # ALWAYS attempt control first (app-level, not device-dependent)
         target_volume = self._determine_volume_level(analysis.get('details', ''))
         
-        # Try to control via API
+        # CORRECTED: Try to control via API - volume control confirmed working
         try:
             result = soundtrack_api.set_volume(zone_id, target_volume)
-            if result:
+            if result.get('success'):
                 return f"✅ Volume adjusted to level {target_volume}/16 for {zone_name} at {venue.get('property_name', venue_name)}."
             else:
-                # Control failed - check why
-                capabilities = soundtrack_api.get_zone_capabilities(zone_id)
-                if 'trial' in capabilities.get('control_failure_reason', ''):
+                # Control failed - analyze the specific error
+                error_type = result.get('error_type')
+                if error_type == 'no_api_control':
                     return self._escalate_trial_zone(venue, zone_name, f"volume adjustment to {target_volume}/16", user_phone)
+                elif error_type == 'auth_error':
+                    return self._escalate_api_failure(venue, zone_name, f"volume adjustment - authentication issue", user_phone)
                 else:
                     return self._escalate_api_failure(venue, zone_name, f"volume adjustment to {target_volume}/16", user_phone)
                     
@@ -262,21 +264,26 @@ Important: "Edge", "Drift Bar", "Horizon", "Shore" are zone names, not venue nam
         if not zone_id:
             return f"I couldn't find zone '{zone_name}' in the Soundtrack system."
         
-        # ALWAYS attempt control first
+        # CORRECTED: Always attempt control first - using proper result structure
         try:
             if action == 'play':
-                result = soundtrack_api.play_zone(zone_id)
+                result = soundtrack_api.control_playback(zone_id, 'play')
             elif action == 'pause':
-                result = soundtrack_api.pause_zone(zone_id)
+                result = soundtrack_api.control_playback(zone_id, 'pause')
+            elif action == 'skip':
+                result = soundtrack_api.control_playback(zone_id, 'skip')
             else:
-                result = False
+                return f"❌ Unknown action: {action}"
             
-            if result:
+            if result.get('success'):
                 return f"✅ Music {action} command sent to {zone_name} at {venue.get('property_name', venue_name)}."
             else:
-                capabilities = soundtrack_api.get_zone_capabilities(zone_id)
-                if 'trial' in capabilities.get('control_failure_reason', ''):
+                # Analyze specific error type
+                error_type = result.get('error_type')
+                if error_type == 'no_api_control':
                     return self._escalate_trial_zone(venue, zone_name, f"{action} command", user_phone)
+                elif error_type == 'auth_error':
+                    return self._escalate_api_failure(venue, zone_name, f"{action} command - authentication issue", user_phone)
                 else:
                     return self._escalate_api_failure(venue, zone_name, f"{action} command", user_phone)
                     
@@ -498,10 +505,8 @@ Important: "Edge", "Drift Bar", "Horizon", "Shore" are zone names, not venue nam
             
             # Check if user is asking about specific information
             if 'volume' in specific_question:
-                if volume is not None:
-                    return f"The volume at {zone_name} is currently set to {volume} out of 16."
-                else:
-                    return f"I'm unable to retrieve the volume level for {zone_name} through the API. You can check it in your Soundtrack app."
+                # CORRECTED: Volume field confirmed to NOT exist in API
+                return f"I couldn't retrieve the volume level for {zone_name} through the API. The volume field is not available in the current API version. You can check and adjust volume in your Soundtrack Your Brand app."
             
             if 'playlist' in specific_question:
                 if playlist:
@@ -509,13 +514,12 @@ Important: "Edge", "Drift Bar", "Horizon", "Shore" are zone names, not venue nam
                 else:
                     return f"I couldn't determine which playlist is playing at {zone_name}."
             
-            # Don't make up status if we don't have it
-            if playing is None:
-                # We don't have playing status from API
-                if device_online is False:
-                    return f"The {zone_name} zone at {venue_display_name} appears to be offline."
-                else:
-                    return f"I can see the {zone_name} zone at {venue_display_name} in the system, but I cannot determine what's currently playing. You may need to check the Soundtrack dashboard directly."
+            # CORRECTED: We now have reliable playback state from API testing
+            playback_state = status.get('playback_state', 'unknown')
+            if playback_state == 'offline' or device_online is False:
+                return f"The {zone_name} zone at {venue_display_name} appears to be offline."
+            elif playback_state == 'unknown':
+                return f"I can see the {zone_name} zone at {venue_display_name} in the system, but I cannot determine what's currently playing. You may need to check the Soundtrack dashboard directly."
             
             # Build natural response about what's playing
             if current_track:
@@ -525,10 +529,8 @@ Important: "Edge", "Drift Bar", "Horizon", "Shore" are zone names, not venue nam
                     response = f"At {zone_name} in {venue_display_name}, \"{track_name}\" by {artist} is currently playing"
                     if playlist:
                         response += f" from the {playlist} playlist"
-                    if volume is not None:
-                        response += f". Volume is set to {volume}/16."
-                    else:
-                        response += "."
+                    # CORRECTED: Don't mention volume since it's not available in API
+                    response += "."
                 else:
                     response = f"Music is currently paused at {zone_name} in {venue_display_name}."
             else:
@@ -536,10 +538,8 @@ Important: "Edge", "Drift Bar", "Horizon", "Shore" are zone names, not venue nam
                     response = f"Music is playing at {zone_name} in {venue_display_name}"
                     if playlist:
                         response += f" from the {playlist} playlist"
-                    if volume is not None:
-                        response += f". Volume is set to {volume}/16."
-                    else:
-                        response += "."
+                    # CORRECTED: Don't mention volume since it's not available in API
+                    response += "."
                 else:
                     response = f"Music is currently paused at {zone_name} in {venue_display_name}."
             
@@ -693,17 +693,18 @@ Important: "Edge", "Drift Bar", "Horizon", "Shore" are zone names, not venue nam
             return response
     
     def _handle_general_query(self, message: str, analysis: Dict) -> str:
-        """Handle general queries"""
-        # Use venue data to provide accurate responses
-        response = "I can help you with:\n"
-        response += "• Volume control (0-16 levels)\n"
-        response += "• Playback control (play/pause)\n"
-        response += "• **Smart playlist selection** - Just tell me the mood or genre!\n"
-        response += "  Examples: '80s hits', 'relaxing jazz', 'upbeat pop'\n"
-        response += "• Zone status checks\n"
-        response += "• Music troubleshooting\n"
-        response += "• Venue information\n\n"
-        response += "Please let me know your venue name and what you need help with."
+        """Handle general queries with a more conversational tone"""
+        
+        # Make the bot more friendly and conversational
+        response = "Hi! I'm your music system assistant. I can help you with:\n\n"
+        response += "🔊 **Volume control** - 'Turn up the music in Edge' or 'Set volume to 10'"
+        response += "\n🎵 **What's playing** - 'What song is playing in the lobby?'"
+        response += "\n▶️ **Playback control** - 'Play music' or 'Pause the music'"
+        response += "\n🎶 **Smart playlists** - Just tell me the mood or genre!"
+        response += "\n   Examples: '80s hits', 'relaxing jazz', 'upbeat pop', 'party music'"
+        response += "\n🏨 **Venue info** - Ask about zones, contracts, or contacts"
+        response += "\n🔧 **Troubleshooting** - 'Music stopped working in Edge'"
+        response += "\n\nJust tell me your venue name and what you need! I understand natural language, so feel free to ask in your own words."
         
         return response
     
