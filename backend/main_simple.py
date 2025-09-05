@@ -65,18 +65,13 @@ redis_client = None
 # Initialize the music bot
 music_bot = None
 try:
-    from bot_simple import SimpleMusicBot
-    music_bot = SimpleMusicBot()
-    logger.info("✅ Simple Music Bot initialized successfully")
+    # Use bot_final which actually reads venue_data.md properly
+    from bot_final import music_bot as bot_instance
+    music_bot = bot_instance
+    logger.info("✅ Music bot (final) initialized successfully")
 except Exception as e:
-    logger.warning(f"Could not import SimpleMusicBot: {e}, trying bot_final")
-    try:
-        from bot_final import music_bot as bot_instance
-        music_bot = bot_instance
-        logger.info("✅ Music bot (final) initialized as fallback")
-    except Exception as e2:
-        logger.error(f"❌ Failed to initialize any music bot: {e2}")
-        music_bot = None
+    logger.error(f"❌ Failed to initialize music bot: {e}")
+    music_bot = None
 
 def get_db_connection():
     """Get database connection"""
