@@ -128,35 +128,27 @@ class BMASocialMusicBot:
     def _analyze_message(self, message: str) -> Dict:
         """Analyze message using GPT-5-Mini for natural understanding"""
         
-        system_prompt = """You help venues manage their music systems. Extract information from messages.
+        # Import the enhanced prompt
+        from improved_bot_prompt import ENHANCED_SYSTEM_PROMPT
+        
+        system_prompt = ENHANCED_SYSTEM_PROMPT + """
 
-IMPORTANT VENUE NAMES (spell exactly like this):
-- Hilton Pattaya (NOT Hilton Pattay)
-- Mana Beach Club
-
-Common zones: Edge, Drift Bar, Horizon, Shore, Lobby, Restaurant, Pool
-
-Intents:
-- venue_info: asking about contracts, pricing, contacts, zones ("when does our contract expire", "how much are we paying")
-- volume_control: adjusting sound ("turn it up", "too loud")
-- playlist_change: changing music ("play jazz", "something upbeat")
-- zone_status: what's playing ("what song is this")
-- playback_control: play, pause, stop
-- troubleshooting: problems ("music stopped")
-- greeting: just saying hi or introducing themselves ("Hi, I'm from Hilton Pattaya")
-- general: other
-
-When someone says "I'm from [venue]" or "Hi from [venue]", extract the venue name and mark intent as 'greeting'.
-
-Return JSON:
+# OUTPUT FORMAT
+You must analyze the message and return ONLY a JSON object with:
 {
-    "intent": "intent from list above",
-    "venue": "exact venue name or unknown",
-    "zone": "zone name or unknown",
-    "action": "what they want",
-    "details": "extra context",
-    "specific_question": "what they're asking (e.g., contract_expiry, zone_count, pricing)"
-}"""
+    "intent": "venue_info|volume_control|playlist_change|zone_status|playback_control|troubleshooting|greeting|general",
+    "venue": "Hilton Pattaya or Mana Beach Club or unknown",
+    "zone": "specific zone name or unknown",
+    "action": "what they want to do",
+    "details": "additional context",
+    "specific_question": "what they're asking",
+    "suggested_response": "a natural, helpful response to give them"
+}
+
+Remember the venue data:
+- Hilton Pattaya: 4 zones (Drift Bar, Edge, Horizon, Shore), contract ends 2025-10-31, THB 12,000/zone/year
+- Mana Beach Club: 3 zones (Beach Bar, Restaurant, Pool Area), uses Beat Breeze (no API control)
+"""
 
         user_prompt = f'Analyze this message: "{message}"'
         
