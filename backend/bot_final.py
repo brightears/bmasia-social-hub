@@ -10,7 +10,7 @@ import logging
 import re
 from typing import Dict, List, Tuple, Optional
 from datetime import datetime
-import google.generativeai as genai
+from openai import OpenAI
 from venue_data_reader import VenueDataReader
 from soundtrack_api import soundtrack_api
 
@@ -42,26 +42,16 @@ class BMASocialMusicBot:
         # Initialize venue data reader
         self.venue_reader = VenueDataReader()
         
-        # Initialize Gemini
-        api_key = os.environ.get('GEMINI_API_KEY', os.environ.get('GOOGLE_AI_API_KEY'))
+        # Initialize OpenAI
+        api_key = os.environ.get('OPENAI_API_KEY')
         if not api_key:
-            raise ValueError("GEMINI_API_KEY must be set")
+            raise ValueError("OPENAI_API_KEY must be set")
         
-        genai.configure(api_key=api_key)
-        model_name = os.environ.get('GEMINI_MODEL', 'gemini-2.5-flash')
-        
-        # Configure generation parameters from environment
-        generation_config = {
-            "temperature": float(os.environ.get('GEMINI_TEMPERATURE', '0.7')),
-            "max_output_tokens": int(os.environ.get('GEMINI_MAX_TOKENS', '8192')),
-            "top_p": 0.9,
-            "top_k": 40,
-        }
-        
-        self.model = genai.GenerativeModel(
-            model_name=model_name,
-            generation_config=generation_config
-        )
+        self.client = OpenAI(api_key=api_key)
+        # Using GPT-5-Mini as specified by the user  
+        self.model_name = 'gpt-5-mini'  # User insists this is GPT-5-Mini, not GPT-4o-mini
+        self.max_tokens = int(os.environ.get('OPENAI_MAX_TOKENS', '4096'))
+        self.temperature = float(os.environ.get('OPENAI_TEMPERATURE', '0.9'))  # Higher for more natural conversations
         
         # Initialize Google Chat for escalations
         self.gchat = GoogleChatClient() if GCHAT_AVAILABLE else None
@@ -77,7 +67,8 @@ class BMASocialMusicBot:
         # Conversation context tracking (stores recent venue context per user)
         self.user_context = {}  # {user_phone: {'venue': 'Hilton Pattaya', 'last_update': timestamp}}
         
-        logger.info("BMA Social Music Bot initialized (Final Version)")
+        logger.info("BMA Social Music Bot initialized with conversational GPT-5-Mini")
+        logger.info(f"Using OpenAI GPT-5-Mini for natural, friendly conversations")
         logger.info(f"Control Understanding: {self.control_understanding['principle']}")
         logger.info(f"Google Chat available: {GCHAT_AVAILABLE}")
     
@@ -125,54 +116,59 @@ class BMASocialMusicBot:
                 
         except Exception as e:
             logger.error(f"Error processing message: {e}")
-            return "I apologize, but I encountered an error. Please try rephrasing your request or contact support."
+            return "Oops, something went wrong on my end. Mind trying that again? Or I can get someone from our team to help!"
     
     def _analyze_message(self, message: str) -> Dict:
-        """Analyze message using Gemini with anti-hallucination guidelines"""
+        """Analyze message using GPT-5-Mini for natural understanding"""
         
-        prompt = f"""Analyze this music venue support message. Extract ONLY what is explicitly stated.
+        system_prompt = """You're a smart assistant helping venues manage their music. Understand what people are asking naturally.
 
-Message: "{message}"
+Common zones in venues: Edge, Drift Bar, Horizon, Shore, Lobby, Restaurant, Pool, Spa, Gym
+Common venues: Hilton Pattaya, Marriott, Sheraton, Hyatt, etc.
 
-Rules:
-1. NEVER make up venue names, zone names, or issues
-2. Only extract entities that are explicitly mentioned
-3. If venue/zone is unclear, mark as "unknown"
-4. Extract specific questions asked (e.g., "when contract expires", "how many zones", "who is the manager")
-5. Common zone names: Edge, Drift Bar, Horizon, Shore, Lobby, Restaurant, Pool - these are zones, not venues
-6. If a location name could be a zone (like Edge, Lobby, Restaurant), mark it as zone, not venue
+Understand these intents naturally:
+- volume_control: wants to adjust sound levels ("turn it up", "too loud", "make it quieter")
+- playback_control: play, pause, stop, skip music
+- playlist_change: change mood/genre ("play something upbeat", "80s music", "jazz", "chill vibes")
+- zone_status: checking what's playing ("what song is this", "what's on in the lobby")
+- troubleshooting: reporting problems ("music stopped", "no sound", "it's broken")
+- venue_info: questions about their setup (contracts, zones, pricing, contacts)
+- general: anything else
 
-Determine the intent and extract entities:
+Be smart:
+- "Edge" is probably a zone, not a venue
+- "Hilton" is probably a venue
+- Understand natural language ("crank it up" = volume up, "what's that song" = zone_status)
 
-Intents:
-- volume_control: User wants to change volume
-- playback_control: User wants to play/pause/skip music
-- playlist_change: User wants to change playlist or mentions music genre/mood (80s, jazz, upbeat, relaxing, etc.)
-- zone_status: User asking what's currently playing, zone status, current song, what music is on
-- troubleshooting: User reporting an issue
-- venue_info: User asking about venue details (contract, zones, contacts, pricing, etc.)
-- general: Other queries
+Return JSON:
+{
+    "intent": "the main intent",
+    "venue": "venue name or unknown",
+    "zone": "zone name or unknown",
+    "action": "what they want to do",
+    "details": "any extra context",
+    "specific_question": "what they're specifically asking"
+}"""
 
-Response format:
-{{
-    "intent": "...",
-    "venue": "exact venue/hotel name or unknown (e.g., Hilton Pattaya, Marriott)",
-    "zone": "exact zone name or unknown (e.g., Edge, Drift Bar, Lobby)",
-    "action": "specific action or null",
-    "details": "relevant details",
-    "specific_question": "what specifically they're asking about (e.g., contract_expiry, zone_count, manager_contact, what_song_playing, etc.)"
-}}
-
-Important: "Edge", "Drift Bar", "Horizon", "Shore" are zone names, not venue names!"""
+        user_prompt = f'Analyze this message: "{message}"'
         
         try:
-            response = self.model.generate_content(prompt)
-            response_text = response.text.strip()
+            response = self.client.chat.completions.create(
+                model=self.model_name,
+                messages=[
+                    {"role": "system", "content": system_prompt},
+                    {"role": "user", "content": user_prompt}
+                ],
+                temperature=0.4,  # Balanced for understanding while being natural
+                max_tokens=300
+            )
+            
+            response_text = response.choices[0].message.content.strip()
             
             # Try to extract JSON from the response
             import json
             
-            # Sometimes Gemini adds markdown formatting
+            # Sometimes OpenAI adds markdown formatting
             if '```json' in response_text:
                 response_text = response_text.split('```json')[1].split('```')[0].strip()
             elif '```' in response_text:
@@ -201,7 +197,7 @@ Important: "Edge", "Drift Bar", "Horizon", "Shore" are zone names, not venue nam
         
         # Need to identify the venue and zone
         if venue_name == 'unknown':
-            return "Hi! I can help with volume control. What's the name of your venue or hotel?"
+            return "Hey! I'd love to help with the volume. Which property are you at?"
         
         # Find venue in our data
         venue = self.venue_reader.get_venue(venue_name)
@@ -214,7 +210,7 @@ Important: "Edge", "Drift Bar", "Horizon", "Shore" are zone names, not venue nam
                     break
         
         if not venue:
-            return f"I couldn't find {venue_name} in our system. Could you provide the full venue name?"
+            return f"Hmm, I'm not seeing {venue_name} in my system. What's the full name of your property? I'll get that sorted!"
         
         # Check platform
         if venue.get('music_platform') != 'Soundtrack Your Brand':
@@ -226,12 +222,12 @@ Important: "Edge", "Drift Bar", "Horizon", "Shore" are zone names, not venue nam
             if len(zones) == 1:
                 zone_name = zones[0]
             else:
-                return f"Which zone needs volume adjustment? Available zones: {', '.join(zones)}"
+                return f"Got it! Which zone should I adjust? You have: {', '.join(zones)}"
         
         # Find zone ID in SYB
         zone_id = self._find_zone_id(venue.get('property_name', venue_name), zone_name)
         if not zone_id:
-            return f"I couldn't find zone '{zone_name}' in the Soundtrack system for {venue.get('property_name', venue_name)}."
+            return f"Hmm, '{zone_name}' isn't showing up in your Soundtrack system. It might be named differently in the app - could you check the exact name in your dashboard?"
         
         # ALWAYS attempt control first (app-level, not device-dependent)
         target_volume = self._determine_volume_level(analysis.get('details', ''))
@@ -240,7 +236,13 @@ Important: "Edge", "Drift Bar", "Horizon", "Shore" are zone names, not venue nam
         try:
             result = soundtrack_api.set_volume(zone_id, target_volume)
             if result.get('success'):
-                return f"✅ Volume adjusted to level {target_volume}/16 for {zone_name} at {venue.get('property_name', venue_name)}."
+                responses = [
+                    f"Perfect! {zone_name} is now at volume {target_volume} (out of 16). Should sound great! 🎵",
+                    f"All set! Volume in {zone_name} is now {target_volume}/16. The vibe should be just right!",
+                    f"Done! {zone_name} is vibing at level {target_volume} now. Let me know if you need any tweaks!"
+                ]
+                import random
+                return random.choice(responses)
             else:
                 # Control failed - analyze the specific error
                 error_type = result.get('error_type')
@@ -263,11 +265,11 @@ Important: "Edge", "Drift Bar", "Horizon", "Shore" are zone names, not venue nam
         
         # Similar logic to volume control - ALWAYS attempt first
         if venue_name == 'unknown':
-            return "Hi! I can help with playback control. What's the name of your venue or hotel?"
+            return "Let me help with that! Which venue's music should I control?"
         
         venue = self.venue_reader.get_venue(venue_name)
         if not venue:
-            return f"I couldn't find {venue_name} in our system. Could you provide the full venue name?"
+            return f"Hmm, I'm not seeing {venue_name} in my system. What's the full name of your property? I'll get that sorted!"
         
         if venue.get('music_platform') != 'Soundtrack Your Brand':
             return f"Playback control for {venue.get('property_name', venue_name)} requires manual adjustment as it uses {venue.get('music_platform', 'a non-API platform')}."
@@ -289,7 +291,12 @@ Important: "Edge", "Drift Bar", "Horizon", "Shore" are zone names, not venue nam
                 return f"❌ Unknown action: {action}"
             
             if result.get('success'):
-                return f"✅ Music {action} command sent to {zone_name} at {venue.get('property_name', venue_name)}."
+                action_responses = {
+                    'play': f"Music's back on in {zone_name}! Want a different playlist? Just let me know what mood you're going for! 🎶",
+                    'pause': f"Paused the tunes in {zone_name}. Just say the word when you want them back!",
+                    'skip': f"Skipped! Let's see if the next track in {zone_name} is more your vibe."
+                }
+                return action_responses.get(action, f"Done! {action.capitalize()} command sent to {zone_name}.")
             else:
                 # Analyze specific error type
                 error_type = result.get('error_type')
@@ -311,11 +318,11 @@ Important: "Edge", "Drift Bar", "Horizon", "Shore" are zone names, not venue nam
         playlist_request = analysis.get('details', '')
         
         if venue_name == 'unknown':
-            return "Hi! I can help change playlists. What's the name of your venue or hotel?"
+            return "I'd love to help you set the perfect mood! Which property should I update?"
         
         venue = self.venue_reader.get_venue(venue_name)
         if not venue:
-            return f"I couldn't find {venue_name} in our system. Could you provide the full venue name?"
+            return f"Hmm, I'm not seeing {venue_name} in my system. What's the full name of your property? I'll get that sorted!"
         
         if venue.get('music_platform') != 'Soundtrack Your Brand':
             return f"Playlist control for {venue.get('property_name', venue_name)} requires manual adjustment as it uses {venue.get('music_platform', 'a non-API platform')}."
@@ -355,7 +362,19 @@ Important: "Edge", "Drift Bar", "Horizon", "Shore" are zone names, not venue nam
                     result = soundtrack_api.set_playlist(zone_id, best_match['id'])
                     
                     if result.get('success'):
-                        return f"✅ Changed to '{best_match['name']}' playlist in {zone_name} at {venue.get('property_name', venue_name)}.\n\n{best_match.get('description', '')}"
+                        responses = [
+                            f"Excellent choice! {zone_name} is now grooving to '{best_match['name']}'. {best_match.get('description', 'This should create an amazing atmosphere!')} 🎵",
+                            f"Perfect! I've switched {zone_name} to '{best_match['name']}'. {best_match.get('description', 'The vibe is going to be incredible!')} ",
+                            f"You've got great taste! '{best_match['name']}' is now setting the mood in {zone_name}. {best_match.get('description', '')} "
+                        ]
+                        import random
+                        base_response = random.choice(responses)
+                        
+                        # Sometimes suggest custom playlists
+                        if random.random() > 0.6:
+                            base_response += "\n\nBy the way, our music design team can create custom playlists that match your brand perfectly. Want me to arrange that?"
+                        
+                        return base_response
                     else:
                         # Check failure reason
                         if 'no_api_control' in result.get('error_type', ''):
@@ -460,7 +479,7 @@ Important: "Edge", "Drift Bar", "Horizon", "Shore" are zone names, not venue nam
             specific_question = ''
         
         if venue_name == 'unknown':
-            return "Which venue would you like me to check the music status for?"
+            return "Sure thing! Which venue should I check?"
         
         venue = self.venue_reader.get_venue(venue_name)
         if not venue:
@@ -539,7 +558,7 @@ Important: "Edge", "Drift Bar", "Horizon", "Shore" are zone names, not venue nam
                 track_name = current_track.get('name', 'Unknown track')
                 artist = current_track.get('artist', 'Unknown artist')
                 if playing:
-                    response = f"At {zone_name} in {venue_display_name}, \"{track_name}\" by {artist} is currently playing"
+                    response = f"Right now in {zone_name}, you're hearing \"{track_name}\" by {artist}"
                     if playlist:
                         response += f" from the {playlist} playlist"
                     # CORRECTED: Don't mention volume since it's not available in API
@@ -568,7 +587,7 @@ Important: "Edge", "Drift Bar", "Horizon", "Shore" are zone names, not venue nam
         zone_name = analysis.get('zone', 'unknown')
         
         if venue_name == 'unknown':
-            return "I can help troubleshoot your music system. What's your venue name?"
+            return "Oh no! Let's fix that. Which property is having issues?"
         
         venue = self.venue_reader.get_venue(venue_name)
         if not venue:
@@ -583,7 +602,7 @@ Important: "Edge", "Drift Bar", "Horizon", "Shore" are zone names, not venue nam
             fix_result = soundtrack_api.quick_fix_zone(zone_id)
             if fix_result.get('success'):
                 fixes = fix_result.get('fixes_attempted', [])
-                response = f"✅ I've attempted to fix {zone_name} at {venue.get('property_name', venue_name)}:\n"
+                response = f"Alright, I've run some quick fixes on {zone_name}:\n"
                 for fix in fixes:
                     response += f"• {fix}\n"
                 response += "\nPlease check if the issue is resolved."
@@ -604,7 +623,7 @@ Important: "Edge", "Drift Bar", "Horizon", "Shore" are zone names, not venue nam
         specific_question = analysis.get('specific_question', '').lower()
         
         if venue_name == 'unknown':
-            return "I'd be happy to help! Which venue are you asking about?"
+            return "Happy to help! Which property do you want to know about?"
         
         venue = self.venue_reader.get_venue(venue_name)
         if not venue:
@@ -615,7 +634,12 @@ Important: "Edge", "Drift Bar", "Horizon", "Shore" are zone names, not venue nam
         # Answer specific questions conversationally
         if 'contract' in specific_question and 'expir' in specific_question:
             contract_end = venue.get('contract_end', 'Not specified')
-            return f"Your contract at {venue_display_name} expires on {contract_end}."
+            responses = [
+                f"Your contract at {venue_display_name} runs until {contract_end}. Want to talk about renewal options or upgrades? I can connect you with our team!",
+                f"{venue_display_name}'s contract is good through {contract_end}. If you're thinking about expanding or changing your setup, our design team would love to help!"
+            ]
+            import random
+            return random.choice(responses)
         
         elif 'contract' in specific_question and 'start' in specific_question:
             contract_start = venue.get('contract_start', 'Not specified')
@@ -706,18 +730,28 @@ Important: "Edge", "Drift Bar", "Horizon", "Shore" are zone names, not venue nam
             return response
     
     def _handle_general_query(self, message: str, analysis: Dict) -> str:
-        """Handle general queries with a more conversational tone"""
+        """Handle general queries conversationally"""
         
-        # Make the bot more friendly and conversational
-        response = "Hi! I'm your music system assistant. I can help you with:\n\n"
-        response += "🔊 **Volume control** - 'Turn up the music in Edge' or 'Set volume to 10'"
-        response += "\n🎵 **What's playing** - 'What song is playing in the lobby?'"
-        response += "\n▶️ **Playback control** - 'Play music' or 'Pause the music'"
-        response += "\n🎶 **Smart playlists** - Just tell me the mood or genre!"
-        response += "\n   Examples: '80s hits', 'relaxing jazz', 'upbeat pop', 'party music'"
-        response += "\n🏨 **Venue info** - Ask about zones, contracts, or contacts"
-        response += "\n🔧 **Troubleshooting** - 'Music stopped working in Edge'"
-        response += "\n\nJust tell me your venue name and what you need! I understand natural language, so feel free to ask in your own words."
+        greetings = [
+            "Hey there! I'm here to help make your venue sound amazing. ",
+            "Hi! Let's get your music sorted. ",
+            "Hello! Ready to create the perfect atmosphere? "
+        ]
+        
+        import random
+        response = random.choice(greetings)
+        response += "\n\nI can help you:\n"
+        response += "• Adjust volume anywhere in your venue\n"
+        response += "• Switch playlists instantly (80s, jazz, chill, party - you name it!)\n"
+        response += "• Check what's playing right now\n"
+        response += "• Fix any music issues\n"
+        response += "• Answer questions about your setup\n\n"
+        response += "Just tell me your venue and what you need - no special commands needed! "
+        
+        if random.random() > 0.7:
+            response += "\n\nP.S. If you ever want custom playlists designed specifically for your brand, our music design team would love to help create something unique for you! 🎵"
+            
+        return response
         
         return response
     
