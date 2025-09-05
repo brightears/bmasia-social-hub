@@ -38,10 +38,11 @@ class VenueDataManager:
             with open('venue_data.md', 'r') as f:
                 content = f.read()
                 
-            # Parse venues from markdown
-            venues_data = content.split('###')
+            # Parse venues from markdown - split only on venue headers (### followed by venue name)
+            import re
+            venue_sections = re.split(r'\n### (?=\w)', content)
             
-            for venue_section in venues_data[1:]:  # Skip header
+            for venue_section in venue_sections[1:]:  # Skip header
                 lines = venue_section.strip().split('\n')
                 if not lines:
                     continue
