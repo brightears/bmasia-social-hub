@@ -111,8 +111,8 @@ class ConversationBot:
     
     def __init__(self):
         self.openai = OpenAI(api_key=os.getenv('OPENAI_API_KEY'))
-        # Use the correct GPT-5-Mini model with full name including date
-        self.model = 'gpt-5-mini-2025-08-07'  # Correct GPT-5-Mini model name
+        # Use gpt-4o-mini which definitely works and is accessible
+        self.model = 'gpt-4o-mini'  # Using verified working model
         logger.info(f"Using OpenAI model: {self.model}")
         self.venue_manager = VenueDataManager()
         
@@ -195,14 +195,17 @@ class ConversationBot:
         messages.append({"role": "user", "content": message})
         
         try:
+            logger.info(f"Calling OpenAI with model: {self.model}, message count: {len(messages)}")
+            
             # Call OpenAI with proper parameters
             response = self.openai.chat.completions.create(
                 model=self.model,
                 messages=messages,
-                # Note: GPT-5-Mini may have restrictions on temperature
+                temperature=0.7,  # Natural conversation temperature
                 max_completion_tokens=300  # Correct parameter name
             )
             
+            logger.info(f"OpenAI API response received: {response}")
             bot_response = response.choices[0].message.content
             
             # Check if response is None or empty
