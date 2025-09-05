@@ -160,7 +160,7 @@ Remember the venue data:
                     {"role": "user", "content": user_prompt}
                 ],
                 temperature=0.4,  # Balanced for understanding while being natural
-                max_tokens=300
+                max_completion_tokens=300
             )
             
             response_text = response.choices[0].message.content.strip()
