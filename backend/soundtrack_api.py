@@ -361,7 +361,6 @@ class SoundtrackAPI:
                 id
                 name
                 online
-                volume
                 device {
                     id
                     name

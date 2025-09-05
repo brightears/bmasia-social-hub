@@ -433,7 +433,11 @@ Important: "Edge", "Drift Bar", "Horizon", "Shore" are zone names, not venue nam
         """Check zone status and currently playing music"""
         venue_name = analysis.get('venue', 'unknown')
         zone_name = analysis.get('zone', 'unknown')
-        specific_question = analysis.get('specific_question', '').lower()
+        specific_question = analysis.get('specific_question', '')
+        if specific_question:
+            specific_question = specific_question.lower()
+        else:
+            specific_question = ''
         
         if venue_name == 'unknown':
             return "Which venue would you like me to check the music status for?"
@@ -492,12 +496,18 @@ Important: "Edge", "Drift Bar", "Horizon", "Shore" are zone names, not venue nam
             playlist = status.get('current_playlist')
             device_online = status.get('device_online')
             
-            # Check if user is asking about volume specifically
+            # Check if user is asking about specific information
             if 'volume' in specific_question:
                 if volume is not None:
                     return f"The volume at {zone_name} is currently set to {volume} out of 16."
                 else:
-                    return f"I couldn't retrieve the volume level for {zone_name}. You can check it in your Soundtrack app."
+                    return f"I'm unable to retrieve the volume level for {zone_name} through the API. You can check it in your Soundtrack app."
+            
+            if 'playlist' in specific_question:
+                if playlist:
+                    return f"The current playlist at {zone_name} is \"{playlist}\"."
+                else:
+                    return f"I couldn't determine which playlist is playing at {zone_name}."
             
             # Don't make up status if we don't have it
             if playing is None:
