@@ -19,6 +19,14 @@ except ImportError:
     HAS_REDIS = False
     redis = None
 
+# Import Soundtrack API
+try:
+    from soundtrack_api import SoundtrackAPI
+    HAS_SOUNDTRACK = True
+except ImportError:
+    HAS_SOUNDTRACK = False
+    SoundtrackAPI = None
+
 load_dotenv()
 
 # Set up logging
@@ -116,6 +124,17 @@ class ConversationBot:
         logger.info(f"Using OpenAI model: {self.model}")
         self.venue_manager = VenueDataManager()
         
+        # Initialize Soundtrack API if available
+        self.soundtrack = None
+        if HAS_SOUNDTRACK:
+            try:
+                self.soundtrack = SoundtrackAPI()
+                logger.info("Soundtrack API initialized successfully")
+            except Exception as e:
+                logger.warning(f"Failed to initialize Soundtrack API: {e}")
+        else:
+            logger.info("Soundtrack API not available")
+        
         # Redis for conversation memory
         self.redis_enabled = False
         self.memory = {}
@@ -166,6 +185,46 @@ class ConversationBot:
         else:
             self.memory[phone] = context
     
+    def check_zone_music(self, venue_name: str, zone_name: str) -> str:
+        """Check what's playing at a specific zone"""
+        if not self.soundtrack:
+            return "I cannot access the Soundtrack API right now to check what's playing."
+        
+        try:
+            # Find zones for the venue
+            zones = self.soundtrack.find_venue_zones(venue_name)
+            
+            if not zones:
+                return f"I couldn't find any zones for {venue_name} in the Soundtrack system."
+            
+            # Find the specific zone
+            target_zone = None
+            for zone in zones:
+                if zone_name.lower() in zone.get('name', '').lower():
+                    target_zone = zone
+                    break
+            
+            if not target_zone:
+                available_zones = ', '.join([z.get('name', '') for z in zones])
+                return f"I couldn't find the zone '{zone_name}' at {venue_name}. Available zones are: {available_zones}"
+            
+            # Get zone status
+            zone_status = self.soundtrack.get_zone_status(target_zone['id'])
+            
+            if 'error' in zone_status:
+                return f"I couldn't check the status of {zone_name}: {zone_status['error']}"
+            
+            # Build response
+            if zone_status.get('is_playing'):
+                playlist = zone_status.get('current_playlist', 'Unknown playlist')
+                return f"{zone_name} is currently playing from the playlist: {playlist}. Volume is set to {zone_status.get('volume', 'unknown')}%."
+            else:
+                return f"{zone_name} is currently not playing any music. The zone appears to be paused or offline."
+            
+        except Exception as e:
+            logger.error(f"Error checking zone music: {e}")
+            return "I encountered an error while checking the music status. Please try again later."
+    
     def process_message(self, message: str, phone: str, user_name: Optional[str] = None) -> str:
         """Process incoming message and generate response"""
         
@@ -180,6 +239,22 @@ class ConversationBot:
                 if 'venue' in msg:
                     venue = self.venue_manager.get_venue_info(msg['venue'])
                     break
+        
+        # Check if asking about music playing in a specific zone
+        message_lower = message.lower()
+        if venue and ('playing' in message_lower or 'music' in message_lower or 'song' in message_lower):
+            # Look for zone names in the message
+            for zone_name in venue.get('zones', []):
+                if zone_name.lower() in message_lower:
+                    # User is asking about a specific zone
+                    music_status = self.check_zone_music(venue['name'], zone_name)
+                    
+                    # Add to context and return
+                    context.append({"role": "user", "content": message})
+                    context.append({"role": "assistant", "content": music_status, "venue": venue['name']})
+                    self.save_conversation_context(phone, context)
+                    
+                    return music_status
         
         # Build system prompt with actual venue data
         system_prompt = self._build_system_prompt(venue)
@@ -249,10 +324,17 @@ class ConversationBot:
     def _build_system_prompt(self, venue: Optional[Dict]) -> str:
         """Build system prompt with actual venue data"""
         
-        base_prompt = """You are a friendly music system support bot for BMA Social. 
+        soundtrack_info = ""
+        if self.soundtrack:
+            soundtrack_info = """
+I can check what's playing at specific zones using the Soundtrack Your Brand API.
+Just ask me about a specific zone like "What's playing at Edge?" and I'll check for you.
+"""
+        
+        base_prompt = f"""You are a friendly music system support bot for BMA Social. 
 You help venues with their background music systems.
 Be conversational and natural, not robotic.
-
+{soundtrack_info}
 IMPORTANT: 
 - Always use actual data, never make up information
 - If you don't have specific information, ask for it
