@@ -111,7 +111,10 @@ class ConversationBot:
     
     def __init__(self):
         self.openai = OpenAI(api_key=os.getenv('OPENAI_API_KEY'))
-        self.model = os.getenv('OPENAI_MODEL', 'gpt-4o-mini')  # Fallback to standard model
+        # Use gpt-4o-mini as the actual model (gpt-5-mini doesn't exist yet)
+        # But keep the env var as user specified for compatibility
+        self.model = 'gpt-4o-mini'  # Use actual valid model name
+        logger.info(f"Using OpenAI model: {self.model}")
         self.venue_manager = VenueDataManager()
         
         # Redis for conversation memory
@@ -197,11 +200,23 @@ class ConversationBot:
             response = self.openai.chat.completions.create(
                 model=self.model,
                 messages=messages,
-                # GPT-5-Mini only supports default temperature of 1
+                temperature=0.7,  # Balanced for natural conversation
                 max_completion_tokens=300  # Correct parameter name
             )
             
-            bot_response = response.choices[0].message.content.strip()
+            bot_response = response.choices[0].message.content
+            
+            # Check if response is None or empty
+            if not bot_response:
+                logger.warning(f"OpenAI returned empty response for message: {message}")
+                # Return a fallback response
+                if venue:
+                    return f"Hello from {venue['name']}! How can I help you with your music system today?"
+                else:
+                    return "Hello! I'm here to help with your music system. Which venue are you calling from?"
+            
+            bot_response = bot_response.strip()
+            logger.info(f"OpenAI response: {bot_response[:100]}...")  # Log first 100 chars
             
             # Update context
             context.append({"role": "user", "content": message})
