@@ -66,7 +66,7 @@ redis_client = None
 music_bot = None
 try:
     # Use bot_final which actually reads venue_data.md properly
-    from bot_final import music_bot as bot_instance
+    from bot_fresh_start import bot as bot_instance
     music_bot = bot_instance
     logger.info("✅ Music bot (final) initialized successfully")
 except Exception as e:
