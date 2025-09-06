@@ -145,6 +145,13 @@ You must analyze the message and return ONLY a JSON object with:
     "suggested_response": "a natural, helpful response to give them"
 }
 
+CRITICAL INTENT CLASSIFICATION:
+- playlist_change: When user wants to change music style, genre, or specific playlist (e.g., "play jazz", "play some 80s music", "change to relaxing music", "put on party music")
+- playback_control: When user wants to control playback state only (e.g., "pause the music", "resume", "start playing", "stop the music" with NO specific music type mentioned)
+
+If "play" + specific music type/genre = playlist_change
+If "play" alone or with "music" but no specific type = playback_control
+
 Remember the venue data:
 - Hilton Pattaya: 4 zones (Drift Bar, Edge, Horizon, Shore), contract ends 2025-10-31, THB 12,000/zone/year
 - Mana Beach Club: 3 zones (Beach Bar, Restaurant, Pool Area), uses Beat Breeze (no API control)
@@ -350,7 +357,7 @@ Remember the venue data:
         if playlist_request:
             logger.info(f"Searching for playlists matching context: {playlist_request}")
             
-            # Use the intelligent playlist search
+            # Use the curated playlist search from Soundtrack's library
             context_playlists = soundtrack_api.find_playlists_by_context(playlist_request)
             
             if context_playlists:
@@ -404,69 +411,50 @@ Remember the venue data:
                         response += "\n"
                     return response
             else:
-                # No context match found, fall back to account playlists
-                logger.info("No context match found, checking account playlists")
+                # No context match found, try direct curated search
+                logger.info("No context match found, trying direct curated search")
+                if playlist_request:
+                    curated = soundtrack_api.search_curated_playlists(playlist_request)
+                    if curated:
+                        # Found playlists in curated library - try to set the first one
+                        best_match = curated[0]
+                        try:
+                            result = soundtrack_api.set_playlist(zone_id, best_match['id'])
+                            
+                            if result.get('success'):
+                                responses = [
+                                    f"Perfect! I found '{best_match['name']}' in Soundtrack's library and applied it to {zone_name}! 🎵",
+                                    f"Great choice! {zone_name} is now playing '{best_match['name']}' from Soundtrack's curated collection.",
+                                    f"Excellent! I've switched {zone_name} to '{best_match['name']}' - this should be exactly what you wanted!"
+                                ]
+                                import random
+                                return random.choice(responses)
+                            else:
+                                # Playlist exists but can't be set - provide manual instructions
+                                response = f"I found the perfect playlist '{best_match['name']}' in Soundtrack's library, but need you to apply it manually.\n\n"
+                                response += f"**Please search for and select:**\n🎵 '{best_match['name']}'\n"
+                                if best_match.get('description'):
+                                    response += f"Description: {best_match['description']}\n"
+                                return response
+                                
+                        except Exception as e:
+                            logger.error(f"Error setting curated playlist: {e}")
+                            # Still provide helpful suggestions
+                            response = f"I found these playlists in Soundtrack's library for '{playlist_request}':\n\n"
+                            for i, playlist in enumerate(curated[:5], 1):
+                                response += f"{i}. '{playlist['name']}'"
+                                if playlist.get('description'):
+                                    response += f" - {playlist['description'][:50]}"
+                                response += "\n"
+                            response += "\nPlease search for one of these in your Soundtrack app."
+                            return response
         
-        # Fall back to account's custom playlists
-        playlists = soundtrack_api.get_playlists(zone_id)
-        if not playlists:
-            # No account playlists, but try curated search anyway
-            if playlist_request:
-                curated = soundtrack_api.search_curated_playlists(playlist_request)
-                if curated:
-                    response = f"I found these playlists in SYB's library for '{playlist_request}':\n\n"
-                    for i, playlist in enumerate(curated[:5], 1):
-                        response += f"{i}. {playlist['name']}"
-                        if playlist.get('description'):
-                            response += f" - {playlist['description'][:50]}"
-                        response += "\n"
-                    response += "\nPlease search for one of these in your SYB app to add it to your account."
-                    return response
-            return self._escalate_api_failure(venue, zone_name, "playlist retrieval", user_phone)
-        
-        # Try to match from account playlists
-        playlist_to_set = None
+        # DEPRECATED: Account playlists are not accessible via API anymore
+        # Fall back to suggesting manual search if nothing else worked
         if playlist_request:
-            playlist_lower = playlist_request.lower()
-            for playlist in playlists:
-                if playlist_lower in playlist['name'].lower() or playlist['name'].lower() in playlist_lower:
-                    playlist_to_set = playlist
-                    break
-        
-        if not playlist_to_set:
-            # Show available playlists
-            venue_display_name = venue.get('property_name', venue_name)
-            response = f"Your account playlists for {zone_name} at {venue_display_name}:\n"
-            for i, playlist in enumerate(playlists[:10], 1):  # Show max 10
-                response += f"{i}. {playlist['name']}"
-                if playlist.get('description'):
-                    response += f" - {playlist['description'][:50]}"
-                response += "\n"
-            
-            # Also suggest searching for curated playlists
-            if playlist_request:
-                response += f"\n💡 Want something different? I can search SYB's library for '{playlist_request}' playlists."
-            else:
-                response += "\n💡 Tell me what mood or genre you want (e.g., '80s hits', 'relaxing jazz', 'upbeat pop')"
-            
-            return response
-        
-        # ALWAYS attempt to set playlist (app-level control)
-        try:
-            result = soundtrack_api.set_playlist(zone_id, playlist_to_set['id'])
-            
-            if result.get('success'):
-                return f"✅ Playlist changed to '{playlist_to_set['name']}' for {zone_name} at {venue.get('property_name', venue_name)}."
-            else:
-                # Check failure reason
-                if 'no_api_control' in result.get('error_type', ''):
-                    return self._escalate_trial_zone(venue, zone_name, f"playlist change to {playlist_to_set['name']}", user_phone)
-                else:
-                    return self._escalate_api_failure(venue, zone_name, f"playlist change to {playlist_to_set['name']}", user_phone)
-                    
-        except Exception as e:
-            logger.error(f"Playlist change error: {e}")
-            return self._escalate_api_failure(venue, zone_name, "playlist change", user_phone)
+            return f"I'd love to help you find {playlist_request} music for {zone_name}! Please use the Soundtrack app to search for '{playlist_request}' playlists and apply one to your zone."
+        else:
+            return f"To change the playlist in {zone_name}, please use the Soundtrack app to browse and select from their music library."
     
     def _handle_zone_status(self, analysis: Dict) -> str:
         """Check zone status and currently playing music"""

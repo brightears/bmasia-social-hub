@@ -591,22 +591,12 @@ class SoundtrackAPI:
     def set_playlist(self, zone_id: str, playlist_id: str) -> Dict:
         """Set playlist for a zone - works with both account-specific and curated playlists"""
         
-        # First check if the zone is controllable
-        capabilities = self.get_zone_capabilities(zone_id)
+        logger.info(f"=== SET_PLAYLIST API CALLED ===")
+        logger.info(f"Zone ID: {zone_id}")
+        logger.info(f"Playlist ID: {playlist_id}")
         
-        if not capabilities.get('controllable', False):
-            return {
-                'success': False,
-                'error': 'Zone is not controllable via API',
-                'error_type': 'zone_not_controllable',
-                'zone_name': capabilities.get('zone_name', 'Unknown'),
-                'control_failure_reason': capabilities.get('control_failure_reason', 'unknown'),
-                'recommendations': [
-                    'Use Soundtrack Your Brand mobile app or web dashboard',
-                    'Check if this is a trial/demo account that needs upgrading',
-                    'Verify API control permissions are enabled'
-                ]
-            }
+        # Skip capability check - just try to set the playlist directly
+        # The capability check was changing volume which is disruptive
         
         query = """
         mutation SetPlaylist($input: SetPlaylistInput!) {
@@ -711,6 +701,9 @@ class SoundtrackAPI:
     def search_curated_playlists(self, search_term: str, limit: int = 10) -> List[Dict]:
         """Search Soundtrack's curated playlist library"""
         
+        logger.info(f"=== SEARCHING CURATED PLAYLISTS ===")
+        logger.info(f"Search term: '{search_term}', Limit: {limit}")
+        
         query = """
         query SearchPlaylists($searchTerm: String!, $limit: Int!) {
             search(query: $searchTerm, type: playlist, first: $limit) {
@@ -739,6 +732,7 @@ class SoundtrackAPI:
         try:
             playlists = []
             edges = result.get('search', {}).get('edges', [])
+            logger.info(f"Found {len(edges)} playlists matching '{search_term}'")
             
             for edge in edges:
                 node = edge.get('node', {})

@@ -397,8 +397,23 @@ class ConversationBot:
             if not zone_id:
                 return f"I couldn't find zone '{zone_name}'. Available zones: {', '.join(all_zones)}"
             
+            # PLAYLIST CHANGE - Check this FIRST before play/pause
+            # "Play jazz" or "play chillhop" = playlist change, NOT resume
+            music_genres = ['jazz', 'chillhop', 'chill', 'rock', 'pop', 'classical', 'hip hop', 'hiphop', 
+                          'dance', 'acoustic', 'ambient', 'lounge', '80s', '90s', 'dinner', 'party']
+            
+            # Check if "play" is followed by a genre/style (playlist change)
+            if 'play' in request_lower and any(genre in request_lower for genre in music_genres):
+                logger.info(f"Detected playlist change request: play + genre")
+                return self.change_playlist_via_api(zone_id, zone_name, request)
+            
+            # Other playlist change keywords
+            elif any(word in request_lower for word in ['playlist', 'change music', 'switch to', 'put on', 'change to', 'some music']):
+                logger.info(f"Detected playlist change request: explicit keywords")
+                return self.change_playlist_via_api(zone_id, zone_name, request)
+            
             # VOLUME CONTROL
-            if any(word in request_lower for word in ['volume', 'louder', 'quieter', 'loud', 'soft']):
+            elif any(word in request_lower for word in ['volume', 'louder', 'quieter', 'loud', 'soft']):
                 return self.control_volume(zone_id, zone_name, request)
             
             # SKIP TRACK
@@ -419,11 +434,7 @@ class ConversationBot:
                         response += "\n\n📞 Please contact our support team directly for assistance with this issue."
                     return response
             
-            # PLAYLIST CHANGE
-            elif any(word in request_lower for word in ['playlist', 'change music', 'switch to', 'play some', 'put on']):
-                return self.change_playlist_via_api(zone_id, zone_name, request)
-            
-            # PAUSE/PLAY
+            # PAUSE
             elif 'pause' in request_lower or 'stop' in request_lower:
                 result = self.soundtrack.control_playback(zone_id, 'pause')
                 if result.get('success'):
@@ -441,7 +452,8 @@ class ConversationBot:
                         response += "\n\n📞 Please contact our support team directly for assistance with this issue."
                     return response
             
-            elif 'play' in request_lower or 'resume' in request_lower or 'start' in request_lower:
+            # RESUME/PLAY (only if NOT followed by a genre)
+            elif ('play' in request_lower or 'resume' in request_lower or 'start' in request_lower) and not any(genre in request_lower for genre in music_genres):
                 result = self.soundtrack.control_playback(zone_id, 'play')
                 if result.get('success'):
                     return f"✅ Music resumed in {zone_name}! 🎵"
@@ -622,12 +634,16 @@ class ConversationBot:
         
         # EXECUTE THE CHANGE IMMEDIATELY - Use the first matching playlist
         playlist = playlists[0]
-        logger.info(f"Changing {zone_name} to playlist: {playlist['title']}")
+        logger.info(f"=== ATTEMPTING PLAYLIST CHANGE ===")
+        logger.info(f"Zone: {zone_name} (ID: {zone_id})")
+        logger.info(f"Playlist: {playlist.get('title')} (ID: {playlist.get('id')})")
         
         result = self.soundtrack.set_playlist(zone_id, playlist['id'])
+        logger.info(f"API Result: {result}")
         
         if result.get('success'):
             # SUCCESS - Changed immediately!
+            logger.info(f"✅ SUCCESS: Playlist changed to {playlist['title']}")
             return f"✅ Done! {zone_name} is now playing: **{playlist['title']}**\n\n{playlist.get('description', '')}\n\n🎵 The new playlist is now active. Let me know if you'd like to adjust anything else!"
         else:
             # Failed to change - check why
