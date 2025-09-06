@@ -243,18 +243,31 @@ class ConversationBot:
                 return f"I couldn't check the status of {zone_name}: {zone_status['error']}"
             
             # Build response based on actual API response
-            if zone_status.get('is_playing'):
+            # The API returns 'playing' not 'is_playing'
+            if zone_status.get('playing') or zone_status.get('playback_state') == 'playing':
                 playlist = zone_status.get('current_playlist', 'Unknown playlist')
-                volume = zone_status.get('volume', 'unknown')
-                return f"{zone_name} is currently playing from the playlist: {playlist}. Volume is set to {volume}%."
+                current_track = zone_status.get('current_track', {})
+                track_info = ""
+                if current_track:
+                    track_name = current_track.get('name', '')
+                    artist = current_track.get('artist', '')
+                    if track_name and artist:
+                        track_info = f"\n🎵 Now playing: {track_name} by {artist}"
+                    elif track_name:
+                        track_info = f"\n🎵 Now playing: {track_name}"
+                
+                volume = zone_status.get('volume')
+                volume_info = f" Volume is set to {volume}%." if volume else ""
+                
+                return f"{zone_name} is currently playing from the playlist: {playlist}.{volume_info}{track_info}"
             else:
                 # Provide more detail about why it's not playing
-                if zone_status.get('device_status') == 'offline':
+                if not zone_status.get('device_online'):
                     return f"{zone_name} appears to be offline. The Soundtrack player may be disconnected or powered off."
-                elif zone_status.get('is_paused'):
+                elif zone_status.get('playback_state') == 'paused':
                     return f"{zone_name} is currently paused. The music can be resumed from the Soundtrack app."
                 else:
-                    return f"{zone_name} is currently not playing any music. Status: {zone_status.get('device_status', 'unknown')}"
+                    return f"{zone_name} is currently not playing any music. Device is {zone_status.get('playback_state', 'unknown')}"
             
         except Exception as e:
             logger.error(f"Error checking zone music: {e}")
