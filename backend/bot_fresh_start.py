@@ -349,8 +349,185 @@ class ConversationBot:
             logger.error(f"Failed to send support notification: {e}")
             return False
     
+    def execute_music_change(self, venue_name: str, zone_name: str, request: str, venue_data: Dict) -> str:
+        """Execute actual music changes via Soundtrack API"""
+        if not self.soundtrack or not venue_data:
+            return self.provide_music_advice(venue_name, zone_name, request)
+        
+        request_lower = request.lower()
+        account_id = venue_data.get('account_id')
+        
+        if not account_id:
+            return "I can provide advice but need your account ID to make changes. Let me help with recommendations instead:\n\n" + self.provide_music_advice(venue_name, zone_name, request)
+        
+        # Get zone ID for the specific zone
+        try:
+            account_data = self.soundtrack.get_account_by_id(account_id)
+            if not account_data or 'zones' not in account_data:
+                return self.provide_music_advice(venue_name, zone_name, request)
+            
+            # Find the specific zone
+            zone_id = None
+            for zone in account_data['zones']:
+                if zone_name.lower() in zone.get('name', '').lower():
+                    zone_id = zone.get('id')
+                    break
+            
+            if not zone_id:
+                return f"I couldn't find zone '{zone_name}'. Available zones: {', '.join([z.get('name', 'Unknown') for z in account_data['zones']])}"
+            
+            # VOLUME CONTROL
+            if any(word in request_lower for word in ['volume', 'louder', 'quieter', 'loud', 'soft']):
+                return self.control_volume(zone_id, zone_name, request)
+            
+            # SKIP TRACK
+            elif any(word in request_lower for word in ['skip', 'next song', 'next track', 'change song']):
+                result = self.soundtrack.skip_track(zone_id)
+                if result:
+                    return f"✅ Skipped to the next track in {zone_name}! 🎵"
+                else:
+                    return f"I couldn't skip the track. The zone might be offline or not controllable. Would you like me to notify our support team?"
+            
+            # PLAYLIST CHANGE
+            elif any(word in request_lower for word in ['playlist', 'change music', 'switch to', 'play some', 'put on']):
+                return self.change_playlist_via_api(zone_id, zone_name, request)
+            
+            # PAUSE/PLAY
+            elif 'pause' in request_lower or 'stop' in request_lower:
+                result = self.soundtrack.control_playback(zone_id, 'pause')
+                if result.get('success'):
+                    return f"⏸️ Paused playback in {zone_name}. Say 'play' when you want to resume."
+                else:
+                    return "I couldn't pause the playback. Let me notify our support team to help."
+            
+            elif 'play' in request_lower or 'resume' in request_lower or 'start' in request_lower:
+                result = self.soundtrack.control_playback(zone_id, 'play')
+                if result.get('success'):
+                    return f"▶️ Resumed playback in {zone_name}! 🎵"
+                else:
+                    return "I couldn't resume playback. Let me check what's happening with your zone."
+            
+            # If no specific action detected, provide advice
+            else:
+                return self.provide_music_advice(venue_name, zone_name, request)
+                
+        except Exception as e:
+            logger.error(f"Error executing music change: {e}")
+            return self.provide_music_advice(venue_name, zone_name, request)
+    
+    def control_volume(self, zone_id: str, zone_name: str, request: str) -> str:
+        """Control volume for a zone"""
+        request_lower = request.lower()
+        
+        # Parse volume request
+        if 'louder' in request_lower or 'up' in request_lower or 'increase' in request_lower:
+            # Increase by 2 points (on 0-16 scale)
+            current_zone = self.soundtrack.get_zone_status(zone_id)
+            if current_zone and 'volume' in current_zone:
+                current_vol = current_zone['volume']
+                new_vol = min(16, current_vol + 2)
+            else:
+                new_vol = 10  # Default medium-high
+        
+        elif 'quieter' in request_lower or 'down' in request_lower or 'decrease' in request_lower:
+            # Decrease by 2 points
+            current_zone = self.soundtrack.get_zone_status(zone_id)
+            if current_zone and 'volume' in current_zone:
+                current_vol = current_zone['volume']
+                new_vol = max(0, current_vol - 2)
+            else:
+                new_vol = 8  # Default medium
+        
+        elif 'mute' in request_lower or 'silent' in request_lower:
+            new_vol = 0
+        
+        elif 'max' in request_lower or 'maximum' in request_lower:
+            new_vol = 16
+        
+        else:
+            # Try to extract specific percentage
+            import re
+            percent_match = re.search(r'(\d+)\s*%', request_lower)
+            if percent_match:
+                percent = int(percent_match.group(1))
+                new_vol = int((percent / 100) * 16)
+            else:
+                # Default moderate volume
+                new_vol = 10
+        
+        # Set the volume
+        result = self.soundtrack.set_volume(zone_id, new_vol)
+        
+        if result.get('success'):
+            percent = int((new_vol / 16) * 100)
+            return f"🔊 Volume set to {percent}% in {zone_name}! Perfect for your venue atmosphere."
+        else:
+            error = result.get('error', 'Unknown error')
+            return f"I couldn't adjust the volume: {error}. Would you like me to notify our support team?"
+    
+    def change_playlist_via_api(self, zone_id: str, zone_name: str, request: str) -> str:
+        """Change playlist for a zone via API"""
+        request_lower = request.lower()
+        
+        # Map common requests to playlist search terms
+        playlist_map = {
+            'jazz': 'jazz',
+            'chill': 'chill lounge',
+            'party': 'party hits',
+            'dinner': 'dinner jazz',
+            'breakfast': 'morning coffee',
+            'lunch': 'lunch lounge',
+            'happy hour': 'happy hour',
+            'romantic': 'romantic',
+            'classical': 'classical',
+            'pop': 'pop hits',
+            'rock': 'rock classics',
+            'dance': 'dance hits',
+            'acoustic': 'acoustic',
+            'ambient': 'ambient'
+        }
+        
+        # Find matching playlist type
+        search_term = None
+        for key, value in playlist_map.items():
+            if key in request_lower:
+                search_term = value
+                break
+        
+        if not search_term:
+            # Default to time-based suggestion
+            hour = datetime.now().hour
+            if 6 <= hour < 11:
+                search_term = 'morning coffee'
+            elif 11 <= hour < 15:
+                search_term = 'lunch lounge'
+            elif 17 <= hour < 19:
+                search_term = 'happy hour'
+            elif 18 <= hour < 22:
+                search_term = 'dinner jazz'
+            else:
+                search_term = 'late night lounge'
+        
+        # Search for playlists
+        playlists = self.soundtrack.search_curated_playlists(search_term, limit=5)
+        
+        if not playlists:
+            return f"I couldn't find playlists matching '{search_term}'. Let me notify our music design team to create a custom playlist for you."
+        
+        # Use the first matching playlist
+        playlist = playlists[0]
+        result = self.soundtrack.set_playlist(zone_id, playlist['id'])
+        
+        if result.get('success'):
+            return f"🎵 Changed {zone_name} to play: **{playlist['title']}**\n\n{playlist.get('description', '')}\n\nEnjoy the new vibe! Let me know if you'd like to adjust the volume or try a different playlist."
+        else:
+            error = result.get('error', 'Unknown error')
+            if 'not_controllable' in result.get('error_type', ''):
+                return f"This zone isn't set up for remote control. I'll notify our team to enable this feature for you."
+            return f"I couldn't change the playlist: {error}. Let me notify our support team."
+    
     def provide_music_advice(self, venue_name: str, zone_name: str, request: str) -> str:
-        """Provide music design advice and playlist suggestions"""
+        """Provide music design advice when we can't make direct changes"""
         request_lower = request.lower()
         current_hour = datetime.now().hour
         
@@ -429,11 +606,11 @@ class ConversationBot:
             response += f"\n**Design Tips:** {mood_data['advice']}\n"
             response += f"**Best Time:** {mood_data['best_time']}\n"
             
-            # Add current status if available
-            if self.soundtrack:
-                response += f"\n📊 I can check what's currently playing or help you switch playlists. "
-            
-            response += "\nWould you like me to notify our music design team to implement these changes?"
+            response += "\n💡 **Quick Actions I Can Do:**\n"
+            response += "• Say 'play jazz' to switch genres\n"
+            response += "• Say 'volume 70%' to adjust sound\n"
+            response += "• Say 'skip song' to change tracks\n"
+            response += "• Say 'pause music' to stop playback\n"
             
         else:
             # Provide general design consultation
@@ -445,13 +622,13 @@ class ConversationBot:
             response += "**🍽️ Dinner (6-10pm):** Sophisticated and elegant\n"
             response += "**🌙 Late Night (10pm+):** Smooth and atmospheric\n\n"
             
-            response += "**Pro Tips:**\n"
-            response += "• Match music energy to crowd energy\n"
-            response += "• Consider your target demographic\n"
-            response += "• Volume should allow conversation\n"
-            response += "• Change playlists every 2-3 hours\n\n"
+            response += "**I Can Help You:**\n"
+            response += "• Change playlists instantly\n"
+            response += "• Adjust volume (say 'volume up/down')\n"
+            response += "• Skip songs you don't like\n"
+            response += "• Pause/resume playback\n\n"
             
-            response += "What kind of atmosphere are you trying to create? I can provide specific recommendations!"
+            response += "What would you like to adjust?"
         
         return response
     
@@ -486,8 +663,12 @@ class ConversationBot:
                         
                         return music_status
             
-            # Check for playlist change or design advice requests
-            if any(word in message_lower for word in ['change', 'switch', 'playlist', 'music', 'suggest', 'recommendation', 'chill', 'upbeat', 'party', 'dinner', 'morning', 'afternoon', 'design', 'atmosphere', 'mood', 'vibe']):
+            # Check for music control requests (playlist, volume, skip, etc.)
+            music_keywords = ['change', 'switch', 'playlist', 'music', 'volume', 'louder', 'quieter', 
+                            'skip', 'next', 'pause', 'stop', 'play', 'resume', 'chill', 'jazz', 
+                            'party', 'dinner', 'morning', 'atmosphere', 'mood', 'vibe']
+            
+            if any(word in message_lower for word in music_keywords):
                 # Find which zone they're asking about
                 zone_name = None
                 for zone in venue.get('zones', []):
@@ -495,19 +676,51 @@ class ConversationBot:
                         zone_name = zone
                         break
                 
-                # If no specific zone mentioned, provide general advice
+                # If no specific zone mentioned, use first zone or ask
                 if not zone_name and venue.get('zones'):
-                    zone_name = venue['zones'][0]  # Default to first zone
+                    if len(venue['zones']) == 1:
+                        zone_name = venue['zones'][0]
+                    else:
+                        # Ask which zone if multiple exist
+                        zones = ', '.join(venue['zones'])
+                        response = f"You have multiple zones: {zones}. Which one would you like to control?"
+                        context.append({"role": "user", "content": message})
+                        context.append({"role": "assistant", "content": response, "venue": venue['name']})
+                        self.save_conversation_context(phone, context)
+                        return response
                 
                 if zone_name:
-                    playlist_response = self.provide_music_advice(venue['name'], zone_name, message)
+                    # Determine if this is a simple or complex request
+                    complex_keywords = ['schedule', 'entire', 'all zones', 'whole venue', 'custom', 
+                                      'special event', 'wedding', 'conference', 'brand', 'identity']
+                    
+                    is_complex = any(word in message_lower for word in complex_keywords)
+                    
+                    if is_complex:
+                        # Complex request - notify support team
+                        response = f"This sounds like it needs our music design team's expertise. Let me connect you with them for:\n"
+                        response += f"• Custom scheduling across zones\n"
+                        response += f"• Special event programming\n"
+                        response += f"• Brand-aligned music curation\n\n"
+                        response += "They'll contact you shortly to discuss your needs in detail."
+                        
+                        # Send Google Chat notification
+                        if self.google_chat:
+                            self.send_support_notification(
+                                venue_name=venue['name'],
+                                issue=f"Complex music design request: {message[:200]}",
+                                phone=phone
+                            )
+                    else:
+                        # Simple request - try to execute via API
+                        response = self.execute_music_change(venue['name'], zone_name, message, venue)
                     
                     # Add to context and return
                     context.append({"role": "user", "content": message})
-                    context.append({"role": "assistant", "content": playlist_response, "venue": venue['name']})
+                    context.append({"role": "assistant", "content": response, "venue": venue['name']})
                     self.save_conversation_context(phone, context)
                     
-                    return playlist_response
+                    return response
         
         # Build system prompt with actual venue data
         system_prompt = self._build_system_prompt(venue)
