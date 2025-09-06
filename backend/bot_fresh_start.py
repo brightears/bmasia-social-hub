@@ -191,32 +191,43 @@ class ConversationBot:
             return "I cannot access the Soundtrack API right now to check what's playing."
         
         try:
-            # Find zones for the venue
-            zones = self.soundtrack.find_venue_zones(venue_name)
-            logger.info(f"Found {len(zones) if zones else 0} zones for {venue_name}")
+            # Try direct zone ID lookup first (for known venues)
+            from venue_accounts import get_zone_id
+            zone_id = get_zone_id(venue_name, zone_name)
             
-            if not zones:
-                return f"I couldn't find any zones for {venue_name} in the Soundtrack system."
-            
-            # Log available zones
-            zone_names = [z.get('name', 'Unknown') for z in zones]
-            logger.info(f"Available zones: {zone_names}")
-            
-            # Find the specific zone
-            target_zone = None
-            for zone in zones:
-                if zone_name.lower() in zone.get('name', '').lower():
-                    target_zone = zone
-                    logger.info(f"Found matching zone: {zone.get('name')} with ID: {zone.get('id')}")
-                    break
-            
-            if not target_zone:
-                available_zones = ', '.join([z.get('name', '') for z in zones])
-                return f"I couldn't find the zone '{zone_name}' at {venue_name}. Available zones are: {available_zones}"
-            
-            # Get zone status
-            zone_status = self.soundtrack.get_zone_status(target_zone['id'])
-            logger.info(f"Zone status for {zone_name}: {zone_status}")
+            if zone_id:
+                logger.info(f"Using direct zone ID for {zone_name}: {zone_id}")
+                
+                # Get zone status directly
+                zone_status = self.soundtrack.get_zone_status(zone_id)
+                logger.info(f"Zone status for {zone_name}: {zone_status}")
+            else:
+                # Fall back to searching for zones
+                zones = self.soundtrack.find_venue_zones(venue_name)
+                logger.info(f"Found {len(zones) if zones else 0} zones for {venue_name}")
+                
+                if not zones:
+                    return f"I couldn't find any zones for {venue_name} in the Soundtrack system."
+                
+                # Log available zones
+                zone_names = [z.get('name', 'Unknown') for z in zones]
+                logger.info(f"Available zones: {zone_names}")
+                
+                # Find the specific zone
+                target_zone = None
+                for zone in zones:
+                    if zone_name.lower() in zone.get('name', '').lower():
+                        target_zone = zone
+                        logger.info(f"Found matching zone: {zone.get('name')} with ID: {zone.get('id')}")
+                        break
+                
+                if not target_zone:
+                    available_zones = ', '.join([z.get('name', '') for z in zones])
+                    return f"I couldn't find the zone '{zone_name}' at {venue_name}. Available zones are: {available_zones}"
+                
+                # Get zone status
+                zone_status = self.soundtrack.get_zone_status(target_zone['id'])
+                logger.info(f"Zone status for {zone_name}: {zone_status}")
             
             if 'error' in zone_status:
                 return f"I couldn't check the status of {zone_name}: {zone_status['error']}"
