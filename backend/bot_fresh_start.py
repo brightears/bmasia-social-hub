@@ -400,15 +400,20 @@ class ConversationBot:
             # PLAYLIST CHANGE - Check this FIRST before play/pause
             # "Play jazz" or "play chillhop" = playlist change, NOT resume
             music_genres = ['jazz', 'chillhop', 'chill', 'rock', 'pop', 'classical', 'hip hop', 'hiphop', 
-                          'dance', 'acoustic', 'ambient', 'lounge', '80s', '90s', 'dinner', 'party']
+                          'dance', 'acoustic', 'ambient', 'lounge', '80s', '90s', 'dinner', 'party', 
+                          'relaxing', 'smooth', 'easy listening', 'background']
             
-            # Check if "play" is followed by a genre/style (playlist change)
-            if 'play' in request_lower and any(genre in request_lower for genre in music_genres):
-                logger.info(f"Detected playlist change request: play + genre")
-                return self.change_playlist_via_api(zone_id, zone_name, request)
+            # Check if "play" is followed by ANY music-related words (very broad)
+            # This catches "play chill out lounge", "play smooth jazz", etc.
+            if 'play' in request_lower:
+                # If "play" is followed by anything other than just "music" or nothing, it's probably a playlist request
+                words_after_play = request_lower.split('play')[1].strip() if 'play' in request_lower else ""
+                if words_after_play and words_after_play not in ['music', 'the music', 'it']:
+                    logger.info(f"Detected playlist change: 'play' + '{words_after_play}'")
+                    return self.change_playlist_via_api(zone_id, zone_name, request)
             
             # Other playlist change keywords
-            elif any(word in request_lower for word in ['playlist', 'change music', 'switch to', 'put on', 'change to', 'some music']):
+            elif any(word in request_lower for word in ['playlist', 'change music', 'switch to', 'put on', 'change to', 'some music', 'try', 'let\'s try']):
                 logger.info(f"Detected playlist change request: explicit keywords")
                 return self.change_playlist_via_api(zone_id, zone_name, request)
             
@@ -547,46 +552,26 @@ class ConversationBot:
         
         request_lower = request.lower()
         
-        # Map common requests to playlist search terms
-        # ORDER MATTERS! More specific terms first
-        playlist_map = {
-            'chillhop': 'chillhop',
-            'chill hop': 'chillhop', 
-            'hip hop': 'hip hop',
-            'hiphop': 'hip hop',
-            'happy hour': 'happy hour',
-            'dinner jazz': 'dinner jazz',
-            'morning coffee': 'morning coffee',
-            'lunch lounge': 'lunch lounge',
-            'pop hits': 'pop hits',
-            'rock classics': 'rock classics',
-            'dance hits': 'dance hits',
-            'upbeat hits': 'upbeat hits',
-            'jazz': 'jazz',
-            'chill': 'chill lounge',  # Less specific 'chill' after 'chillhop'
-            'party': 'party hits',
-            'dinner': 'dinner jazz',
-            'breakfast': 'morning coffee',
-            'lunch': 'lunch lounge',
-            'romantic': 'romantic',
-            'classical': 'classical',
-            'pop': 'pop hits',
-            'rock': 'rock classics',
-            'dance': 'dance hits',
-            'acoustic': 'acoustic',
-            'ambient': 'ambient',
-            'lounge': 'lounge',
-            'relaxing': 'relaxing',
-            'upbeat': 'upbeat hits',
-            'mellow': 'mellow'
-        }
-        
-        # Find matching playlist type
+        # First, try to extract the exact playlist name from the request
+        # This handles "play chill out lounge" -> search for "chill out lounge"
         search_term = None
-        for key, value in playlist_map.items():
-            if key in request_lower:
-                search_term = value
+        
+        # Remove common action words to get just the playlist name
+        action_words = ['play', 'let\'s try', 'try', 'switch to', 'change to', 'put on', 'play some', 'change']
+        cleaned_request = request_lower
+        for action in action_words:
+            if cleaned_request.startswith(action + ' '):
+                cleaned_request = cleaned_request[len(action):].strip()
                 break
+        
+        # Remove zone references like "at edge" from the end
+        if ' at ' in cleaned_request:
+            cleaned_request = cleaned_request.split(' at ')[0].strip()
+        
+        # Use the cleaned request as the search term if it's meaningful
+        if cleaned_request and len(cleaned_request) > 2 and cleaned_request not in ['music', 'something', 'it', 'the music']:
+            search_term = cleaned_request
+            logger.info(f"Using extracted playlist name as search term: '{search_term}'")
         
         if not search_term:
             # Default to "chill" if they asked for chill specifically
@@ -817,7 +802,6 @@ class ConversationBot:
             
             # Check if this is a zone selection response to a previous music request
             # Look back in context to see if we just asked which zone
-            pending_music_request = None
             if context and len(context) >= 2:
                 last_bot_msg = context[-1].get('content', '') if context[-1].get('role') == 'assistant' else ''
                 if 'Which one would you like to control?' in last_bot_msg:
@@ -825,10 +809,13 @@ class ConversationBot:
                     for zone in venue.get('zones', []):
                         if zone.lower() in message_lower:
                             # Found the zone! Now look for the original music request
-                            for i in range(len(context) - 1, max(0, len(context) - 4), -1):
+                            logger.info(f"Zone selection detected: {zone}")
+                            for i in range(len(context) - 1, max(0, len(context) - 6), -1):
                                 if context[i].get('role') == 'user':
                                     original_msg = context[i].get('content', '')
-                                    if any(word in original_msg.lower() for word in ['change', 'switch', 'playlist', 'music', 'chill', 'chillhop', 'volume']):
+                                    # Check if this was a music-related request
+                                    if any(word in original_msg.lower() for word in ['change', 'switch', 'playlist', 'music', 'chill', 'chillhop', 'lounge', 'play', 'jazz', 'volume']):
+                                        logger.info(f"Executing original request: {original_msg} for zone: {zone}")
                                         # Execute the original request with the selected zone
                                         response = self.execute_music_change(venue['name'], zone, original_msg, venue)
                                         context.append({"role": "user", "content": message})
@@ -839,14 +826,16 @@ class ConversationBot:
             # Check for music control requests (playlist, volume, skip, etc.)
             music_keywords = ['change', 'switch', 'playlist', 'music', 'volume', 'louder', 'quieter', 
                             'skip', 'next', 'pause', 'stop', 'play', 'resume', 'chill', 'chillhop', 'jazz', 
-                            'party', 'dinner', 'morning', 'atmosphere', 'mood', 'vibe', 'hip hop', 'hiphop']
+                            'party', 'dinner', 'morning', 'atmosphere', 'mood', 'vibe', 'hip hop', 'hiphop', 'lounge']
             
             if any(word in message_lower for word in music_keywords):
-                # Find which zone they're asking about
+                # Find which zone they're asking about - check more carefully
                 zone_name = None
                 for zone in venue.get('zones', []):
-                    if zone.lower() in message_lower:
+                    # Check for exact zone name or partial match
+                    if zone.lower() in message_lower or message_lower.endswith(zone.lower()):
                         zone_name = zone
+                        logger.info(f"Found zone '{zone}' in message: {message}")
                         break
                 
                 # If no specific zone mentioned, use first zone or ask
