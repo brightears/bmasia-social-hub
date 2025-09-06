@@ -355,13 +355,18 @@ class ConversationBot:
     
     def execute_music_change(self, venue_name: str, zone_name: str, request: str, venue_data: Dict) -> str:
         """Execute actual music changes via Soundtrack API"""
+        logger.info(f"=== EXECUTE_MUSIC_CHANGE CALLED ===")
+        logger.info(f"Venue: {venue_name}, Zone: {zone_name}, Request: {request}")
+        
         if not self.soundtrack or not venue_data:
+            logger.warning("No Soundtrack API or venue data available")
             return self.provide_music_advice(venue_name, zone_name, request)
         
         request_lower = request.lower()
         account_id = venue_data.get('account_id')
         
         if not account_id:
+            logger.warning(f"No account_id for venue: {venue_name}")
             return "I can provide advice but need your account ID to make changes. Let me help with recommendations instead:\n\n" + self.provide_music_advice(venue_name, zone_name, request)
         
         # Get zone ID for the specific zone
@@ -525,6 +530,9 @@ class ConversationBot:
     
     def change_playlist_via_api(self, zone_id: str, zone_name: str, request: str) -> str:
         """Change playlist for a zone via API - EXECUTES IMMEDIATELY"""
+        logger.info(f"=== CHANGE_PLAYLIST_VIA_API CALLED ===")
+        logger.info(f"Zone ID: {zone_id}, Zone Name: {zone_name}, Request: {request}")
+        
         request_lower = request.lower()
         
         # Map common requests to playlist search terms
@@ -791,6 +799,27 @@ class ConversationBot:
                         
                         return music_status
             
+            # Check if this is a zone selection response to a previous music request
+            # Look back in context to see if we just asked which zone
+            pending_music_request = None
+            if context and len(context) >= 2:
+                last_bot_msg = context[-1].get('content', '') if context[-1].get('role') == 'assistant' else ''
+                if 'Which one would you like to control?' in last_bot_msg:
+                    # This is a zone selection - check if it's a valid zone
+                    for zone in venue.get('zones', []):
+                        if zone.lower() in message_lower:
+                            # Found the zone! Now look for the original music request
+                            for i in range(len(context) - 1, max(0, len(context) - 4), -1):
+                                if context[i].get('role') == 'user':
+                                    original_msg = context[i].get('content', '')
+                                    if any(word in original_msg.lower() for word in ['change', 'switch', 'playlist', 'music', 'chill', 'chillhop', 'volume']):
+                                        # Execute the original request with the selected zone
+                                        response = self.execute_music_change(venue['name'], zone, original_msg, venue)
+                                        context.append({"role": "user", "content": message})
+                                        context.append({"role": "assistant", "content": response, "venue": venue['name']})
+                                        self.save_conversation_context(phone, context)
+                                        return response
+            
             # Check for music control requests (playlist, volume, skip, etc.)
             music_keywords = ['change', 'switch', 'playlist', 'music', 'volume', 'louder', 'quieter', 
                             'skip', 'next', 'pause', 'stop', 'play', 'resume', 'chill', 'chillhop', 'jazz', 
@@ -812,8 +841,9 @@ class ConversationBot:
                         # Ask which zone if multiple exist
                         zones = ', '.join(venue['zones'])
                         response = f"You have multiple zones: {zones}. Which one would you like to control?"
+                        # Store that we're waiting for zone selection
                         context.append({"role": "user", "content": message})
-                        context.append({"role": "assistant", "content": response, "venue": venue['name']})
+                        context.append({"role": "assistant", "content": response, "venue": venue['name'], "waiting_for_zone": True})
                         self.save_conversation_context(phone, context)
                         return response
                 
@@ -985,8 +1015,9 @@ KEY CAPABILITIES YOU HAVE:
 ✅ YOU CAN pause/resume - DO IT when asked
 
 CRITICAL INSTRUCTIONS:
-- When someone asks to change music/playlist → Say "✅ Done! Now playing [playlist name]"
-- When someone asks for volume change → Say "✅ Done! Volume adjusted"
+- NEVER say "Done!" or "✅" unless you ACTUALLY executed the change via API
+- If someone just says a zone name like "Edge" - that's them selecting a zone, not a command
+- NEVER pretend to change playlists - the API must actually do it
 - NEVER say "I can't change it directly" - YOU CAN CHANGE IT
 - NEVER say "I'll connect you with our team" for simple playlist changes
 - NEVER ask for email or contact details
