@@ -327,6 +327,8 @@ class ConversationBot:
     def send_support_notification(self, venue_name: str, issue: str, phone: str) -> bool:
         """Send notification to support team via Google Chat"""
         if not self.google_chat:
+            logger.warning("Google Chat client not available - notification cannot be sent")
+            logger.warning("Check that GOOGLE_CREDENTIALS_JSON is properly set in .env file")
             return False
         
         try:
@@ -342,11 +344,13 @@ class ConversationBot:
             )
             
             if success:
-                logger.info(f"Support notification sent for {venue_name}: {issue[:50]}...")
+                logger.info(f"✅ Support notification sent for {venue_name}: {issue[:50]}...")
+            else:
+                logger.error(f"❌ Support notification failed for {venue_name}: {issue[:50]}...")
             
             return success
         except Exception as e:
-            logger.error(f"Failed to send support notification: {e}")
+            logger.error(f"❌ Failed to send support notification: {e}")
             return False
     
     def execute_music_change(self, venue_name: str, zone_name: str, request: str, venue_data: Dict) -> str:
@@ -363,18 +367,30 @@ class ConversationBot:
         # Get zone ID for the specific zone
         try:
             account_data = self.soundtrack.get_account_by_id(account_id)
-            if not account_data or 'zones' not in account_data:
+            if not account_data:
                 return self.provide_music_advice(venue_name, zone_name, request)
             
-            # Find the specific zone
+            # Find the specific zone using the correct API structure
             zone_id = None
-            for zone in account_data['zones']:
-                if zone_name.lower() in zone.get('name', '').lower():
-                    zone_id = zone.get('id')
+            all_zones = []
+            
+            for loc_edge in account_data.get('locations', {}).get('edges', []):
+                location = loc_edge.get('node', {})
+                for zone_edge in location.get('soundZones', {}).get('edges', []):
+                    zone = zone_edge.get('node', {})
+                    zone_name_api = zone.get('name', '')
+                    all_zones.append(zone_name_api)
+                    
+                    # Match zone name (case insensitive)
+                    if zone_name.lower() in zone_name_api.lower() or zone_name_api.lower() in zone_name.lower():
+                        zone_id = zone.get('id')
+                        logger.info(f"Found matching zone: {zone_name_api} with ID: {zone.get('id')}")
+                        break
+                if zone_id:
                     break
             
             if not zone_id:
-                return f"I couldn't find zone '{zone_name}'. Available zones: {', '.join([z.get('name', 'Unknown') for z in account_data['zones']])}"
+                return f"I couldn't find zone '{zone_name}'. Available zones: {', '.join(all_zones)}"
             
             # VOLUME CONTROL
             if any(word in request_lower for word in ['volume', 'louder', 'quieter', 'loud', 'soft']):
@@ -387,13 +403,15 @@ class ConversationBot:
                     return f"✅ Done! Skipped to the next track in {zone_name}. 🎵"
                 else:
                     response = f"I couldn't skip the track. Let me notify our support team to help."
-                    if self.google_chat:
-                        self.send_support_notification(
-                            venue_name=zone_name,
-                            issue=f"Skip track failed for zone {zone_name}",
-                            phone="WhatsApp"
-                        )
-                        response += "\n\n📞 Our team has been notified!"
+                    notification_sent = self.send_support_notification(
+                        venue_name=zone_name,
+                        issue=f"Skip track failed for zone {zone_name}",
+                        phone="WhatsApp"
+                    )
+                    if notification_sent:
+                        response += "\n\n📞 Our team has been notified and will help you shortly!"
+                    else:
+                        response += "\n\n📞 Please contact our support team directly for assistance with this issue."
                     return response
             
             # PLAYLIST CHANGE
@@ -407,13 +425,15 @@ class ConversationBot:
                     return f"✅ Done! Music paused in {zone_name}. ⏸️\n\nJust say 'play' or 'resume' when you're ready to continue."
                 else:
                     response = "I couldn't pause the playback. Let me notify our support team."
-                    if self.google_chat:
-                        self.send_support_notification(
-                            venue_name=zone_name,
-                            issue=f"Pause command failed for zone {zone_name}",
-                            phone="WhatsApp"
-                        )
-                        response += "\n\n📞 Our team has been notified!"
+                    notification_sent = self.send_support_notification(
+                        venue_name=zone_name,
+                        issue=f"Pause command failed for zone {zone_name}",
+                        phone="WhatsApp"
+                    )
+                    if notification_sent:
+                        response += "\n\n📞 Our team has been notified and will help you shortly!"
+                    else:
+                        response += "\n\n📞 Please contact our support team directly for assistance with this issue."
                     return response
             
             elif 'play' in request_lower or 'resume' in request_lower or 'start' in request_lower:
@@ -422,13 +442,15 @@ class ConversationBot:
                     return f"✅ Music resumed in {zone_name}! 🎵"
                 else:
                     response = "I couldn't resume playback. Let me notify our support team."
-                    if self.google_chat:
-                        self.send_support_notification(
-                            venue_name=zone_name,
-                            issue=f"Play/resume command failed for zone {zone_name}",
-                            phone="WhatsApp"
-                        )
-                        response += "\n\n📞 Our team has been notified!"
+                    notification_sent = self.send_support_notification(
+                        venue_name=zone_name,
+                        issue=f"Play/resume command failed for zone {zone_name}",
+                        phone="WhatsApp"
+                    )
+                    if notification_sent:
+                        response += "\n\n📞 Our team has been notified and will help you shortly!"
+                    else:
+                        response += "\n\n📞 Please contact our support team directly for assistance with this issue."
                     return response
             
             # If no specific action detected, provide advice
@@ -489,13 +511,15 @@ class ConversationBot:
             error = result.get('error', 'Unknown error')
             response = f"I couldn't adjust the volume ({error}). Let me notify our support team."
             
-            if self.google_chat:
-                self.send_support_notification(
-                    venue_name=zone_name,
-                    issue=f"Volume control failed: {error}",
-                    phone="WhatsApp"
-                )
+            notification_sent = self.send_support_notification(
+                venue_name=zone_name,
+                issue=f"Volume control failed: {error}",
+                phone="WhatsApp"
+            )
+            if notification_sent:
                 response += "\n\n📞 Our team has been notified and will help you shortly!"
+            else:
+                response += "\n\n📞 Please contact our support team directly for assistance with this issue."
             
             return response
     
@@ -504,14 +528,26 @@ class ConversationBot:
         request_lower = request.lower()
         
         # Map common requests to playlist search terms
+        # ORDER MATTERS! More specific terms first
         playlist_map = {
+            'chillhop': 'chillhop',
+            'chill hop': 'chillhop', 
+            'hip hop': 'hip hop',
+            'hiphop': 'hip hop',
+            'happy hour': 'happy hour',
+            'dinner jazz': 'dinner jazz',
+            'morning coffee': 'morning coffee',
+            'lunch lounge': 'lunch lounge',
+            'pop hits': 'pop hits',
+            'rock classics': 'rock classics',
+            'dance hits': 'dance hits',
+            'upbeat hits': 'upbeat hits',
             'jazz': 'jazz',
-            'chill': 'chill lounge',
+            'chill': 'chill lounge',  # Less specific 'chill' after 'chillhop'
             'party': 'party hits',
             'dinner': 'dinner jazz',
             'breakfast': 'morning coffee',
             'lunch': 'lunch lounge',
-            'happy hour': 'happy hour',
             'romantic': 'romantic',
             'classical': 'classical',
             'pop': 'pop hits',
@@ -564,13 +600,15 @@ class ConversationBot:
                 # Can't find suitable playlist - escalate to team
                 response = f"I couldn't find the right playlist for your request. Let me connect you with our music design team who can set up the perfect playlist for {zone_name}."
                 
-                if self.google_chat:
-                    self.send_support_notification(
-                        venue_name=zone_name,
-                        issue=f"Customer wants playlist change but no match found: {request[:100]}",
-                        phone="WhatsApp"
-                    )
+                notification_sent = self.send_support_notification(
+                    venue_name=zone_name,
+                    issue=f"Customer wants playlist change but no match found: {request[:100]}",
+                    phone="WhatsApp"
+                )
+                if notification_sent:
                     response += "\n\n📞 I've notified our team - they'll help you set up the perfect playlist shortly!"
+                else:
+                    response += "\n\n📞 Please contact our support team to help set up the perfect playlist for your venue."
                 
                 return response
         
@@ -589,26 +627,30 @@ class ConversationBot:
             if 'not_controllable' in result.get('error_type', ''):
                 response = f"I can't control {zone_name} remotely yet. Let me get our team to enable this for you so you can control your music instantly."
                 
-                if self.google_chat:
-                    self.send_support_notification(
-                        venue_name=zone_name,
-                        issue=f"Zone not API-controllable - customer wants to change playlist",
-                        phone="WhatsApp"
-                    )
+                notification_sent = self.send_support_notification(
+                    venue_name=zone_name,
+                    issue=f"Zone not API-controllable - customer wants to change playlist",
+                    phone="WhatsApp"
+                )
+                if notification_sent:
                     response += "\n\n📞 I've notified our technical team to enable remote control for your zone."
+                else:
+                    response += "\n\n📞 Please contact our technical team to enable remote control for your zone."
                 
                 return response
             else:
                 # Other error - escalate
                 response = f"There was an issue changing the playlist ({error}). Let me get our team to help you right away."
                 
-                if self.google_chat:
-                    self.send_support_notification(
-                        venue_name=zone_name,
-                        issue=f"Playlist change failed: {error}",
-                        phone="WhatsApp"
-                    )
+                notification_sent = self.send_support_notification(
+                    venue_name=zone_name,
+                    issue=f"Playlist change failed: {error}",
+                    phone="WhatsApp"
+                )
+                if notification_sent:
                     response += "\n\n📞 I've notified our support team - they'll resolve this quickly!"
+                else:
+                    response += "\n\n📞 Please contact our support team to resolve this issue."
                 
                 return response
     
@@ -751,8 +793,8 @@ class ConversationBot:
             
             # Check for music control requests (playlist, volume, skip, etc.)
             music_keywords = ['change', 'switch', 'playlist', 'music', 'volume', 'louder', 'quieter', 
-                            'skip', 'next', 'pause', 'stop', 'play', 'resume', 'chill', 'jazz', 
-                            'party', 'dinner', 'morning', 'atmosphere', 'mood', 'vibe']
+                            'skip', 'next', 'pause', 'stop', 'play', 'resume', 'chill', 'chillhop', 'jazz', 
+                            'party', 'dinner', 'morning', 'atmosphere', 'mood', 'vibe', 'hip hop', 'hiphop']
             
             if any(word in message_lower for word in music_keywords):
                 # Find which zone they're asking about
@@ -788,15 +830,18 @@ class ConversationBot:
                         response += f"• Custom scheduling across zones\n"
                         response += f"• Special event programming\n"
                         response += f"• Brand-aligned music curation\n\n"
-                        response += "They'll contact you shortly to discuss your needs in detail."
                         
                         # Send Google Chat notification
-                        if self.google_chat:
-                            self.send_support_notification(
-                                venue_name=venue['name'],
-                                issue=f"Complex music design request: {message[:200]}",
-                                phone=phone
-                            )
+                        notification_sent = self.send_support_notification(
+                            venue_name=venue['name'],
+                            issue=f"Complex music design request: {message[:200]}",
+                            phone=phone
+                        )
+                        
+                        if notification_sent:
+                            response += "📞 Our music design team has been notified and will take over this WhatsApp conversation shortly to help you!"
+                        else:
+                            response += "Our music design team will continue helping you here in WhatsApp. Please wait a moment while they join this conversation."
                     else:
                         # Simple request - EXECUTE IMMEDIATELY via API
                         response = self.execute_music_change(venue['name'], zone_name, message, venue)
@@ -866,7 +911,7 @@ class ConversationBot:
             is_complex = any(keyword in message.lower() for keyword in complex_keywords)
             
             # Send Google Chat notification if needed
-            if (needs_human or is_complex) and self.google_chat:
+            if needs_human or is_complex:
                 issue_summary = f"Customer needs assistance: {message[:200]}"
                 if needs_human:
                     issue_summary = f"Bot unable to help - {message[:200]}"
@@ -883,6 +928,10 @@ class ConversationBot:
                     # Append notification to response
                     bot_response += "\n\n📞 I've notified our support team about your request. They'll be in touch with you shortly to help resolve this issue."
                     logger.info(f"Google Chat notification sent for complex/unhandled issue")
+                else:
+                    # Fallback when notification fails
+                    bot_response += "\n\n📞 For additional assistance with this request, please contact our support team directly."
+                    logger.warning(f"Google Chat notification failed for issue: {issue_summary[:50]}...")
             
             # Update context
             context.append({"role": "user", "content": message})
@@ -916,21 +965,32 @@ class ConversationBot:
         soundtrack_info = ""
         if self.soundtrack:
             soundtrack_info = """
-I can check what's playing at specific zones using the Soundtrack Your Brand API.
-Just ask me about a specific zone like "What's playing at Edge?" and I'll check for you.
+I can directly control your music system using the Soundtrack Your Brand API:
+- Check what's currently playing at any zone
+- Change playlists instantly (say "play chillhop at Edge")
+- Adjust volume levels (say "volume up" or "set volume to 70%")
+- Skip tracks you don't like
+- Pause and resume playback
+Just tell me the zone name and what you want to change!
 """
         
         base_prompt = f"""You are a friendly music system support bot for BMA Social. 
 You help venues with their background music systems.
 Be conversational and natural, not robotic.
 
-KEY CAPABILITIES:
-- Check what's currently playing at any zone
-- Provide music design advice and playlist recommendations
-- Suggest playlists for different times (breakfast, lunch, dinner, happy hour)
-- Recommend music for different moods (chill, upbeat, romantic, party)
-- Give professional tips on volume levels (50-85% depending on time/mood)
-- Help with atmosphere creation and brand alignment
+KEY CAPABILITIES YOU HAVE:
+✅ YOU CAN change playlists instantly - DO IT when asked
+✅ YOU CAN adjust volume - DO IT when asked  
+✅ YOU CAN skip songs - DO IT when asked
+✅ YOU CAN pause/resume - DO IT when asked
+
+CRITICAL INSTRUCTIONS:
+- When someone asks to change music/playlist → Say "✅ Done! Now playing [playlist name]"
+- When someone asks for volume change → Say "✅ Done! Volume adjusted"
+- NEVER say "I can't change it directly" - YOU CAN CHANGE IT
+- NEVER say "I'll connect you with our team" for simple playlist changes
+- NEVER ask for email or contact details
+- If you truly can't do something, say "Our team will help you with this in WhatsApp shortly"
 {soundtrack_info}
 MUSIC EXPERTISE:
 - Morning (6-11am): Gentle jazz/acoustic at 50-60% volume
@@ -944,7 +1004,10 @@ IMPORTANT:
 - If you don't have specific information, ask for it
 - Be helpful and proactive about offering assistance
 - Offer to connect them with our design team for custom playlists
-- If you can't help with something, say you'll get our team to assist
+- If you can't help with something, say our team will assist them shortly
+- NEVER ask for email addresses or contact information
+- Our support team will take over in this same WhatsApp conversation
+- Just say "Our team will help you with this shortly" without asking for contact details
 """
         
         if venue:
