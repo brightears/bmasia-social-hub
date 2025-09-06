@@ -193,15 +193,21 @@ class ConversationBot:
         try:
             # Find zones for the venue
             zones = self.soundtrack.find_venue_zones(venue_name)
+            logger.info(f"Found {len(zones) if zones else 0} zones for {venue_name}")
             
             if not zones:
                 return f"I couldn't find any zones for {venue_name} in the Soundtrack system."
+            
+            # Log available zones
+            zone_names = [z.get('name', 'Unknown') for z in zones]
+            logger.info(f"Available zones: {zone_names}")
             
             # Find the specific zone
             target_zone = None
             for zone in zones:
                 if zone_name.lower() in zone.get('name', '').lower():
                     target_zone = zone
+                    logger.info(f"Found matching zone: {zone.get('name')} with ID: {zone.get('id')}")
                     break
             
             if not target_zone:
@@ -210,16 +216,24 @@ class ConversationBot:
             
             # Get zone status
             zone_status = self.soundtrack.get_zone_status(target_zone['id'])
+            logger.info(f"Zone status for {zone_name}: {zone_status}")
             
             if 'error' in zone_status:
                 return f"I couldn't check the status of {zone_name}: {zone_status['error']}"
             
-            # Build response
+            # Build response based on actual API response
             if zone_status.get('is_playing'):
                 playlist = zone_status.get('current_playlist', 'Unknown playlist')
-                return f"{zone_name} is currently playing from the playlist: {playlist}. Volume is set to {zone_status.get('volume', 'unknown')}%."
+                volume = zone_status.get('volume', 'unknown')
+                return f"{zone_name} is currently playing from the playlist: {playlist}. Volume is set to {volume}%."
             else:
-                return f"{zone_name} is currently not playing any music. The zone appears to be paused or offline."
+                # Provide more detail about why it's not playing
+                if zone_status.get('device_status') == 'offline':
+                    return f"{zone_name} appears to be offline. The Soundtrack player may be disconnected or powered off."
+                elif zone_status.get('is_paused'):
+                    return f"{zone_name} is currently paused. The music can be resumed from the Soundtrack app."
+                else:
+                    return f"{zone_name} is currently not playing any music. Status: {zone_status.get('device_status', 'unknown')}"
             
         except Exception as e:
             logger.error(f"Error checking zone music: {e}")
