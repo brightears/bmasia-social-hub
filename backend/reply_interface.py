@@ -218,6 +218,9 @@ def create_reply_endpoint(app: FastAPI):
                 direction="outbound"
             )
             
+            # Switch to human mode - future messages bypass bot
+            conversation_tracker.set_human_mode(thread_key)
+            
             # Send via appropriate platform
             if platform.lower() == "whatsapp":
                 # Send WhatsApp message using Meta API

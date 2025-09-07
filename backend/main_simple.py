@@ -239,44 +239,99 @@ async def whatsapp_webhook(request: Request):
                 for change in entry.get("changes", []):
                     if change.get("field") == "messages":
                         messages = change.get("value", {}).get("messages", [])
+                        contacts = change.get("value", {}).get("contacts", [])
+                        customer_name = contacts[0].get("profile", {}).get("name", "Customer") if contacts else "Customer"
+                        
                         for msg in messages:
                             if msg.get("type") == "text":
                                 text = msg.get("text", {}).get("body", "")
                                 from_number = msg.get("from", "")
+                                response = ""  # Initialize response
                                 
-                                if music_bot and text:
+                                # Check if conversation is in human mode
+                                from conversation_tracker import conversation_tracker
+                                
+                                if conversation_tracker.is_human_mode(from_number):
+                                    # Human is handling - forward directly to Google Chat
+                                    logger.info(f"Human mode active for {from_number} - forwarding to Google Chat")
+                                    
+                                    # Get the active conversation to continue the thread
+                                    active_conv = conversation_tracker.get_active_conversation(from_number)
+                                    if active_conv:
+                                        # Send to Google Chat in the same thread
+                                        from google_chat_client import chat_client, Department, Priority
+                                        
+                                        notification_sent = chat_client.send_notification(
+                                            message=f"Customer reply: {text}",
+                                            venue_name=active_conv.get("venue_name", "Unknown"),
+                                            venue_data=None,
+                                            user_info={
+                                                'name': customer_name,
+                                                'phone': from_number,
+                                                'platform': 'WhatsApp'
+                                            },
+                                            department=Department.GENERAL,
+                                            priority=Priority.NORMAL,
+                                            context="Continuing conversation with support"
+                                        )
+                                        
+                                        # Add to conversation history
+                                        conversation_tracker.add_message(
+                                            thread_key=active_conv.get("thread_key"),
+                                            message=text,
+                                            sender=customer_name,
+                                            direction="inbound"
+                                        )
+                                        
+                                        # Send acknowledgment to customer
+                                        response = "Your message has been received by our support team. They'll respond shortly."
+                                    else:
+                                        # Fallback to bot if no active conversation found
+                                        if music_bot and text:
+                                            response = music_bot.process_message(text, from_number, customer_name)
+                                            logger.info(f"Bot response: {response}")
+                                        else:
+                                            response = "Message received. Support will respond soon."
+                                    
+                                elif music_bot and text:
+                                    # Normal bot processing
                                     response = music_bot.process_message(
                                         text,
                                         from_number,
-                                        None
+                                        customer_name
                                     )
                                     logger.info(f"Bot response: {response}")
+                                else:
+                                    response = "Thank you for your message. How can I help you today?"
                                     
-                                    # Send response back via WhatsApp API
-                                    import requests
-                                    whatsapp_token = os.environ.get('WHATSAPP_ACCESS_TOKEN')
-                                    phone_number_id = change.get("value", {}).get("metadata", {}).get("phone_number_id")
+                                # Send response back via WhatsApp API (for all cases)
+                                import requests
+                                whatsapp_token = os.environ.get('WHATSAPP_ACCESS_TOKEN')
+                                phone_number_id = change.get("value", {}).get("metadata", {}).get("phone_number_id")
+                                
+                                if whatsapp_token and phone_number_id and response:
+                                    url = f"https://graph.facebook.com/v17.0/{phone_number_id}/messages"
+                                    headers = {
+                                        "Authorization": f"Bearer {whatsapp_token}",
+                                        "Content-Type": "application/json"
+                                    }
+                                    payload = {
+                                        "messaging_product": "whatsapp",
+                                        "to": from_number,
+                                        "text": {"body": response}
+                                    }
                                     
-                                    if whatsapp_token and phone_number_id:
-                                        url = f"https://graph.facebook.com/v17.0/{phone_number_id}/messages"
-                                        headers = {
-                                            "Authorization": f"Bearer {whatsapp_token}",
-                                            "Content-Type": "application/json"
-                                        }
-                                        payload = {
-                                            "messaging_product": "whatsapp",
-                                            "to": from_number,
-                                            "text": {"body": response}
-                                        }
-                                        
-                                        try:
-                                            send_response = requests.post(url, headers=headers, json=payload)
-                                            if send_response.status_code == 200:
-                                                logger.info(f"WhatsApp response sent to {from_number}")
-                                            else:
-                                                logger.error(f"Failed to send WhatsApp response: {send_response.text}")
-                                        except Exception as e:
-                                            logger.error(f"Error sending WhatsApp response: {e}")
+                                    try:
+                                        send_response = requests.post(url, headers=headers, json=payload)
+                                        if send_response.status_code == 200:
+                                            logger.info(f"WhatsApp response sent to {from_number}")
+                                        else:
+                                            logger.error(f"Failed to send WhatsApp response: {send_response.text}")
+                                    except Exception as e:
+                                        logger.error(f"Error sending WhatsApp response: {e}")
+                                else:
+                                    if not response:
+                                        logger.warning("No response to send")
                                     else:
                                         logger.warning("WhatsApp token or phone_number_id not configured")
         

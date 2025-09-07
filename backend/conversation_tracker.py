@@ -44,6 +44,7 @@ class ConversationTracker:
             "venue_name": venue_name,
             "platform": platform,
             "status": "active",
+            "mode": "bot",  # bot or human
             "created_at": datetime.now().isoformat(),
             "last_message": datetime.now().isoformat(),
             "messages": []
@@ -113,6 +114,21 @@ class ConversationTracker:
             self.conversations[conversation_id]["closed_at"] = datetime.now().isoformat()
             logger.info(f"Closed conversation {conversation_id}")
             
+    def set_human_mode(self, thread_key: str):
+        """Switch conversation to human mode when support takes over"""
+        conversation_id = self.thread_mapping.get(thread_key)
+        if conversation_id and conversation_id in self.conversations:
+            self.conversations[conversation_id]["mode"] = "human"
+            logger.info(f"Conversation {conversation_id} switched to human mode")
+    
+    def is_human_mode(self, customer_phone: str) -> bool:
+        """Check if customer's conversation is in human mode"""
+        # Find the most recent active conversation for this phone
+        conv = self.get_active_conversation(customer_phone)
+        if conv:
+            return conv.get("mode") == "human"
+        return False
+    
     def cleanup_old_conversations(self, hours: int = 24):
         """Clean up conversations older than specified hours"""
         
