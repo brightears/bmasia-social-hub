@@ -801,7 +801,11 @@ class ConversationBot:
             'create playlist', 'custom playlist', 'block song', 'block this song', 'never play',
             'schedule music', 'morning music', 'evening music', 'dinner music',
             'music atmosphere', 'curate', 'music curation', 'playlist suggestion',
-            'recommend playlist', 'better music', 'improve music', 'music strategy'
+            'recommend playlist', 'better music', 'improve music', 'music strategy',
+            'get me some music', 'setup music', 'set up music', 'private event', 'special event',
+            'event tomorrow', 'party music', 'wedding music', 'birthday music', 'celebration music',
+            'music for', 'playlist for', 'need music', 'want music', 'different music',
+            'change the music', 'switch music', 'update music', 'new music'
         ]
         
         is_urgent = any(keyword in message_lower for keyword in urgent_keywords)
@@ -918,11 +922,15 @@ class ConversationBot:
             from google_chat_client import Department, Priority
             
             # Determine the specific request type
-            if any(word in message_lower for word in ['redesign', 'music design', 'atmosphere', 'curate', 'strategy']):
+            if any(word in message_lower for word in ['private event', 'special event', 'wedding', 'birthday', 'party', 'celebration', 'event tomorrow']):
+                issue_type = "Event Music Request"
+                department = Department.OPERATIONS
+                priority = Priority.HIGH  # Events are time-sensitive
+            elif any(word in message_lower for word in ['redesign', 'music design', 'atmosphere', 'curate', 'strategy']):
                 issue_type = "Music Design Request"
                 department = Department.DESIGN
                 priority = Priority.NORMAL
-            elif any(word in message_lower for word in ['playlist', 'change playlist', 'different music']):
+            elif any(word in message_lower for word in ['playlist', 'change playlist', 'different music', 'get me some music', 'setup music']):
                 issue_type = "Playlist Change Request"
                 department = Department.OPERATIONS
                 priority = Priority.NORMAL
@@ -1090,25 +1098,46 @@ class ConversationBot:
                         return response
                 
                 if zone_name:
-                    # Determine if this is a simple or complex request
+                    # Determine if this is a simple or complex request (things API cannot do)
                     complex_keywords = ['schedule', 'entire', 'all zones', 'whole venue', 'custom', 
-                                      'special event', 'wedding', 'conference', 'brand', 'identity']
+                                      'special event', 'wedding', 'conference', 'brand', 'identity',
+                                      'private event', 'party', 'birthday', 'celebration', 'tomorrow',
+                                      'get me some music', 'setup music', 'set up music', 'need music',
+                                      'event music', 'music for', 'playlist for', 'create playlist',
+                                      'change playlist', 'different playlist', 'new playlist',
+                                      'block song', 'never play', 'redesign', 'music design',
+                                      'atmosphere', 'curate', 'recommend playlist', 'suggest playlist']
                     
                     is_complex = any(word in message_lower for word in complex_keywords)
                     
                     if is_complex:
                         # Complex request - notify support team
-                        response = f"I understand you need specialized assistance with:\n"
-                        if 'schedule' in message_lower:
-                            response += "• Custom music scheduling\n"
-                        if 'all zones' in message_lower or 'entire' in message_lower:
-                            response += "• Multi-zone coordination\n"
-                        if 'event' in message_lower:
-                            response += "• Special event programming\n"
-                        if 'brand' in message_lower or 'identity' in message_lower:
-                            response += "• Brand-aligned music curation\n"
+                        # Determine the type of request
+                        if any(word in message_lower for word in ['event', 'party', 'wedding', 'birthday', 'celebration', 'tomorrow']):
+                            response = f"🎉 **Event Music Request for {zone_name}**\n\n"
+                            response += "I understand you need music for a special event. "
+                            response += "Due to licensing requirements, our team needs to set this up for you.\n\n"
+                        elif any(word in message_lower for word in ['playlist', 'change playlist', 'different music', 'get me some music']):
+                            response = f"🎵 **Playlist Change Request for {zone_name}**\n\n"
+                            response += "I understand you'd like to change the playlist. "
+                            response += "Due to licensing restrictions, our team will handle this for you.\n\n"
+                        elif any(word in message_lower for word in ['block', 'never play']):
+                            response = f"🚫 **Song Blocking Request for {zone_name}**\n\n"
+                            response += "I'll get our team to block that song from your playlist.\n\n"
+                        else:
+                            response = f"🎨 **Music Customization Request for {zone_name}**\n\n"
+                            response += "I understand you need specialized music assistance.\n\n"
                         
-                        response += "\n🎨 **Perfect! I'm passing this to our music design team right away.**\n\n"
+                        response += "**I've notified our team who will:**\n"
+                        if 'event' in message_lower or 'party' in message_lower:
+                            response += "• Set up the perfect music for your event\n"
+                            response += "• Ensure everything is ready on time\n"
+                        elif 'playlist' in message_lower:
+                            response += "• Update your playlist selection\n"
+                            response += "• Apply the changes immediately\n"
+                        else:
+                            response += "• Handle your music customization\n"
+                            response += "• Make the necessary adjustments\n"
                         
                         # Send Google Chat notification
                         notification_sent = self.send_support_notification(
