@@ -46,6 +46,8 @@ class GoogleChatClient:
     
     # Single BMAsia All group space
     BMASIA_ALL_SPACE = os.getenv('GCHAT_BMASIA_ALL_SPACE', '')
+    # Customer Support space for WhatsApp/LINE conversations
+    CUSTOMER_SUPPORT_SPACE = os.getenv('GCHAT_CUSTOMER_SUPPORT_SPACE', 'spaces/AAQA1j6BK08')
     
     # Smart routing rules to categorize messages by department and priority
     ROUTING_RULES = {
@@ -112,10 +114,11 @@ class GoogleChatClient:
             return False
         
         try:
-            # Use same credentials as other Google services
-            creds_json = os.getenv('GOOGLE_CREDENTIALS_JSON')
-            if creds_json:
-                creds_dict = json.loads(creds_json)
+            # Try to load credentials from various sources
+            from google_credentials_loader import load_google_credentials
+            creds_dict = load_google_credentials()
+            
+            if creds_dict:
                 SCOPES = ['https://www.googleapis.com/auth/chat.bot']
                 
                 credentials = service_account.Credentials.from_service_account_info(
@@ -124,13 +127,14 @@ class GoogleChatClient:
                 )
                 
                 self.service = build('chat', 'v1', credentials=credentials)
-                logger.info("✅ Google Chat client initialized")
+                logger.info("✅ Google Chat client initialized with BMA Social Support Bot")
                 
                 # Verify space access
                 self._verify_space()
                 return True
             else:
-                logger.warning("No Google credentials found")
+                logger.warning("No Google credentials found - notifications disabled")
+                logger.warning("To enable: Add bamboo-theorem-399923-credentials.json or set GOOGLE_CREDENTIALS_JSON")
                 return False
                 
         except Exception as e:
@@ -211,19 +215,47 @@ class GoogleChatClient:
             logger.warning("Cannot access BMAsia All space")
             return False
         
+        # Create thread key for conversation tracking
+        customer_phone = user_info.get('phone', 'unknown')
+        customer_name = user_info.get('name', 'Customer')
+        platform = user_info.get('platform', 'WhatsApp')
+        thread_key = f"{platform.lower()}_{customer_phone}_{venue_name}".replace(" ", "_").replace("+", "")
+        
+        # Track the conversation
+        from conversation_tracker import conversation_tracker
+        conversation_tracker.create_conversation(
+            customer_phone=customer_phone,
+            customer_name=customer_name,
+            venue_name=venue_name or "Unknown Venue",
+            platform=platform,
+            thread_key=thread_key
+        )
+        
+        # Add the initial message to conversation history
+        conversation_tracker.add_message(
+            thread_key=thread_key,
+            message=message,
+            sender=customer_name,
+            direction="inbound"
+        )
+        
         # Build the Chat message with department tag
         chat_message = self._build_chat_message(
             message, venue_name, venue_data, user_info, department, priority, context
         )
         
+        # Add instruction for two-way communication
+        chat_message["text"] = f"{chat_message.get('text', '')}\n\n💬 Reply in this thread to respond to the customer"
+        
         try:
-            # Send to Google Chat
+            # Send to Customer Support space for WhatsApp/LINE conversations
             result = self.service.spaces().messages().create(
-                parent=self.BMASIA_ALL_SPACE,
-                body=chat_message
+                parent=self.CUSTOMER_SUPPORT_SPACE,
+                body=chat_message,
+                threadKey=thread_key
             ).execute()
             
-            logger.info(f"✅ Notification sent to BMAsia All - {department.value} issue with {priority.value} priority")
+            logger.info(f"✅ Notification sent to Customer Support - {department.value} issue with {priority.value} priority")
             return True
             
         except Exception as e:

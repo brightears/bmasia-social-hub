@@ -300,6 +300,104 @@ async def whatsapp_verify(request: Request):
     
     return {"status": "failed"}
 
+@app.post("/webhooks/google-chat")
+async def google_chat_webhook(request: Request):
+    """Handle incoming messages from Google Chat for two-way communication"""
+    try:
+        data = await request.json()
+        logger.info(f"Google Chat webhook received: {data.get('type', 'unknown')}")
+        
+        # Handle different event types
+        event_type = data.get("type")
+        
+        if event_type == "MESSAGE":
+            # Import here to avoid circular dependency
+            from conversation_tracker import conversation_tracker
+            import requests
+            
+            message = data.get("message", {})
+            text = message.get("text", "").strip()
+            space = data.get("space", {})
+            user = data.get("user", {})
+            thread = message.get("thread", {})
+            
+            # Get thread name to find the conversation
+            thread_name = thread.get("name", "")
+            
+            # Extract thread key from the thread name
+            # Thread name format: spaces/SPACE_ID/threads/THREAD_KEY
+            thread_key = thread_name.split("/")[-1] if "/" in thread_name else thread_name
+            
+            # Look up the conversation
+            conversation = conversation_tracker.get_conversation_by_thread(thread_key)
+            
+            if conversation:
+                customer_phone = conversation["customer_phone"]
+                customer_name = conversation["customer_name"]
+                
+                # Send the reply to WhatsApp
+                whatsapp_token = os.getenv('WHATSAPP_ACCESS_TOKEN')
+                phone_number_id = os.getenv('WHATSAPP_PHONE_NUMBER_ID')
+                
+                if whatsapp_token and phone_number_id:
+                    url = f"https://graph.facebook.com/v17.0/{phone_number_id}/messages"
+                    headers = {
+                        "Authorization": f"Bearer {whatsapp_token}",
+                        "Content-Type": "application/json"
+                    }
+                    payload = {
+                        "messaging_product": "whatsapp",
+                        "to": customer_phone,
+                        "type": "text",
+                        "text": {"body": text}
+                    }
+                    
+                    try:
+                        response = requests.post(url, headers=headers, json=payload)
+                        if response.status_code == 200:
+                            logger.info(f"Reply sent to WhatsApp customer {customer_phone}")
+                            
+                            # Track the message
+                            conversation_tracker.add_message(
+                                thread_key=thread_key,
+                                message=text,
+                                sender=user.get("displayName", "Support Agent"),
+                                direction="outbound"
+                            )
+                            
+                            # Send confirmation back to Google Chat
+                            return {"text": f"✅ Reply sent to {customer_name}"}
+                        else:
+                            logger.error(f"Failed to send WhatsApp message: {response.text}")
+                            return {"text": f"❌ Failed to send reply: {response.status_code}"}
+                    except Exception as e:
+                        logger.error(f"Error sending WhatsApp message: {e}")
+                        return {"text": f"❌ Error: {str(e)}"}
+                else:
+                    return {"text": "❌ WhatsApp not configured"}
+            else:
+                logger.warning(f"No conversation found for thread {thread_key}")
+                return {"text": "⚠️ No active conversation found for this thread"}
+                
+        elif event_type == "ADDED_TO_SPACE":
+            # Bot was added to a space
+            space_name = data.get("space", {}).get("displayName", "Unknown")
+            return {"text": f"👋 BMA Customer Support Bot is ready to relay messages in {space_name}!"}
+            
+        elif event_type == "REMOVED_FROM_SPACE":
+            # Bot was removed from a space
+            logger.info("Bot removed from space")
+            return {"status": "ok"}
+            
+        else:
+            # Other event types
+            logger.info(f"Unhandled event type: {event_type}")
+            return {"status": "ok"}
+            
+    except Exception as e:
+        logger.error(f"Google Chat webhook error: {e}", exc_info=True)
+        return {"text": f"❌ Error processing message: {str(e)}"}
+
 @app.get("/api/v1/status")
 async def api_status():
     """API status with database and cache check"""

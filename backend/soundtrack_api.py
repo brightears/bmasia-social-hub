@@ -598,18 +598,21 @@ class SoundtrackAPI:
         # Skip capability check - just try to set the playlist directly
         # The capability check was changing volume which is disruptive
         
+        # CORRECTED: Using the REAL mutation that actually exists
         query = """
-        mutation SetPlaylist($input: SetPlaylistInput!) {
-            setPlaylist(input: $input) {
+        mutation SetPlayFrom($input: SetPlayFromInput!) {
+            setPlayFrom(input: $input) {
                 __typename
             }
         }
         """
         
+        logger.info(f"Attempting to set zone source using setPlayFrom mutation")
+        
         result = self._execute_query(query, {
             'input': {
                 'soundZone': zone_id,
-                'playlist': playlist_id
+                'source': playlist_id  # Changed from 'playlist' to 'source'
             }
         })
         
