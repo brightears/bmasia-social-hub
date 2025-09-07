@@ -142,16 +142,16 @@ class GoogleChatClient:
             return False
     
     def _verify_space(self):
-        """Verify access to BMAsia All Chat space"""
-        if self.BMASIA_ALL_SPACE:
+        """Verify access to Customer Support Chat space"""
+        if self.CUSTOMER_SUPPORT_SPACE:
             try:
                 # Test space access
-                self.service.spaces().get(name=self.BMASIA_ALL_SPACE).execute()
+                self.service.spaces().get(name=self.CUSTOMER_SUPPORT_SPACE).execute()
                 self.space_verified = True
-                logger.info("✅ Verified access to BMAsia All space")
+                logger.info("✅ Verified access to Customer Support space")
             except Exception as e:
                 self.space_verified = False
-                logger.warning(f"Cannot access BMAsia All space: {e}")
+                logger.warning(f"Cannot access Customer Support space: {e}")
     
     def analyze_message(self, message: str, venue_name: str = None) -> tuple[Department, Priority]:
         """
@@ -207,12 +207,9 @@ class GoogleChatClient:
             priority = priority or auto_priority
         
         # Check if space is configured and verified
-        if not self.BMASIA_ALL_SPACE:
-            logger.warning("No BMAsia All space configured")
-            return False
-        
-        if not self.space_verified:
-            logger.warning("Cannot access BMAsia All space")
+        # Use Customer Support space for notifications
+        if not self.CUSTOMER_SUPPORT_SPACE:
+            logger.warning("No Customer Support space configured")
             return False
         
         # Create thread key for conversation tracking
