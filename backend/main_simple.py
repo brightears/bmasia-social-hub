@@ -300,6 +300,11 @@ async def whatsapp_verify(request: Request):
     
     return {"status": "failed"}
 
+# Add reply interface for two-way communication
+from reply_interface import create_reply_endpoint
+create_reply_endpoint(app)
+logger.info("✅ Reply interface ready at /reply/{thread_key}")
+
 @app.post("/webhooks/google-chat")
 async def google_chat_webhook(request: Request):
     """Handle incoming messages from Google Chat for two-way communication"""

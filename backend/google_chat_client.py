@@ -238,7 +238,7 @@ class GoogleChatClient:
         
         # Build the Chat message with department tag
         chat_message = self._build_chat_message(
-            message, venue_name, venue_data, user_info, department, priority, context
+            message, venue_name, venue_data, user_info, department, priority, context, thread_key
         )
         
         # Add instruction for two-way communication
@@ -267,7 +267,8 @@ class GoogleChatClient:
         user_info: Dict,
         department: Department,
         priority: Priority,
-        context: str
+        context: str,
+        thread_key: str = None
     ) -> Dict:
         """Build a formatted Google Chat message with card"""
         
@@ -381,6 +382,26 @@ class GoogleChatClient:
                     }
                 ]
             })
+        
+        # Add reply button
+        sections.append({
+            "widgets": [
+                {
+                    "buttons": [
+                        {
+                            "textButton": {
+                                "text": "📝 Reply to Customer",
+                                "onClick": {
+                                    "openLink": {
+                                        "url": f"https://bma-social-api-q9uu.onrender.com/reply/{thread_key}"
+                                    }
+                                }
+                            }
+                        }
+                    ]
+                }
+            ]
+        })
         
         # Add timestamp
         sections.append({
