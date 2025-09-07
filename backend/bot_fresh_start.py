@@ -142,6 +142,7 @@ class ConversationBot:
         self.model = 'gpt-4o-mini'  # Using verified working model
         logger.info(f"Using OpenAI model: {self.model}")
         self.venue_manager = VenueDataManager()
+        self.product_manager = ProductInfoManager()
         
         # Initialize Soundtrack API if available
         self.soundtrack = None
@@ -1030,6 +1031,101 @@ class ConversationBot:
             
             return response
         
+        # PRIORITY 3: Check for product/sales inquiries (prospects or technical questions)
+        product_keywords = [
+            'how much', 'price', 'pricing', 'cost', 'package', 'plan',
+            'what is soundtrack', 'what is beat breeze', 'tell me about',
+            'difference between', 'compare', 'vs', 'versus',
+            'can i use spotify', 'why not spotify', 'why not youtube',
+            'how many zones', 'what is a zone', 'setup', 'installation',
+            'trial', 'demo', 'free trial', 'test',
+            'features', 'benefits', 'capabilities',
+            'legal', 'license', 'copyright'
+        ]
+        
+        is_product_inquiry = any(keyword in message_lower for keyword in product_keywords)
+        
+        if is_product_inquiry and not venue:  # Likely a prospect
+            logger.info(f"📊 Product inquiry detected: {message[:100]}...")
+            
+            # Get relevant product info
+            product_info = self.product_manager.get_product_info(message)
+            
+            if product_info:
+                response = "💼 **Product Information**\n\n"
+                
+                # Determine inquiry type and provide targeted response
+                if 'price' in message_lower or 'cost' in message_lower:
+                    response += "Here's our pricing:\n\n"
+                    if 'beat breeze' in message_lower:
+                        response += "**Beat Breeze** (Affordable Solution):\n"
+                        response += "• Basic: $15/month per location\n"
+                        response += "• Pro: $25/month per location\n\n"
+                    else:
+                        response += "**Soundtrack Your Brand** (Premium Solution):\n"
+                        response += "• Essential: $29/month per zone\n"
+                        response += "• Unlimited: $39/month per zone\n"
+                        response += "• Enterprise: Custom pricing\n\n"
+                    response += "Would you like a detailed quote for your venue?"
+                    
+                elif 'spotify' in message_lower or 'youtube' in message_lower:
+                    response += "⚠️ **Why Not Spotify/YouTube?**\n\n"
+                    response += "Consumer streaming services are NOT licensed for commercial use. "
+                    response += "Using them in your business can result in:\n"
+                    response += "• Legal action from copyright holders\n"
+                    response += "• Fines up to $150,000 per song\n"
+                    response += "• Damage to your business reputation\n\n"
+                    response += "Our solutions include proper commercial licensing, protecting your business."
+                    
+                elif 'compare' in message_lower or 'difference' in message_lower:
+                    response += "**Soundtrack Your Brand** vs **Beat Breeze**:\n\n"
+                    response += "**SYB**: Premium features, unlimited playlists, Spotify integration\n"
+                    response += "**Beat Breeze**: Affordable, simple setup, perfect for small venues\n\n"
+                    response += "Which type of venue are you operating?"
+                    
+                else:
+                    # General product info
+                    response += "We offer professional background music solutions:\n\n"
+                    response += "**Soundtrack Your Brand**: Premium solution with unlimited playlists\n"
+                    response += "**Beat Breeze**: Affordable solution for smaller venues\n\n"
+                    response += "Both include commercial licensing and local support.\n\n"
+                    response += "What specific information would you like to know?"
+                
+                # Add call to action
+                response += "\n\n📞 **Want to discuss your needs?**\n"
+                response += "Our sales team can provide a custom quote and free consultation."
+                
+                # Check if we should escalate to sales
+                if any(word in message_lower for word in ['quote', 'discount', 'special price', 'negotiate', 'deal']):
+                    # Notify sales team
+                    try:
+                        from google_chat_client import chat_client, Department, Priority
+                        notification_sent = chat_client.send_notification(
+                            message=f"🔔 Sales Inquiry: {message}",
+                            venue_name="Prospect",
+                            venue_data=None,
+                            user_info={'phone': phone, 'platform': 'WhatsApp'},
+                            department=Department.SALES,
+                            priority=Priority.NORMAL,
+                            context="New prospect inquiry"
+                        )
+                        if notification_sent:
+                            response += "\n✅ I've notified our sales team who will contact you shortly with a personalized offer!"
+                    except:
+                        pass
+            else:
+                # No product info available, provide basic response
+                response = "Thank you for your interest in our background music solutions!\n\n"
+                response += "We offer both premium (Soundtrack Your Brand) and affordable (Beat Breeze) options.\n\n"
+                response += "Our sales team can help you choose the best solution for your venue. They'll contact you shortly!"
+            
+            # Save context and return
+            context.append({"role": "user", "content": message})
+            context.append({"role": "assistant", "content": response})
+            self.save_conversation_context(phone, context)
+            
+            return response
+        
         # Check if asking about music playing in a specific zone
         if venue:
             # Check for music status requests
@@ -1313,9 +1409,21 @@ NOTE: Due to licensing restrictions, playlist changes must be done through the S
 I cannot change playlists directly, but I can help with playback controls and volume!
 """
         
+        # Add product knowledge if available
+        product_knowledge = ""
+        if hasattr(self, 'product_manager') and self.product_manager.raw_content:
+            product_knowledge = """\n
+PRODUCT KNOWLEDGE:
+- Soundtrack Your Brand: Premium solution starting at $29/zone/month
+- Beat Breeze: Affordable solution starting at $15/location/month
+- Both include commercial licensing (Spotify/YouTube are illegal for business use)
+- Setup requires internet connection and audio system
+- Support available in Thai and English
+"""
+        
         base_prompt = f"""You are a friendly music system support bot for BMA Social. 
 You help venues with their background music systems.
-Be conversational and natural, not robotic.
+Be conversational and natural, not robotic.{product_knowledge}
 
 HONEST CAPABILITIES (Based on API limitations):
 ✅ YOU CAN adjust volume levels
