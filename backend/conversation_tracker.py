@@ -100,7 +100,8 @@ class ConversationTracker:
                 "message": message,
                 "direction": direction  # inbound (from customer) or outbound (to customer)
             })
-            conversation["last_message"] = datetime.now().isoformat()
+            conversation["last_message"] = message  # Store the actual message text
+            conversation["last_message_time"] = datetime.now().isoformat()
             logger.info(f"Added message to conversation {conversation_id}")
             
     def close_conversation(self, thread_key: str):

@@ -175,9 +175,8 @@ def create_reply_endpoint(app: FastAPI):
                 status_code=404
             )
         
-        # Get recent messages for context
-        messages = conversation_tracker.get_conversation_history(thread_key, limit=5)
-        latest_message = messages[0] if messages else None
+        # Get the latest message from conversation data
+        latest_message = conversation.get("last_message", None)
         
         # Render the form with conversation details
         html_content = REPLY_FORM_HTML.replace("{{ venue_name }}", conversation.get("venue_name", "Unknown"))
@@ -185,10 +184,16 @@ def create_reply_endpoint(app: FastAPI):
         html_content = html_content.replace("{{ phone }}", conversation.get("customer_phone", ""))
         html_content = html_content.replace("{{ platform }}", conversation.get("platform", "WhatsApp"))
         
+        # Handle message display
         if latest_message:
-            html_content = html_content.replace("{{ message }}", latest_message.get("message", ""))
+            html_content = html_content.replace("{{ message }}", str(latest_message))
+            # Make sure the if block shows
+            html_content = html_content.replace("{% if message %}", "")
+            html_content = html_content.replace("{% endif %}", "")
         else:
-            html_content = html_content.replace("{% if message %}", "{% if False %}")
+            # Remove the entire message block if no message
+            import re
+            html_content = re.sub(r'{% if message %}.*?{% endif %}', '', html_content, flags=re.DOTALL)
         
         return HTMLResponse(content=html_content)
     
