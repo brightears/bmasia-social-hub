@@ -777,8 +777,126 @@ class ConversationBot:
                     venue = self.venue_manager.get_venue_info(msg['venue'])
                     break
         
-        # Check if asking about music playing in a specific zone
         message_lower = message.lower()
+        
+        # PRIORITY 1: Check for urgent/critical issues that need immediate escalation
+        urgent_keywords = [
+            'urgent', 'emergency', 'all zones offline', 'system down', 'completely broken',
+            'not working at all', 'totally dead', 'critical', 'asap', 'immediately',
+            'vip event', 'important event', 'help!', 'lawsuit', 'legal action'
+        ]
+        
+        critical_keywords = [
+            'cancel', 'cancellation', 'terminate contract', 'unhappy', 'terrible service',
+            'compensation', 'refund', 'complaint', 'frustrated', 'angry'
+        ]
+        
+        is_urgent = any(keyword in message_lower for keyword in urgent_keywords)
+        is_critical = any(keyword in message_lower for keyword in critical_keywords)
+        
+        if is_urgent or is_critical:
+            # Determine department and priority
+            from google_chat_client import Department, Priority
+            
+            if 'all zones offline' in message_lower or 'system down' in message_lower or 'completely broken' in message_lower:
+                department = Department.OPERATIONS
+                priority = Priority.CRITICAL
+                issue_type = "System failure"
+            elif 'cancel' in message_lower or 'terminate' in message_lower:
+                department = Department.SALES
+                priority = Priority.CRITICAL
+                issue_type = "Cancellation risk"
+            elif 'payment' in message_lower or 'invoice' in message_lower or 'refund' in message_lower:
+                department = Department.FINANCE
+                priority = Priority.HIGH
+                issue_type = "Financial issue"
+            elif is_urgent:
+                department = Department.OPERATIONS
+                priority = Priority.CRITICAL
+                issue_type = "Urgent technical issue"
+            else:
+                department = Department.GENERAL
+                priority = Priority.HIGH
+                issue_type = "Customer complaint"
+            
+            # Send immediate notification to Google Chat
+            venue_name = venue['name'] if venue else 'Unknown Venue'
+            
+            notification_sent = False
+            try:
+                from google_chat_client import chat_client
+                
+                # Build user info
+                user_info = {
+                    'name': user_name or 'Customer',
+                    'phone': phone,
+                    'platform': 'WhatsApp'
+                }
+                
+                # Build venue data if available
+                venue_data = None
+                if venue:
+                    venue_data = {
+                        'zones': len(venue.get('zones', [])),
+                        'contact': venue.get('contact_name', '')
+                    }
+                
+                # Send notification with proper categorization
+                notification_sent = chat_client.send_notification(
+                    message=message,
+                    venue_name=venue_name,
+                    venue_data=venue_data,
+                    user_info=user_info,
+                    department=department,
+                    priority=priority,
+                    context=f"{issue_type}: Immediate attention required"
+                )
+                
+                if notification_sent:
+                    logger.info(f"✅ URGENT notification sent to Google Chat - {issue_type}")
+                else:
+                    logger.error(f"❌ Failed to send urgent notification")
+                    
+            except Exception as e:
+                logger.error(f"Error sending urgent notification: {e}")
+            
+            # Return immediate response
+            if notification_sent:
+                if 'all zones offline' in message_lower or 'system down' in message_lower:
+                    response = "🚨 **I understand this is critical!**\n\n"
+                    response += "Our technical team has been alerted immediately about your system being offline. "
+                    response += "They're mobilizing right now to investigate and restore your music system.\n\n"
+                    response += "**What happens next:**\n"
+                    response += "• A technician will contact you within minutes\n"
+                    response += "• Remote diagnostics will begin immediately\n"
+                    response += "• If needed, on-site support will be dispatched\n\n"
+                    response += "Your issue has been marked as CRITICAL priority. We'll get your music back online as quickly as possible!"
+                elif 'vip event' in message_lower or 'important event' in message_lower:
+                    response = "🎯 **VIP Event Support Activated!**\n\n"
+                    response += "I've immediately notified our operations team about your event. "
+                    response += "They understand the urgency and are prioritizing your venue right now.\n\n"
+                    response += "A specialist will contact you within 5-10 minutes to ensure everything runs perfectly for your event."
+                elif 'cancel' in message_lower:
+                    response = "I understand you're considering cancellation. This has been immediately escalated to our management team.\n\n"
+                    response += "A senior account manager will contact you very shortly to address your concerns and find a solution."
+                else:
+                    response = "I've immediately escalated this to our support team as a high priority issue.\n\n"
+                    response += "They've been notified and will address this right away. "
+                    response += "You should hear from them very shortly."
+            else:
+                response = "I understand this is urgent. Our team is being notified right now to assist you immediately. "
+                response += "They'll contact you as soon as possible to resolve this issue."
+            
+            # Save context and return
+            context.append({"role": "user", "content": message})
+            context.append({"role": "assistant", "content": response})
+            if venue:
+                context[-1]["venue"] = venue['name']
+            self.save_conversation_context(phone, context)
+            
+            return response
+        
+        # Check if asking about music playing in a specific zone
         if venue:
             # Check for music status requests
             if 'playing' in message_lower or 'current' in message_lower:
