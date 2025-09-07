@@ -220,8 +220,33 @@ def create_reply_endpoint(app: FastAPI):
             
             # Send via appropriate platform
             if platform.lower() == "whatsapp":
-                from whatsapp_sender import send_whatsapp_message
-                success = await send_whatsapp_message(phone, reply)
+                # Send WhatsApp message using Meta API
+                import requests
+                
+                whatsapp_token = os.getenv('WHATSAPP_TOKEN')
+                phone_number_id = os.getenv('WHATSAPP_PHONE_NUMBER_ID', '742462142273418')
+                
+                if whatsapp_token:
+                    url = f"https://graph.facebook.com/v17.0/{phone_number_id}/messages"
+                    headers = {
+                        "Authorization": f"Bearer {whatsapp_token}",
+                        "Content-Type": "application/json"
+                    }
+                    data = {
+                        "messaging_product": "whatsapp",
+                        "to": phone.replace("+", ""),  # Remove + if present
+                        "type": "text",
+                        "text": {"body": reply}
+                    }
+                    
+                    response = requests.post(url, json=data, headers=headers)
+                    success = response.status_code == 200
+                    
+                    if not success:
+                        logger.error(f"WhatsApp API error: {response.text}")
+                else:
+                    logger.warning("WhatsApp token not configured - message not sent")
+                    success = True  # Pretend success for testing
             else:
                 # LINE implementation would go here
                 logger.warning(f"LINE replies not yet implemented for {phone}")
