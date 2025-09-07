@@ -714,10 +714,12 @@ class ConversationBot:
             response += f"**Best Time:** {mood_data['best_time']}\n"
             
             response += "\n💡 **Quick Actions I Can Do:**\n"
-            response += "• Say 'play jazz' to switch genres\n"
             response += "• Say 'volume 70%' to adjust sound\n"
             response += "• Say 'skip song' to change tracks\n"
             response += "• Say 'pause music' to stop playback\n"
+            response += "\n**For Playlist Changes:**\n"
+            response += "Our team needs to handle playlist changes due to licensing. "
+            response += "Just let me know what you'd like and I'll get them to update it for you!\n"
             
         else:
             # Provide general design consultation
@@ -729,11 +731,13 @@ class ConversationBot:
             response += "**🍽️ Dinner (6-10pm):** Sophisticated and elegant\n"
             response += "**🌙 Late Night (10pm+):** Smooth and atmospheric\n\n"
             
-            response += "**I Can Help You:**\n"
-            response += "• Change playlists instantly\n"
+            response += "**I Can Help You Right Now:**\n"
             response += "• Adjust volume (say 'volume up/down')\n"
             response += "• Skip songs you don't like\n"
-            response += "• Pause/resume playback\n\n"
+            response += "• Pause/resume playback\n"
+            response += "• Check what's currently playing\n\n"
+            response += "**For Playlist Changes:**\n"
+            response += "I'll connect you with our team who can update your playlists!\n\n"
             
             response += "What would you like to adjust?"
         
@@ -789,6 +793,15 @@ class ConversationBot:
         critical_keywords = [
             'cancel', 'cancellation', 'terminate contract', 'unhappy', 'terrible service',
             'compensation', 'refund', 'complaint', 'frustrated', 'angry'
+        ]
+        
+        # Music design/playlist requests that API cannot handle
+        music_design_keywords = [
+            'redesign', 'music design', 'change playlist', 'different playlist', 'new playlist',
+            'create playlist', 'custom playlist', 'block song', 'block this song', 'never play',
+            'schedule music', 'morning music', 'evening music', 'dinner music',
+            'music atmosphere', 'curate', 'music curation', 'playlist suggestion',
+            'recommend playlist', 'better music', 'improve music', 'music strategy'
         ]
         
         is_urgent = any(keyword in message_lower for keyword in urgent_keywords)
@@ -886,6 +899,119 @@ class ConversationBot:
             else:
                 response = "I understand this is urgent. Our team is being notified right now to assist you immediately. "
                 response += "They'll contact you as soon as possible to resolve this issue."
+            
+            # Save context and return
+            context.append({"role": "user", "content": message})
+            context.append({"role": "assistant", "content": response})
+            if venue:
+                context[-1]["venue"] = venue['name']
+            self.save_conversation_context(phone, context)
+            
+            return response
+        
+        # PRIORITY 2: Check for music design/playlist requests that API cannot handle
+        is_music_design = any(keyword in message_lower for keyword in music_design_keywords)
+        
+        if is_music_design:
+            logger.info(f"🎨 Music design request detected: {message[:100]}...")
+            
+            from google_chat_client import Department, Priority
+            
+            # Determine the specific request type
+            if any(word in message_lower for word in ['redesign', 'music design', 'atmosphere', 'curate', 'strategy']):
+                issue_type = "Music Design Request"
+                department = Department.DESIGN
+                priority = Priority.NORMAL
+            elif any(word in message_lower for word in ['playlist', 'change playlist', 'different music']):
+                issue_type = "Playlist Change Request"
+                department = Department.OPERATIONS
+                priority = Priority.NORMAL
+            elif any(word in message_lower for word in ['block', 'never play', 'remove song']):
+                issue_type = "Song Blocking Request"
+                department = Department.OPERATIONS
+                priority = Priority.NORMAL
+            elif any(word in message_lower for word in ['schedule', 'morning', 'evening', 'dinner']):
+                issue_type = "Music Scheduling Request"
+                department = Department.DESIGN
+                priority = Priority.NORMAL
+            else:
+                issue_type = "Music Customization Request"
+                department = Department.DESIGN
+                priority = Priority.NORMAL
+            
+            # Send notification to support team
+            venue_name = venue['name'] if venue else 'Unknown Venue'
+            
+            notification_sent = False
+            try:
+                from google_chat_client import chat_client
+                
+                # Build user info
+                user_info = {
+                    'name': user_name or 'Customer',
+                    'phone': phone,
+                    'platform': 'WhatsApp'
+                }
+                
+                # Build venue data if available
+                venue_data = None
+                if venue:
+                    venue_data = {
+                        'zones': len(venue.get('zones', [])),
+                        'contact': venue.get('contact_name', '')
+                    }
+                
+                # Send notification with proper categorization
+                notification_sent = chat_client.send_notification(
+                    message=f"🎨 {issue_type}: {message}",
+                    venue_name=venue_name,
+                    venue_data=venue_data,
+                    user_info=user_info,
+                    department=department,
+                    priority=priority,
+                    context=f"{issue_type} - Requires manual configuration"
+                )
+                
+                if notification_sent:
+                    logger.info(f"✅ Music design request sent to Google Chat - {issue_type}")
+                else:
+                    logger.error(f"❌ Failed to send music design notification")
+                    
+            except Exception as e:
+                logger.error(f"Error sending music design notification: {e}")
+            
+            # Return appropriate response
+            if notification_sent:
+                response = f"🎨 **{issue_type}**\n\n"
+                response += f"I understand you'd like to make changes to the music at {venue_name}.\n\n"
+                response += "Due to music licensing requirements, playlist and music design changes need to be handled by our specialist team. "
+                response += f"I've forwarded your request to our {department.value} team who will help you right away.\n\n"
+                response += "**They will contact you shortly to:**\n"
+                if 'playlist' in issue_type.lower():
+                    response += "• Change your playlist selection\n"
+                    response += "• Recommend playlists that match your needs\n"
+                elif 'design' in issue_type.lower():
+                    response += "• Redesign your music atmosphere\n"
+                    response += "• Create a custom music strategy\n"
+                elif 'block' in issue_type.lower():
+                    response += "• Block specific songs or artists\n"
+                    response += "• Customize your music preferences\n"
+                elif 'schedule' in issue_type.lower():
+                    response += "• Set up time-based music scheduling\n"
+                    response += "• Configure different music for different times\n"
+                response += "\n**In the meantime, I can help you with:**\n"
+                response += "• Adjusting volume (say 'volume up/down')\n"
+                response += "• Skipping songs (say 'skip')\n"
+                response += "• Pausing/resuming playback\n"
+                response += "• Checking what's currently playing"
+            else:
+                response = f"I understand you'd like to make changes to your music setup. "
+                response += "Our music design team specializes in these requests and will be happy to help. "
+                response += "They'll contact you shortly to assist with your music customization needs.\n\n"
+                response += "**In the meantime, I can help with:**\n"
+                response += "• Volume control\n"
+                response += "• Skipping tracks\n"
+                response += "• Playback control"
             
             # Save context and return
             context.append({"role": "user", "content": message})
