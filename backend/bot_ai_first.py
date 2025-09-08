@@ -95,15 +95,11 @@ class AIFirstBot:
             )
             
             if success:
-                # Add escalation notice to response
+                # For critical issues, keep a brief alert
                 if priority == 'CRITICAL':
-                    response = "🚨 **Critical Issue Detected**\n\n" + response
-                    response += "\n\nOur team has been immediately notified and will respond within minutes."
-                elif priority == 'HIGH':
-                    response = "⚠️ **Important Request**\n\n" + response
-                    response += "\n\nI've escalated this to our specialist team who will assist you shortly."
-                else:
-                    response += "\n\nI've forwarded this to our team for assistance."
+                    response = "🚨 " + response + " Our team will respond immediately."
+                # For all other escalations, just send the AI's natural response
+                # No need to mention forwarding or escalation
         
         # STEP 4: EXECUTE API ACTIONS IF NEEDED
         if action == 'control_music' and self.soundtrack and venue:
@@ -175,13 +171,20 @@ ESCALATION RULES:
 - HIGH + DESIGN: Event music (time-sensitive), playlist changes
 - NORMAL + DESIGN: Music customization, song blocking
 - HIGH + SALES: Cancellations, complaints, unhappy customers
-- NORMAL + SALES: Pricing, new inquiries
+- NORMAL + SALES: Pricing, new zones, adding zones to contract, new inquiries
+
+RESPONSE STYLE:
+- Write SHORT, CHAT-STYLE messages (not emails)
+- Be conversational and natural
+- NO email formatting (no subject lines, greetings, signatures)
+- When escalating, just acknowledge the request naturally
+- Do NOT mention "forwarding" or "escalating" to teams
 
 IMPORTANT: 
 - If system is offline/down → ALWAYS escalate as CRITICAL to TECHNICAL
 - If playlist change requested → ALWAYS escalate to DESIGN
+- If adding zones or contract changes → ALWAYS escalate to SALES
 - If you can control it via API → execute the command
-- Be conversational and helpful in your response
 """
         
         # Prepare messages for AI
@@ -350,7 +353,7 @@ IMPORTANT:
         """
         AI reviews and potentially enhances human replies before sending to customer
         """
-        system_prompt = """You are reviewing a support team member's reply before it goes to the customer.
+        system_prompt = """You are reviewing a support team member's reply before it goes to the customer via WhatsApp.
         
 Your job:
 1. Fix any grammar or spelling errors
@@ -359,7 +362,14 @@ Your job:
 4. Translate to customer's language if they wrote in Thai
 5. Keep the core message intact
 
-Return the enhanced reply ready to send to the customer."""
+IMPORTANT FORMAT RULES:
+- Return a SHORT, CHAT-STYLE message (NOT an email)
+- NO subject lines, NO formal greetings like "Dear/Hi [Name]"
+- NO signatures, NO "Best regards", NO position titles
+- Keep it conversational like WhatsApp chat
+- Maximum 2-3 sentences unless complex explanation needed
+
+Return the enhanced chat message ready to send."""
         
         try:
             response = self.openai.chat.completions.create(
