@@ -421,41 +421,31 @@ IMPORTANT:
         venue_name = venue.get('name', '')
         logger.info(f"Looking for zone '{zone_name}' for venue '{venue_name}'")
         
+        # First try the hardcoded zone IDs from venue_accounts.py
         try:
-            # Get all accessible accounts (this works with our API credentials)
-            accounts = self.soundtrack.get_accounts()
-            if not accounts:
-                logger.error("No accounts accessible with current API credentials")
-                return None
+            from venue_accounts import get_zone_id
+            zone_id = get_zone_id(venue_name, zone_name)
+            if zone_id:
+                logger.info(f"✅ Found zone ID from venue_accounts: {zone_id}")
+                return zone_id
+        except Exception as e:
+            logger.warning(f"Could not get zone from venue_accounts: {e}")
+        
+        # Fallback to API search (though this won't work for Hilton since it's not in accessible accounts)
+        try:
+            zones = self.soundtrack.find_venue_zones(venue_name)
             
-            logger.info(f"Found {len(accounts)} accessible accounts")
+            if zones:
+                logger.info(f"Found {len(zones)} zones via API for {venue_name}")
+                for zone in zones:
+                    zone_name_from_api = zone.get('name', '')
+                    if zone_name.lower() in zone_name_from_api.lower():
+                        zone_id = zone.get('id')
+                        logger.info(f"✅ Found matching zone via API '{zone_name_from_api}' with ID: {zone_id}")
+                        return zone_id
+            else:
+                logger.warning(f"No zones found via API for venue: {venue_name}")
             
-            # Search for the venue in all accounts
-            for account in accounts:
-                account_name = account.get('name', account.get('businessName', '')).lower()
-                logger.info(f"Checking account: {account_name}")
-                
-                # Check if this account matches our venue
-                if venue_name.lower() in account_name or account_name in venue_name.lower():
-                    logger.info(f"Found matching account: {account.get('name')}")
-                    
-                    # Search through locations and zones
-                    for loc_edge in account.get('locations', {}).get('edges', []):
-                        location = loc_edge.get('node', {})
-                        location_name = location.get('name', 'Unknown Location')
-                        logger.info(f"Checking location: {location_name}")
-                        
-                        for zone_edge in location.get('soundZones', {}).get('edges', []):
-                            zone = zone_edge.get('node', {})
-                            zone_node_name = zone.get('name', '')
-                            logger.info(f"Found zone: '{zone_node_name}'")
-                            
-                            if zone_name.lower() in zone_node_name.lower():
-                                zone_id = zone.get('id')
-                                logger.info(f"✅ Found matching zone '{zone_node_name}' with ID: {zone_id}")
-                                return zone_id
-            
-            logger.warning(f"Could not find zone '{zone_name}' in any accessible account")
             return None
             
         except Exception as e:
