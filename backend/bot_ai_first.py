@@ -174,12 +174,15 @@ ANALYZE every message and return a JSON decision:
     "action": "respond" or "escalate" or "control_music",
     "escalate": true/false (true if human help needed),
     "department": "TECHNICAL" or "DESIGN" or "SALES" or null,
-    "priority": "CRITICAL" or "HIGH" or "NORMAL",
+    "priority": "CRITICAL" or "HIGH" or "NORMAL",  
     "response": "Your response to the customer",
     "music_command": "volume_up" or "volume_down" or "skip" or "pause" or "play" or "check_playing" or null,
-    "parameters": {{}},
+    "parameters": {{"zone": "zone name from request if mentioned"}},
     "reasoning": "Why you made this decision"
 }}
+
+IMPORTANT for music commands: Always extract the zone name from the request and put it in parameters.zone
+Example: "What's playing at Edge?" → parameters: {{"zone": "Edge"}}
 
 WHEN TO ANSWER DIRECTLY (don't escalate):
 - Contract renewal dates (you have this info)
@@ -343,14 +346,19 @@ IMPORTANT:
                     return f"▶️ Music resumed in {zone_name}"
                     
             elif command == 'check_playing':
-                status = self.soundtrack.get_zone_status(zone_id)
-                if status and 'now_playing' in status:
-                    track = status['now_playing']
-                    artist = track.get('artist', 'Unknown Artist')
-                    title = track.get('title', 'Unknown Title')
-                    return f"🎵 Currently playing in {zone_name}: {title} by {artist}"
-                else:
-                    return f"I couldn't retrieve what's playing in {zone_name} right now."
+                try:
+                    status = self.soundtrack.get_zone_status(zone_id)
+                    if status and 'now_playing' in status:
+                        track = status['now_playing']
+                        artist = track.get('artist', 'Unknown Artist')
+                        title = track.get('title', 'Unknown Title')
+                        return f"🎵 Currently playing in {zone_name}: {title} by {artist}"
+                    else:
+                        # If API call succeeded but no track info, zone might be paused
+                        return f"Unable to get current track info for {zone_name}. The zone might be paused or offline."
+                except Exception as e:
+                    logger.error(f"Failed to check playing status: {e}")
+                    return f"I'm having trouble connecting to {zone_name} right now. Please try again in a moment."
             
             return None
             
