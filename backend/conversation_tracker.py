@@ -5,7 +5,7 @@ Maintains mapping between customer conversations and Google Chat threads
 
 import json
 import time
-from typing import Dict, Optional
+from typing import Dict, Optional, List
 from datetime import datetime, timedelta
 import logging
 
