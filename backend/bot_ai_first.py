@@ -348,13 +348,19 @@ IMPORTANT:
             elif command == 'check_playing':
                 try:
                     status = self.soundtrack.get_zone_status(zone_id)
-                    if status and 'now_playing' in status:
-                        track = status['now_playing']
-                        artist = track.get('artist', 'Unknown Artist')
-                        title = track.get('title', 'Unknown Title')
-                        return f"🎵 Currently playing in {zone_name}: {title} by {artist}"
+                    if status and 'nowPlaying' in status:
+                        now_playing = status['nowPlaying']
+                        if now_playing and 'track' in now_playing:
+                            track = now_playing['track']
+                            # Extract artist name from artists array
+                            artists = track.get('artists', [])
+                            artist = artists[0].get('name', 'Unknown Artist') if artists else 'Unknown Artist'
+                            title = track.get('name', 'Unknown Title')
+                            return f"🎵 Currently playing in {zone_name}: {title} by {artist}"
+                        else:
+                            return f"No music is currently playing in {zone_name}."
                     else:
-                        # If API call succeeded but no track info, zone might be paused
+                        # If API call succeeded but no nowPlaying, zone might be offline
                         return f"Unable to get current track info for {zone_name}. The zone might be paused or offline."
                 except Exception as e:
                     logger.error(f"Failed to check playing status: {e}")
