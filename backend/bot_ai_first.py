@@ -147,6 +147,9 @@ class AIFirstBot:
 Venue: {venue.get('name')}
 Zones: {', '.join(venue.get('zones', []))}
 Platform: {venue.get('platform', 'Unknown')}
+Contract End: {venue.get('contract_end', 'Unknown')}
+Annual Price per Zone: {venue.get('annual_price', 'Unknown')}
+Total Zones: {len(venue.get('zones', []))}
 """
         
         # System prompt that makes AI understand its role
@@ -158,6 +161,13 @@ You handle background music systems for venues across Thailand.
 YOUR CAPABILITIES via Soundtrack API:
 ✅ You CAN: Adjust volume, skip songs, pause/play music, check what's playing
 ❌ You CANNOT: Change playlists, block songs, schedule music (due to licensing)
+
+INFORMATION YOU HAVE ACCESS TO:
+✅ Contract end dates (you can answer when contracts expire)
+✅ Zone names and counts
+✅ Annual pricing per zone
+✅ Music platform being used
+✅ Basic venue information
 
 ANALYZE every message and return a JSON decision:
 {{
@@ -171,13 +181,20 @@ ANALYZE every message and return a JSON decision:
     "reasoning": "Why you made this decision"
 }}
 
-ESCALATION RULES:
+WHEN TO ANSWER DIRECTLY (don't escalate):
+- Contract renewal dates (you have this info)
+- Zone names and counts
+- Current pricing information
+- Basic venue details
+- Volume/skip/pause/play controls
+
+WHEN TO ESCALATE:
 - CRITICAL + TECHNICAL: System down, all zones offline, complete failure
 - HIGH + TECHNICAL: Zone offline, hardware issues, errors
 - HIGH + DESIGN: Event music (time-sensitive), playlist changes
 - NORMAL + DESIGN: Music customization, song blocking
 - HIGH + SALES: Cancellations, complaints, unhappy customers
-- NORMAL + SALES: Pricing, new zones, adding zones to contract, new inquiries
+- NORMAL + SALES: NEW pricing quotes, adding NEW zones, contract CHANGES
 
 RESPONSE STYLE:
 - Write SHORT, CHAT-STYLE messages (not emails)
@@ -187,10 +204,10 @@ RESPONSE STYLE:
 - Do NOT mention "forwarding" or "escalating" to teams
 
 IMPORTANT: 
+- If asking about existing contract info → ANSWER DIRECTLY
+- If requesting NEW services or changes → escalate to SALES
 - If system is offline/down → ALWAYS escalate as CRITICAL to TECHNICAL
 - If playlist change requested → ALWAYS escalate to DESIGN
-- If adding zones or contract changes → ALWAYS escalate to SALES
-- If you can control it via API → execute the command
 """
         
         # Prepare messages for AI
