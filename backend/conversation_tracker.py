@@ -78,6 +78,30 @@ class ConversationTracker:
             
         # Return the most recent one
         return max(customer_convs, key=lambda x: x["last_message"])
+    
+    def get_conversation_by_phone(self, phone: str) -> Optional[List]:
+        """Get conversation history for a phone number"""
+        conv = self.get_active_conversation(phone)
+        if conv:
+            return conv.get('messages', [])
+        return None
+    
+    def save_conversation(self, phone: str, messages: List):
+        """Save conversation messages"""
+        # Find or create conversation
+        conv = self.get_active_conversation(phone)
+        if not conv:
+            thread_key = self.create_conversation(
+                customer_phone=phone,
+                customer_name="Customer",
+                venue_name="Unknown",
+                platform="WhatsApp"
+            )
+            conv = self.get_conversation_by_thread(thread_key)
+        
+        if conv:
+            conv['messages'] = messages[-10:]  # Keep last 10 messages
+            conv['last_message_time'] = datetime.now().isoformat()
         
     def add_message(
         self,

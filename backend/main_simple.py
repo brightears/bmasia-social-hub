@@ -65,8 +65,8 @@ redis_client = None
 # Initialize the music bot
 music_bot = None
 try:
-    # Use bot_final which actually reads venue_data.md properly
-    from bot_fresh_start import bot as bot_instance
+    # Use AI-first bot where OpenAI makes ALL decisions
+    from bot_ai_first import ai_bot as bot_instance
     music_bot = bot_instance
     logger.info("✅ Music bot (final) initialized successfully")
 except Exception as e:

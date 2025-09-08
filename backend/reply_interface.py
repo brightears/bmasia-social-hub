@@ -210,11 +210,20 @@ def create_reply_endpoint(app: FastAPI):
         from conversation_tracker import conversation_tracker
         
         try:
-            # Log the reply
+            # AI REVIEWS AND ENHANCES THE REPLY FIRST
+            try:
+                from bot_ai_first import enhance_human_reply
+                enhanced_reply = enhance_human_reply(reply, phone, thread_key)
+                logger.info("AI enhanced the human reply")
+            except Exception as e:
+                logger.warning(f"AI enhancement failed, using original: {e}")
+                enhanced_reply = reply
+            
+            # Log the enhanced reply
             conversation_tracker.add_message(
                 thread_key=thread_key,
-                message=reply,
-                sender="Support Team",
+                message=enhanced_reply,
+                sender="Support Team (AI Enhanced)",
                 direction="outbound"
             )
             
@@ -239,7 +248,7 @@ def create_reply_endpoint(app: FastAPI):
                         "messaging_product": "whatsapp",
                         "to": phone.replace("+", ""),  # Remove + if present
                         "type": "text",
-                        "text": {"body": reply}
+                        "text": {"body": enhanced_reply}  # Send AI-enhanced version
                     }
                     
                     response = requests.post(url, json=data, headers=headers)
