@@ -180,31 +180,37 @@ async def whatsapp_webhook(
                         try:
                             # Use simplified bot directly
                             response_text = bot.process_message(content, from_number, contact_name, platform="WhatsApp")
-                            logger.info(f"Generated response: {response_text[:100]}...")
                             
-                            # Send response back via WhatsApp
-                            success = sender.send_whatsapp_message(from_number, response_text)
-                            if success:
-                                logger.info(f"Response sent to {from_number}")
+                            # Only send response if bot returned something
+                            # Empty response means it was escalated and waiting for human
+                            if response_text:
+                                logger.info(f"Generated response: {response_text[:100]}...")
                                 
-                                # Store outbound message in database
-                                if DB_ENABLED and db_manager and conversation_id:
-                                    try:
-                                        db_manager.store_message(
-                                            channel="whatsapp",
-                                            user_phone=from_number,
-                                            user_name=contact_name,
-                                            message_id=f"out_{message_id}_{datetime.now().timestamp()}",
-                                            content=response_text,
-                                            direction="outbound",
-                                            message_type="text",
-                                            ai_response=True
-                                        )
-                                        logger.info("Response stored in database")
-                                    except Exception as e:
-                                        logger.error(f"Failed to store response: {e}")
+                                # Send response back via WhatsApp
+                                success = sender.send_whatsapp_message(from_number, response_text)
+                                if success:
+                                    logger.info(f"Response sent to {from_number}")
+                                    
+                                    # Store outbound message in database
+                                    if DB_ENABLED and db_manager and conversation_id:
+                                        try:
+                                            db_manager.store_message(
+                                                channel="whatsapp",
+                                                user_phone=from_number,
+                                                user_name=contact_name,
+                                                message_id=f"out_{message_id}_{datetime.now().timestamp()}",
+                                                content=response_text,
+                                                direction="outbound",
+                                                message_type="text",
+                                                ai_response=True
+                                            )
+                                            logger.info("Response stored in database")
+                                        except Exception as e:
+                                            logger.error(f"Failed to store response: {e}")
+                                else:
+                                    logger.error(f"Failed to send response to {from_number}")
                             else:
-                                logger.error(f"Failed to send response to {from_number}")
+                                logger.info(f"Message escalated to human support - waiting for reply")
                                 
                         except Exception as e:
                             logger.error(f"Error generating/sending response: {e}")

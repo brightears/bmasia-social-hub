@@ -95,11 +95,15 @@ class AIFirstBot:
             )
             
             if success:
-                # For critical issues, keep a brief alert
+                # When escalated, DON'T send an immediate response
+                # The human will respond via Google Chat
+                # Only exception: critical system failures need immediate acknowledgment
                 if priority == 'CRITICAL':
-                    response = "🚨 " + response + " Our team will respond immediately."
-                # For all other escalations, just send the AI's natural response
-                # No need to mention forwarding or escalation
+                    response = "🚨 We're checking your system immediately."
+                else:
+                    # For normal escalations, return empty string to indicate no response
+                    # The conversation will continue when human responds via Google Chat
+                    response = ""
         
         # STEP 4: EXECUTE API ACTIONS IF NEEDED
         if action == 'control_music' and self.soundtrack and venue:
@@ -113,9 +117,11 @@ class AIFirstBot:
         
         # Save conversation context
         context.append({"role": "user", "content": message})
-        context.append({"role": "assistant", "content": response})
-        if venue:
-            context[-1]["venue"] = venue.get('name')
+        # Only save assistant response if we're actually sending one
+        if response:  # Don't save empty responses when waiting for human
+            context.append({"role": "assistant", "content": response})
+            if venue:
+                context[-1]["venue"] = venue.get('name')
         conversation_tracker.save_conversation(phone, context)
         
         return response
