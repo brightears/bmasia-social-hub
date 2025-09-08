@@ -809,7 +809,9 @@ class ConversationBot:
         urgent_keywords = [
             'urgent', 'emergency', 'all zones offline', 'system down', 'completely broken',
             'not working at all', 'totally dead', 'critical', 'asap', 'immediately',
-            'vip event', 'important event', 'help!', 'lawsuit', 'legal action'
+            'vip event', 'important event', 'help!', 'lawsuit', 'legal action',
+            'completely offline', 'system is offline', 'system offline', 'everything is down',
+            'nothing is working', 'total failure', 'system failure'
         ]
         
         critical_keywords = [
@@ -901,7 +903,7 @@ class ConversationBot:
             
             # Return immediate response
             if notification_sent:
-                if 'all zones offline' in message_lower or 'system down' in message_lower:
+                if any(phrase in message_lower for phrase in ['all zones offline', 'system down', 'completely offline', 'system is offline', 'system failure']):
                     response = "🚨 **I understand this is critical!**\n\n"
                     response += "Our technical team has been alerted immediately about your system being offline. "
                     response += "They're mobilizing right now to investigate and restore your music system.\n\n"
