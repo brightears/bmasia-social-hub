@@ -398,7 +398,10 @@ class SoundtrackAPI:
         
         result = self._execute_query(query, {'zoneId': zone_id})
         
-        # No need for fallback - the corrected query should work
+        # Check for GraphQL errors first
+        if 'error' in result:
+            logger.error(f"GraphQL error getting zone status for {zone_id}: {result['error']}")
+            return {'error': result['error']}
         
         zone_data = result.get('soundZone', {})
         

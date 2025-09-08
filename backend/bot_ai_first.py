@@ -347,21 +347,43 @@ IMPORTANT:
                     
             elif command == 'check_playing':
                 try:
+                    logger.info(f"Checking what's playing in zone {zone_id} ({zone_name})")
                     status = self.soundtrack.get_zone_status(zone_id)
-                    if status and 'nowPlaying' in status:
-                        now_playing = status['nowPlaying']
-                        if now_playing and 'track' in now_playing:
-                            track = now_playing['track']
-                            # Extract artist name from artists array
-                            artists = track.get('artists', [])
-                            artist = artists[0].get('name', 'Unknown Artist') if artists else 'Unknown Artist'
-                            title = track.get('name', 'Unknown Title')
-                            return f"🎵 Currently playing in {zone_name}: {title} by {artist}"
+                    logger.info(f"Zone status response: {status}")
+                    
+                    # Check for API errors first
+                    if status and 'error' in status:
+                        logger.error(f"API error getting zone status: {status['error']}")
+                        return f"Unable to get current track info for {zone_name}."
+                    
+                    # Check if we got a valid status response
+                    if status:
+                        # Check if music is playing using the processed playing state
+                        is_playing = status.get('playing', False)
+                        playback_state = status.get('playback_state', 'unknown')
+                        
+                        logger.info(f"Zone playing status: {is_playing}, playback_state: {playback_state}")
+                        
+                        if is_playing:
+                            # Get current track from processed status
+                            current_track = status.get('current_track')
+                            if current_track:
+                                title = current_track.get('name', 'Unknown Title')
+                                artist = current_track.get('artist', 'Unknown Artist')
+                                logger.info(f"Found playing track: {title} by {artist}")
+                                return f"🎵 Currently playing in {zone_name}: {title} by {artist}"
+                            else:
+                                logger.info("Zone is playing but no current track info available")
+                                return f"Music is playing in {zone_name}, but track details are not available."
                         else:
-                            return f"No music is currently playing in {zone_name}."
+                            if playback_state == 'paused':
+                                return f"Music is paused in {zone_name}."
+                            else:
+                                return f"No music is currently playing in {zone_name}."
                     else:
-                        # If API call succeeded but no nowPlaying, zone might be offline
-                        return f"Unable to get current track info for {zone_name}. The zone might be paused or offline."
+                        logger.error("No status response received from API")
+                        return f"Unable to get current track info for {zone_name}."
+                        
                 except Exception as e:
                     logger.error(f"Failed to check playing status: {e}")
                     return f"I'm having trouble connecting to {zone_name} right now. Please try again in a moment."
@@ -375,24 +397,40 @@ IMPORTANT:
     def _get_zone_id(self, venue: Dict, zone_name: str) -> Optional[str]:
         """Get zone ID from Soundtrack API"""
         if not self.soundtrack:
+            logger.error("No soundtrack API connection available")
             return None
             
         account_id = venue.get('account_id')
         if not account_id:
+            logger.error(f"No account_id found for venue {venue.get('name')}")
             return None
             
+        logger.info(f"Looking for zone '{zone_name}' in account {account_id}")
+        
         try:
             account_data = self.soundtrack.get_account_by_id(account_id)
             if not account_data:
+                logger.error(f"Could not retrieve account data for account_id: {account_id}")
                 return None
+            
+            logger.info(f"Successfully retrieved account data for {account_data.get('businessName', 'Unknown')}")
             
             for loc_edge in account_data.get('locations', {}).get('edges', []):
                 location = loc_edge.get('node', {})
+                location_name = location.get('name', 'Unknown Location')
+                logger.info(f"Checking location: {location_name}")
+                
                 for zone_edge in location.get('soundZones', {}).get('edges', []):
                     zone = zone_edge.get('node', {})
-                    if zone_name.lower() in zone.get('name', '').lower():
-                        return zone.get('id')
+                    zone_node_name = zone.get('name', '')
+                    logger.info(f"Found zone: '{zone_node_name}'")
+                    
+                    if zone_name.lower() in zone_node_name.lower():
+                        zone_id = zone.get('id')
+                        logger.info(f"✅ Found matching zone '{zone_node_name}' with ID: {zone_id}")
+                        return zone_id
             
+            logger.warning(f"Could not find zone '{zone_name}' in any location")
             return None
             
         except Exception as e:
