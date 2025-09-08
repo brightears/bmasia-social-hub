@@ -231,6 +231,27 @@ class SoundtrackAPI:
         
         return result.get('account')
     
+    def get_zones_by_account(self, account_id: str) -> List[Dict]:
+        """Get all zones for a specific account ID"""
+        zones = []
+        
+        try:
+            account_data = self.get_account_by_id(account_id)
+            
+            if account_data:
+                for loc_edge in account_data.get('locations', {}).get('edges', []):
+                    location = loc_edge['node']
+                    for zone_edge in location.get('soundZones', {}).get('edges', []):
+                        zone = zone_edge['node']
+                        zone['location_name'] = location.get('name')
+                        zone['displayName'] = zone.get('name', '')  # Add displayName for compatibility
+                        zones.append(zone)
+            
+        except Exception as e:
+            logger.error(f"Failed to get zones for account {account_id}: {e}")
+        
+        return zones
+    
     def find_venue_zones(self, venue_name: str) -> List[Dict]:
         """Find all zones for a specific venue with fuzzy matching"""
         zones = []

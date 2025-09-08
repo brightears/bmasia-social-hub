@@ -421,36 +421,32 @@ IMPORTANT:
         venue_name = venue.get('name', '')
         logger.info(f"Looking for zone '{zone_name}' for venue '{venue_name}'")
         
-        # First try the hardcoded zone IDs from venue_accounts.py
+        # Use the scalable zone discovery service
         try:
-            from venue_accounts import get_zone_id
+            from zone_discovery import get_zone_id
             zone_id = get_zone_id(venue_name, zone_name)
+            
             if zone_id:
-                logger.info(f"✅ Found zone ID from venue_accounts: {zone_id}")
+                logger.info(f"✅ Found zone ID via discovery service: {zone_id[:30]}...")
                 return zone_id
-        except Exception as e:
-            logger.warning(f"Could not get zone from venue_accounts: {e}")
-        
-        # Fallback to API search (though this won't work for Hilton since it's not in accessible accounts)
-        try:
-            zones = self.soundtrack.find_venue_zones(venue_name)
-            
-            if zones:
-                logger.info(f"Found {len(zones)} zones via API for {venue_name}")
-                for zone in zones:
-                    zone_name_from_api = zone.get('name', '')
-                    if zone_name.lower() in zone_name_from_api.lower():
-                        zone_id = zone.get('id')
-                        logger.info(f"✅ Found matching zone via API '{zone_name_from_api}' with ID: {zone_id}")
-                        return zone_id
             else:
-                logger.warning(f"No zones found via API for venue: {venue_name}")
-            
-            return None
-            
+                logger.warning(f"Zone '{zone_name}' not found for venue '{venue_name}'")
+                
+        except ImportError:
+            logger.warning("Zone discovery service not available, using fallback")
+            # Fallback to hardcoded zone IDs
+            try:
+                from venue_accounts import get_zone_id as get_hardcoded_zone
+                zone_id = get_hardcoded_zone(venue_name, zone_name)
+                if zone_id:
+                    logger.info(f"✅ Found zone ID from hardcoded fallback")
+                    return zone_id
+            except Exception as e:
+                logger.warning(f"Could not get zone from venue_accounts: {e}")
         except Exception as e:
-            logger.error(f"Failed to get zone ID: {e}")
-            return None
+            logger.error(f"Zone discovery failed: {e}")
+        
+        return None
     
     def process_human_reply(self, reply: str, phone: str, thread_key: str) -> str:
         """
