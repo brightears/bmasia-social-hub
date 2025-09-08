@@ -159,7 +159,7 @@ You handle background music systems for venues across Thailand.
 {venue_info}
 
 YOUR CAPABILITIES via Soundtrack API:
-✅ You CAN: Adjust volume, skip songs, pause/play music, check what's playing
+✅ You CAN: Adjust volume, skip songs, pause/play music, check what's playing/current song
 ❌ You CANNOT: Change playlists, block songs, schedule music (due to licensing)
 
 INFORMATION YOU HAVE ACCESS TO:
@@ -176,7 +176,7 @@ ANALYZE every message and return a JSON decision:
     "department": "TECHNICAL" or "DESIGN" or "SALES" or null,
     "priority": "CRITICAL" or "HIGH" or "NORMAL",
     "response": "Your response to the customer",
-    "music_command": "volume_up" or "volume_down" or "skip" or "pause" or "play" or null,
+    "music_command": "volume_up" or "volume_down" or "skip" or "pause" or "play" or "check_playing" or null,
     "parameters": {{}},
     "reasoning": "Why you made this decision"
 }}
@@ -187,6 +187,7 @@ WHEN TO ANSWER DIRECTLY (don't escalate):
 - Current pricing information
 - Basic venue details
 - Volume/skip/pause/play controls
+- What song is currently playing (via API)
 
 WHEN TO ESCALATE:
 - CRITICAL + TECHNICAL: System down, all zones offline, complete failure
@@ -204,6 +205,8 @@ RESPONSE STYLE:
 - Do NOT mention "forwarding" or "escalating" to teams
 
 IMPORTANT: 
+- If asking what song is playing → use 'check_playing' command
+- If asking to control music (volume/skip/pause) → use appropriate music_command
 - If asking about existing contract info → ANSWER DIRECTLY
 - If requesting NEW services or changes → escalate to SALES
 - If system is offline/down → ALWAYS escalate as CRITICAL to TECHNICAL
@@ -338,6 +341,16 @@ IMPORTANT:
                 result = self.soundtrack.control_playback(zone_id, 'play')
                 if result:
                     return f"▶️ Music resumed in {zone_name}"
+                    
+            elif command == 'check_playing':
+                status = self.soundtrack.get_zone_status(zone_id)
+                if status and 'now_playing' in status:
+                    track = status['now_playing']
+                    artist = track.get('artist', 'Unknown Artist')
+                    title = track.get('title', 'Unknown Title')
+                    return f"🎵 Currently playing in {zone_name}: {title} by {artist}"
+                else:
+                    return f"I couldn't retrieve what's playing in {zone_name} right now."
             
             return None
             
