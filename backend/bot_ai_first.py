@@ -323,17 +323,30 @@ IMPORTANT:
                     return f"✅ Skipped to the next track in {zone_name}!"
                     
             elif command in ['volume_up', 'volume_down']:
-                current = self.soundtrack.get_zone_status(zone_id)
-                current_vol = current.get('volume', 10)
-                
-                if command == 'volume_up':
-                    new_vol = min(16, current_vol + 2)
-                else:
-                    new_vol = max(0, current_vol - 2)
-                
-                result = self.soundtrack.set_volume(zone_id, new_vol)
-                if result:
-                    return f"✅ Volume adjusted to {new_vol}/16 in {zone_name}"
+                try:
+                    current = self.soundtrack.get_zone_status(zone_id)
+                    current_vol = current.get('volume')
+                    
+                    # If volume is None (API doesn't return it), use default middle value
+                    if current_vol is None:
+                        logger.warning(f"Volume not available for {zone_name}, using default 10")
+                        current_vol = 10
+                    
+                    if command == 'volume_up':
+                        new_vol = min(16, current_vol + 2)
+                    else:
+                        new_vol = max(0, current_vol - 2)
+                    
+                    logger.info(f"Setting volume for {zone_name} from {current_vol} to {new_vol}")
+                    result = self.soundtrack.set_volume(zone_id, new_vol)
+                    if result:
+                        return f"✅ Volume adjusted to {new_vol}/16 in {zone_name}"
+                    else:
+                        logger.error(f"Failed to set volume for {zone_name}")
+                        return f"I couldn't adjust the volume in {zone_name}. Please try again."
+                except Exception as e:
+                    logger.error(f"Volume control failed: {e}")
+                    return f"I'm having trouble adjusting the volume. Please try again."
                     
             elif command == 'pause':
                 result = self.soundtrack.control_playback(zone_id, 'pause')
