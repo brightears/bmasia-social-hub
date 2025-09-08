@@ -418,37 +418,44 @@ IMPORTANT:
             logger.error("No soundtrack API connection available")
             return None
             
-        account_id = venue.get('account_id')
-        if not account_id:
-            logger.error(f"No account_id found for venue {venue.get('name')}")
-            return None
-            
-        logger.info(f"Looking for zone '{zone_name}' in account {account_id}")
+        venue_name = venue.get('name', '')
+        logger.info(f"Looking for zone '{zone_name}' for venue '{venue_name}'")
         
         try:
-            account_data = self.soundtrack.get_account_by_id(account_id)
-            if not account_data:
-                logger.error(f"Could not retrieve account data for account_id: {account_id}")
+            # Get all accessible accounts (this works with our API credentials)
+            accounts = self.soundtrack.get_accounts()
+            if not accounts:
+                logger.error("No accounts accessible with current API credentials")
                 return None
             
-            logger.info(f"Successfully retrieved account data for {account_data.get('businessName', 'Unknown')}")
+            logger.info(f"Found {len(accounts)} accessible accounts")
             
-            for loc_edge in account_data.get('locations', {}).get('edges', []):
-                location = loc_edge.get('node', {})
-                location_name = location.get('name', 'Unknown Location')
-                logger.info(f"Checking location: {location_name}")
+            # Search for the venue in all accounts
+            for account in accounts:
+                account_name = account.get('name', account.get('businessName', '')).lower()
+                logger.info(f"Checking account: {account_name}")
                 
-                for zone_edge in location.get('soundZones', {}).get('edges', []):
-                    zone = zone_edge.get('node', {})
-                    zone_node_name = zone.get('name', '')
-                    logger.info(f"Found zone: '{zone_node_name}'")
+                # Check if this account matches our venue
+                if venue_name.lower() in account_name or account_name in venue_name.lower():
+                    logger.info(f"Found matching account: {account.get('name')}")
                     
-                    if zone_name.lower() in zone_node_name.lower():
-                        zone_id = zone.get('id')
-                        logger.info(f"✅ Found matching zone '{zone_node_name}' with ID: {zone_id}")
-                        return zone_id
+                    # Search through locations and zones
+                    for loc_edge in account.get('locations', {}).get('edges', []):
+                        location = loc_edge.get('node', {})
+                        location_name = location.get('name', 'Unknown Location')
+                        logger.info(f"Checking location: {location_name}")
+                        
+                        for zone_edge in location.get('soundZones', {}).get('edges', []):
+                            zone = zone_edge.get('node', {})
+                            zone_node_name = zone.get('name', '')
+                            logger.info(f"Found zone: '{zone_node_name}'")
+                            
+                            if zone_name.lower() in zone_node_name.lower():
+                                zone_id = zone.get('id')
+                                logger.info(f"✅ Found matching zone '{zone_node_name}' with ID: {zone_id}")
+                                return zone_id
             
-            logger.warning(f"Could not find zone '{zone_name}' in any location")
+            logger.warning(f"Could not find zone '{zone_name}' in any accessible account")
             return None
             
         except Exception as e:

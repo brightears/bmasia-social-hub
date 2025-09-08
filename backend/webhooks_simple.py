@@ -34,16 +34,16 @@ WHATSAPP_VERIFY_TOKEN = os.getenv("WHATSAPP_VERIFY_TOKEN", "bma_whatsapp_verify_
 WHATSAPP_WEBHOOK_SECRET = os.getenv("WHATSAPP_WEBHOOK_SECRET", "bma_webhook_secret_2024")
 LINE_CHANNEL_SECRET = os.getenv("LINE_CHANNEL_SECRET", "")
 
-# Import simplified bot - only uses venue_data.md and Soundtrack API
+# Import AI-first bot
 try:
-    from bot_simplified import simplified_bot as bot
+    from bot_ai_first import process_whatsapp_message
     from bot_simple import sender
     BOT_ENABLED = True
-    logger.info("✅ Simplified bot loaded - using venue_data.md and Soundtrack API only")
+    logger.info("✅ AI-first bot loaded - OpenAI processes everything")
 except ImportError as e:
-    logger.warning(f"⚠️ Simplified bot not available: {e}")
+    logger.warning(f"⚠️ AI-first bot not available: {e}")
     BOT_ENABLED = False
-    bot = None
+    process_whatsapp_message = None
     sender = None
 
 # Import database manager
@@ -176,10 +176,10 @@ async def whatsapp_webhook(
                             logger.error(f"Failed to store message: {e}")
                     
                     # Generate and send response if bot is enabled
-                    if BOT_ENABLED and bot and sender:
+                    if BOT_ENABLED and process_whatsapp_message and sender:
                         try:
-                            # Use simplified bot directly
-                            response_text = bot.process_message(content, from_number, contact_name, platform="WhatsApp")
+                            # Use AI-first bot
+                            response_text = process_whatsapp_message(content, from_number, contact_name)
                             
                             # Only send response if bot returned something
                             # Empty response means it was escalated and waiting for human
