@@ -44,14 +44,18 @@ class Priority(Enum):
 class GoogleChatClient:
     """Manage Google Chat notifications for BMA Social support"""
     
-    # Single BMAsia All group space
+    # Legacy spaces (kept for backward compatibility)
     BMASIA_ALL_SPACE = os.getenv('GCHAT_BMASIA_ALL_SPACE', '')
-    # Customer Support space for WhatsApp/LINE conversations
     CUSTOMER_SUPPORT_SPACE = os.getenv('GCHAT_CUSTOMER_SUPPORT_SPACE', 'spaces/AAQA1j6BK08')
+    
+    # Department-specific spaces for better organization
+    TECHNICAL_SPACE = os.getenv('GCHAT_TECHNICAL_SPACE', '')  # Technical support & operations
+    DESIGN_SPACE = os.getenv('GCHAT_DESIGN_SPACE', '')  # Music design & playlists
+    SALES_SPACE = os.getenv('GCHAT_SALES_SPACE', '')  # Sales, finance & complaints
     
     # Smart routing rules to categorize messages by department and priority
     ROUTING_RULES = {
-        # Sales-related
+        # Sales-related (goes to SALES_SPACE)
         'renewal': (Department.SALES, Priority.HIGH),
         'contract': (Department.SALES, Priority.HIGH),
         'pricing': (Department.SALES, Priority.NORMAL),
@@ -61,8 +65,11 @@ class GoogleChatClient:
         'competitor': (Department.SALES, Priority.HIGH),
         'quote': (Department.SALES, Priority.NORMAL),
         'proposal': (Department.SALES, Priority.NORMAL),
+        'prospect': (Department.SALES, Priority.NORMAL),
+        'how much': (Department.SALES, Priority.NORMAL),
+        'package': (Department.SALES, Priority.NORMAL),
         
-        # Operations-related
+        # Operations/Technical-related (goes to TECHNICAL_SPACE)
         'all zones offline': (Department.OPERATIONS, Priority.CRITICAL),
         'zone offline': (Department.OPERATIONS, Priority.HIGH),
         'not playing': (Department.OPERATIONS, Priority.HIGH),
@@ -75,22 +82,35 @@ class GoogleChatClient:
         'speaker': (Department.OPERATIONS, Priority.NORMAL),
         'offline': (Department.OPERATIONS, Priority.HIGH),
         'connection': (Department.OPERATIONS, Priority.NORMAL),
+        'api': (Department.OPERATIONS, Priority.HIGH),
+        'not working': (Department.OPERATIONS, Priority.HIGH),
+        'crashed': (Department.OPERATIONS, Priority.CRITICAL),
         
-        # Design-related
+        # Design-related (goes to DESIGN_SPACE)
         'playlist': (Department.DESIGN, Priority.NORMAL),
         'music selection': (Department.DESIGN, Priority.NORMAL),
         'genre': (Department.DESIGN, Priority.NORMAL),
         'volume': (Department.DESIGN, Priority.NORMAL),
         'schedule': (Department.DESIGN, Priority.NORMAL),
         'song': (Department.DESIGN, Priority.NORMAL),
+        'event music': (Department.DESIGN, Priority.HIGH),
+        'private event': (Department.DESIGN, Priority.HIGH),
+        'party': (Department.DESIGN, Priority.HIGH),
+        'wedding': (Department.DESIGN, Priority.HIGH),
+        'block song': (Department.DESIGN, Priority.NORMAL),
+        'music design': (Department.DESIGN, Priority.NORMAL),
+        'atmosphere': (Department.DESIGN, Priority.NORMAL),
+        'tomorrow': (Department.DESIGN, Priority.HIGH),  # Time-sensitive
         
-        # Finance-related
+        # Finance-related (goes to SALES_SPACE as Sales handles finance too)
         'payment': (Department.FINANCE, Priority.HIGH),
         'invoice': (Department.FINANCE, Priority.NORMAL),
         'billing': (Department.FINANCE, Priority.NORMAL),
         'overdue': (Department.FINANCE, Priority.HIGH),
         'finance': (Department.FINANCE, Priority.NORMAL),
         'refund': (Department.FINANCE, Priority.HIGH),
+        'complaint': (Department.FINANCE, Priority.HIGH),
+        'unhappy': (Department.FINANCE, Priority.HIGH),
         
         # Critical issues (any department)
         'urgent': (Department.GENERAL, Priority.CRITICAL),
@@ -142,16 +162,31 @@ class GoogleChatClient:
             return False
     
     def _verify_space(self):
-        """Verify access to Customer Support Chat space"""
-        if self.CUSTOMER_SUPPORT_SPACE:
-            try:
-                # Test space access
-                self.service.spaces().get(name=self.CUSTOMER_SUPPORT_SPACE).execute()
-                self.space_verified = True
-                logger.info("✅ Verified access to Customer Support space")
-            except Exception as e:
-                self.space_verified = False
-                logger.warning(f"Cannot access Customer Support space: {e}")
+        """Verify access to all configured Google Chat spaces"""
+        spaces_to_verify = [
+            (self.CUSTOMER_SUPPORT_SPACE, "Customer Support"),
+            (self.TECHNICAL_SPACE, "Technical Support"),
+            (self.DESIGN_SPACE, "Music Design"),
+            (self.SALES_SPACE, "Sales & Finance")
+        ]
+        
+        verified_count = 0
+        for space_id, space_name in spaces_to_verify:
+            if space_id:
+                try:
+                    # Test space access
+                    self.service.spaces().get(name=space_id).execute()
+                    verified_count += 1
+                    logger.info(f"✅ Verified access to {space_name} space")
+                except Exception as e:
+                    logger.warning(f"Cannot access {space_name} space: {e}")
+        
+        # Consider verified if at least one space is accessible
+        self.space_verified = verified_count > 0
+        if self.space_verified:
+            logger.info(f"✅ Successfully verified {verified_count} Google Chat space(s)")
+        else:
+            logger.error("❌ No Google Chat spaces are accessible")
     
     def analyze_message(self, message: str, venue_name: str = None) -> tuple[Department, Priority]:
         """
@@ -173,6 +208,47 @@ class GoogleChatClient:
                     best_match = (dept, priority)
         
         return best_match
+    
+    def _get_target_space(self, department: Department) -> str:
+        """
+        Get the target Google Chat space based on department
+        Returns the space ID or None if not configured
+        """
+        # Map departments to their respective spaces
+        space_mapping = {
+            Department.OPERATIONS: self.TECHNICAL_SPACE,  # Technical issues go to tech space
+            Department.DESIGN: self.DESIGN_SPACE,  # Music design goes to design space
+            Department.SALES: self.SALES_SPACE,  # Sales inquiries go to sales space
+            Department.FINANCE: self.SALES_SPACE,  # Finance also goes to sales space
+            Department.GENERAL: self.CUSTOMER_SUPPORT_SPACE,  # General goes to default space
+        }
+        
+        # Get the space for this department
+        target_space = space_mapping.get(department)
+        
+        # If specific space not configured, fallback to Customer Support space
+        if not target_space:
+            logger.info(f"No specific space for {department.value}, using Customer Support space")
+            target_space = self.CUSTOMER_SUPPORT_SPACE
+        
+        return target_space
+    
+    def _get_space_name(self, space_id: str) -> str:
+        """
+        Get a friendly name for the space based on its ID
+        """
+        if space_id == self.TECHNICAL_SPACE:
+            return "Technical Support"
+        elif space_id == self.DESIGN_SPACE:
+            return "Music Design"
+        elif space_id == self.SALES_SPACE:
+            return "Sales & Finance"
+        elif space_id == self.CUSTOMER_SUPPORT_SPACE:
+            return "Customer Support"
+        elif space_id == self.BMASIA_ALL_SPACE:
+            return "BMAsia All"
+        else:
+            return "Support"
     
     def send_notification(
         self,
@@ -206,11 +282,16 @@ class GoogleChatClient:
             department = department or auto_dept
             priority = priority or auto_priority
         
-        # Check if space is configured and verified
-        # Use Customer Support space for notifications
-        if not self.CUSTOMER_SUPPORT_SPACE:
-            logger.warning("No Customer Support space configured")
-            return False
+        # Determine which space to send to based on department
+        target_space = self._get_target_space(department)
+        
+        if not target_space:
+            logger.warning(f"No space configured for department {department.value}")
+            # Fallback to Customer Support space if available
+            target_space = self.CUSTOMER_SUPPORT_SPACE
+            if not target_space:
+                logger.error("No fallback space available")
+                return False
         
         # Create thread key for conversation tracking
         customer_phone = user_info.get('phone', 'unknown')
@@ -245,14 +326,15 @@ class GoogleChatClient:
         chat_message["text"] = f"{chat_message.get('text', '')}\n\n💬 Reply in this thread to respond to the customer"
         
         try:
-            # Send to Customer Support space for WhatsApp/LINE conversations
+            # Send to the appropriate department space
             result = self.service.spaces().messages().create(
-                parent=self.CUSTOMER_SUPPORT_SPACE,
+                parent=target_space,
                 body=chat_message,
                 threadKey=thread_key
             ).execute()
             
-            logger.info(f"✅ Notification sent to Customer Support - {department.value} issue with {priority.value} priority")
+            space_name = self._get_space_name(target_space)
+            logger.info(f"✅ Notification sent to {space_name} - {department.value} issue with {priority.value} priority")
             return True
             
         except Exception as e:

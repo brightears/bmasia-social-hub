@@ -354,12 +354,30 @@ class ConversationBot:
             # Get venue data if available
             venue_data = self.venue_manager.get_venue_info(venue_name) if venue_name else None
             
+            # Determine department based on issue content
+            from google_chat_client import Department, Priority
+            
+            issue_lower = issue.lower()
+            
+            # Determine department
+            if any(word in issue_lower for word in ['playlist', 'music design', 'song', 'block', 'schedule', 'event']):
+                department = Department.DESIGN
+            elif any(word in issue_lower for word in ['offline', 'broken', 'error', 'failed', 'not working', 'technical']):
+                department = Department.OPERATIONS
+            elif any(word in issue_lower for word in ['price', 'cost', 'quote', 'cancel', 'contract']):
+                department = Department.SALES
+            elif any(word in issue_lower for word in ['payment', 'invoice', 'billing', 'refund']):
+                department = Department.FINANCE
+            else:
+                department = Department.OPERATIONS  # Default to operations
+            
             # Determine priority based on issue
-            priority = "Normal"
-            if any(word in issue.lower() for word in ['urgent', 'emergency', 'critical', 'broken', 'offline']):
-                priority = "High"
-            if any(word in issue.lower() for word in ['completely broken', 'all zones', 'legal', 'lawsuit']):
-                priority = "Critical"
+            if any(word in issue_lower for word in ['completely broken', 'all zones', 'system down', 'emergency']):
+                priority = Priority.CRITICAL
+            elif any(word in issue_lower for word in ['urgent', 'critical', 'broken', 'offline', 'failed']):
+                priority = Priority.HIGH
+            else:
+                priority = Priority.NORMAL
             
             # Send notification via Google Chat (webhook or service account)
             if self.use_webhook:
@@ -369,6 +387,7 @@ class ConversationBot:
                     venue_name=venue_name,
                     venue_data=venue_data,
                     user_info={'phone': phone, 'platform': 'WhatsApp'},
+                    department=department,
                     priority=priority
                 )
             else:
@@ -377,7 +396,9 @@ class ConversationBot:
                     message=issue,
                     venue_name=venue_name,
                     venue_data=venue_data,
-                    user_info={'phone': phone, 'platform': 'WhatsApp'}
+                    user_info={'phone': phone, 'platform': 'WhatsApp'},
+                    department=department,
+                    priority=priority
                 )
             
             if success:
