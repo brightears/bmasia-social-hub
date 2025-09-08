@@ -48,8 +48,28 @@
 - **Spotify Integration**: Import Spotify playlists (converted for commercial use)
 - **Scheduling**: Set different music for different times/days
 - **Remote Control**: Manage all locations from one dashboard
+
+### Zone Discovery System (As of Sept 8, 2025)
+- **Scalable Architecture**: Supports 2000+ venues without hardcoding
+- **Multi-Strategy Approach**: 
+  1. Redis cache (when available)
+  2. Hardcoded venue_accounts.py (for known venues like Hilton)
+  3. API search through accessible accounts
+  4. Fuzzy matching for venue/zone names
+- **Key Files**:
+  - `zone_discovery.py` - Main discovery service
+  - `venue_accounts.py` - Hardcoded fallback
+- **Working Zone IDs** (Hilton Pattaya):
+  - Edge: `U291bmRab25lLCwxOGZ5M2R2a2NuNC9Mb2NhdGlvbiwsMW9wM3prbHBjZTgvQWNjb3VudCwsMXN4N242NTZyeTgv`
+  - Drift Bar: `U291bmRab25lLCwxaDAyZ2k3bHY1cy9Mb2NhdGlvbiwsMW9wM3prbHBjZTgvQWNjb3VudCwsMXN4N242NTZyeTgv`
 - **Offline Playback**: Continues playing if internet drops
 - **Explicit Filter**: Automatically removes inappropriate content
+
+### CRITICAL: API Authentication & Access (Sept 8, 2025)
+- **Current Credentials**: Base64 encoded in SOUNDTRACK_API_CREDENTIALS env var
+- **Access Level**: Demo accounts only (NOT production venues like Hilton)
+- **Solution**: Using hardcoded zone IDs for known venues
+- **Future Need**: OAuth or venue-specific tokens for 2000+ venues
 
 ### What SYB API CAN Do
 - Adjust volume
