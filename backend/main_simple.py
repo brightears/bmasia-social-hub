@@ -50,7 +50,12 @@ app = FastAPI(
 )
 
 # Mount static files for campaign manager web interface
-app.mount("/static", StaticFiles(directory="static"), name="static")
+import pathlib
+static_dir = pathlib.Path(__file__).parent / "static"
+if static_dir.exists():
+    app.mount("/static", StaticFiles(directory=str(static_dir)), name="static")
+else:
+    logger.warning(f"Static directory not found at {static_dir}")
 
 # Request models
 class BotMessage(BaseModel):
@@ -163,8 +168,9 @@ async def shutdown_event():
 async def root():
     """Root endpoint - serves campaign manager or API info"""
     # Check if static/index.html exists
-    if os.path.exists("static/index.html"):
-        return FileResponse("static/index.html")
+    static_index = static_dir / "index.html"
+    if static_index.exists():
+        return FileResponse(str(static_index))
     else:
         return {
             "name": "BMA Social API",
@@ -177,10 +183,16 @@ async def root():
 @app.get("/campaigns")
 async def campaign_manager():
     """Campaign manager web interface"""
-    if os.path.exists("static/index.html"):
-        return FileResponse("static/index.html")
+    static_index = static_dir / "index.html"
+    if static_index.exists():
+        return FileResponse(str(static_index))
     else:
         return {"error": "Campaign manager interface not found"}
+
+@app.get("/favicon.ico")
+async def favicon():
+    """Serve favicon"""
+    return JSONResponse(content={"icon": "🎵"}, status_code=200)
 
 @app.get("/health")
 async def health():
