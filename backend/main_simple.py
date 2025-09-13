@@ -515,7 +515,7 @@ async def process_line_event(event: Dict[str, Any]):
 async def get_line_user_name(user_id: str) -> str:
     """Get Line user display name"""
     try:
-        import aiohttp
+        import requests
         line_token = os.environ.get('LINE_CHANNEL_ACCESS_TOKEN')
         if not line_token:
             return "Line User"
@@ -523,14 +523,13 @@ async def get_line_user_name(user_id: str) -> str:
         url = f"https://api.line.me/v2/bot/profile/{user_id}"
         headers = {"Authorization": f"Bearer {line_token}"}
 
-        async with aiohttp.ClientSession() as session:
-            async with session.get(url, headers=headers) as response:
-                if response.status == 200:
-                    profile = await response.json()
-                    return profile.get("displayName", "Line User")
-                else:
-                    logger.warning(f"Failed to get Line profile: {response.status}")
-                    return "Line User"
+        response = requests.get(url, headers=headers)
+        if response.status_code == 200:
+            profile = response.json()
+            return profile.get("displayName", "Line User")
+        else:
+            logger.warning(f"Failed to get Line profile: {response.status_code}")
+            return "Line User"
     except Exception as e:
         logger.error(f"Error getting Line user name: {e}")
         return "Line User"
@@ -538,7 +537,7 @@ async def get_line_user_name(user_id: str) -> str:
 async def send_line_message(user_id: str, message: str, reply_token: str = None):
     """Send message via Line API"""
     try:
-        import aiohttp
+        import requests
         line_token = os.environ.get('LINE_CHANNEL_ACCESS_TOKEN')
         if not line_token:
             logger.error("LINE_CHANNEL_ACCESS_TOKEN not configured")
@@ -568,13 +567,11 @@ async def send_line_message(user_id: str, message: str, reply_token: str = None)
                 "messages": [message_obj]
             }
 
-        async with aiohttp.ClientSession() as session:
-            async with session.post(url, headers=headers, json=payload) as response:
-                if response.status == 200:
-                    logger.info(f"Line message sent to {user_id}")
-                else:
-                    error_text = await response.text()
-                    logger.error(f"Failed to send Line message: {response.status} - {error_text}")
+        response = requests.post(url, headers=headers, json=payload)
+        if response.status_code == 200:
+            logger.info(f"Line message sent to {user_id}")
+        else:
+            logger.error(f"Failed to send Line message: {response.status_code} - {response.text}")
 
     except Exception as e:
         logger.error(f"Error sending Line message: {e}")
