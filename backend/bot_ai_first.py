@@ -189,7 +189,7 @@ Total Zones: {len(venue.get('zones', []))}
         
         # System prompt that makes AI understand its role
         system_prompt = f"""You are the AI brain of BMA Social's customer support system.
-You handle background music systems for venues across Thailand.
+You handle background music systems for venues globally, operating in over 50 countries.
 
 {venue_info}
 

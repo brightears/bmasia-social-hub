@@ -130,7 +130,7 @@ image.png# BMA Social Product Information & Technical Details
 - **Curated Music**: Professionally selected tracks
 - **Basic Scheduling**: Day/night modes
 - **Offline Mode**: Up to 24 hours offline playback
-- **Local Support**: Thailand-based support team
+- **Local Support**: Multi-regional support teams globally
 
 ### Limitations vs SYB
 - Fewer playlist options
@@ -166,10 +166,10 @@ image.png# BMA Social Product Information & Technical Details
 | **Custom Playlists** | ✅ Yes (Unlimited+) | ❌ No |
 | **Scheduling** | ✅ Advanced | ⚠️ Basic |
 | **Hardware** | Dedicated player available | Use existing devices |
-| **Support** | 24/7 Global | Business hours Thailand |
+| **Support** | 24/7 Global | Business hours (regional) |
 | **Offline Playback** | ✅ Yes | ✅ Yes (24 hours) |
 | **Explicit Filter** | ✅ Yes | ⚠️ Basic |
-| **Commercial License** | ✅ Full global | ✅ Thailand/SEA |
+| **Commercial License** | ✅ Full global | ✅ Full global |
 
 ---
 
@@ -221,11 +221,11 @@ A: Check that volume is not controlled by your amplifier. The app controls the p
 5. **Remote Management**: Control all locations from anywhere
 
 ### Why BMA Social?
-1. **Local Support**: Thailand-based team, support in Thai and English
+1. **Global Support**: Multi-regional teams, support in multiple languages
 2. **Quick Response**: Most issues resolved within 1 hour
 3. **Flexible Solutions**: From affordable Beat Breeze to premium SYB
 4. **Integration Expertise**: We handle all technical setup
-5. **Proven Track Record**: 500+ venues across Thailand
+5. **Proven Track Record**: Operating in 50+ countries worldwide
 
 ### ROI Arguments
 - Background music increases sales by 9% on average (studies show)
