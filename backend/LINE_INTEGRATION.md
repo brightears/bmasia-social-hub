@@ -1,10 +1,17 @@
 # Line Messaging Integration
+## STATUS: ✅ FULLY OPERATIONAL (as of Sept 13, 2025 V3)
 
 ## Overview
 
 This integration adds Line messaging support to the BMA Social music bot while maintaining full compatibility with the existing WhatsApp functionality. Both platforms now use the same AI-powered bot (`bot_ai_first.py`) and support human handoff through Google Chat.
 
 ## Implementation Details
+
+### CRITICAL FIX (Sept 13, 2025):
+- Changed from `aiohttp` to `requests` library (aiohttp wasn't installed)
+- Both `get_line_user_name()` and `send_line_message()` now use requests
+- This fixed the "No module named 'aiohttp'" error
+- Line messages now working properly in production
 
 ### New Endpoints
 
