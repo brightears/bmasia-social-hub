@@ -12,7 +12,8 @@ from datetime import datetime
 from typing import Dict, Any, Optional
 
 from fastapi import FastAPI, Response, Depends, HTTPException, Request
-from fastapi.responses import JSONResponse
+from fastapi.responses import JSONResponse, HTMLResponse, FileResponse
+from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 import uvicorn
 
@@ -47,6 +48,9 @@ app = FastAPI(
     description="AI-powered music operations platform with intelligent bot",
     version="0.3.0"
 )
+
+# Mount static files for campaign manager web interface
+app.mount("/static", StaticFiles(directory="static"), name="static")
 
 # Request models
 class BotMessage(BaseModel):
@@ -157,13 +161,26 @@ async def shutdown_event():
 
 @app.get("/")
 async def root():
-    """Root endpoint"""
-    return {
-        "name": "BMA Social API",
-        "status": "running",
-        "mode": "with_database",
-        "uptime": str(datetime.utcnow() - startup_time)
-    }
+    """Root endpoint - serves campaign manager or API info"""
+    # Check if static/index.html exists
+    if os.path.exists("static/index.html"):
+        return FileResponse("static/index.html")
+    else:
+        return {
+            "name": "BMA Social API",
+            "status": "running",
+            "mode": "with_database",
+            "uptime": str(datetime.utcnow() - startup_time),
+            "campaign_manager": "/campaigns"
+        }
+
+@app.get("/campaigns")
+async def campaign_manager():
+    """Campaign manager web interface"""
+    if os.path.exists("static/index.html"):
+        return FileResponse("static/index.html")
+    else:
+        return {"error": "Campaign manager interface not found"}
 
 @app.get("/health")
 async def health():

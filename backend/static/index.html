@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BMA Social Campaign Manager</title>
+    <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>🎵 BMA Social Campaign Manager</h1>
+            <p>AI-Powered Campaign Management System</p>
+        </header>
+
+        <div class="stats-container">
+            <div class="stat-card">
+                <h3>Total Customers</h3>
+                <p class="stat-number" id="total-customers">-</p>
+            </div>
+            <div class="stat-card">
+                <h3>Total Zones</h3>
+                <p class="stat-number" id="total-zones">-</p>
+            </div>
+            <div class="stat-card">
+                <h3>Expiring (30 days)</h3>
+                <p class="stat-number" id="expiring-30">-</p>
+            </div>
+            <div class="stat-card">
+                <h3>Active Campaigns</h3>
+                <p class="stat-number" id="active-campaigns">-</p>
+            </div>
+        </div>
+
+        <div class="main-content">
+            <!-- Quick Campaign Creator -->
+            <div class="card">
+                <h2>✨ Quick Campaign Creator</h2>
+                <p class="help-text">Just type what you want to do in plain English!</p>
+
+                <div class="form-group">
+                    <label>What campaign do you want to send?</label>
+                    <textarea id="human-request" placeholder="Examples:
+• Send renewal reminders to all Hiltons expiring this month
+• Create a Christmas promotion for hotels in Bangkok
+• Notify all Marriott properties about the new music features
+• Send a survey to venues that joined in the last 3 months"></textarea>
+                </div>
+
+                <button class="btn btn-primary" onclick="createQuickCampaign()">
+                    Create Campaign with AI ✨
+                </button>
+            </div>
+
+            <!-- Advanced Campaign Creator -->
+            <div class="card">
+                <h2>🎯 Advanced Campaign Options</h2>
+                <p class="help-text">For more specific targeting</p>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Campaign Type</label>
+                        <select id="campaign-type">
+                            <option value="renewal">Renewal Reminder</option>
+                            <option value="seasonal">Seasonal Promotion</option>
+                            <option value="announcement">Feature Announcement</option>
+                            <option value="survey">Customer Survey</option>
+                            <option value="follow_up">Follow-up</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Filter by Brand</label>
+                        <select id="filter-brand">
+                            <option value="">All Brands</option>
+                            <option value="Hilton Hotels & Resorts">Hilton Hotels & Resorts</option>
+                            <option value="Marriott International">Marriott International</option>
+                            <option value="Hyatt Hotels Corporation">Hyatt Hotels</option>
+                            <option value="Centara Hotels & Resorts">Centara Hotels</option>
+                            <option value="Independent">Independent Properties</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Business Type</label>
+                        <select id="filter-business">
+                            <option value="">All Types</option>
+                            <option value="Hotel">Hotels</option>
+                            <option value="Restaurant">Restaurants</option>
+                            <option value="Beach Club">Beach Clubs</option>
+                            <option value="Spa">Spas</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Contract Expiring Within</label>
+                        <select id="filter-expiry">
+                            <option value="">No Filter</option>
+                            <option value="30">30 Days</option>
+                            <option value="60">60 Days</option>
+                            <option value="90">90 Days</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label>Additional Context (Optional)</label>
+                    <input type="text" id="campaign-context" placeholder="e.g., Christmas promotion, New feature launch">
+                </div>
+
+                <button class="btn btn-secondary" onclick="createAdvancedCampaign()">
+                    Create Advanced Campaign
+                </button>
+            </div>
+
+            <!-- Campaign Preview -->
+            <div class="card" id="campaign-preview" style="display: none;">
+                <h2>📋 Campaign Preview</h2>
+                <div id="preview-content">
+                    <!-- Preview content will be inserted here -->
+                </div>
+
+                <div class="action-buttons">
+                    <button class="btn btn-success" onclick="sendCampaign(false)">
+                        📤 Send Campaign
+                    </button>
+                    <button class="btn btn-warning" onclick="sendCampaign(true)">
+                        🧪 Test Mode (First Customer Only)
+                    </button>
+                    <button class="btn btn-danger" onclick="cancelCampaign()">
+                        ❌ Cancel
+                    </button>
+                </div>
+            </div>
+
+            <!-- Results -->
+            <div class="card" id="campaign-results" style="display: none;">
+                <h2>📊 Campaign Results</h2>
+                <div id="results-content">
+                    <!-- Results will be inserted here -->
+                </div>
+                <button class="btn btn-primary" onclick="resetForm()">
+                    Create Another Campaign
+                </button>
+            </div>
+        </div>
+
+        <!-- Recent Campaigns -->
+        <div class="card">
+            <h2>📜 Recent Campaigns</h2>
+            <div id="recent-campaigns">
+                <p class="help-text">Loading recent campaigns...</p>
+            </div>
+        </div>
+
+        <!-- Loading Overlay -->
+        <div id="loading-overlay" style="display: none;">
+            <div class="loading-content">
+                <div class="spinner"></div>
+                <p>AI is working on your campaign...</p>
+            </div>
+        </div>
+    </div>
+
+    <script src="/static/script.js"></script>
+</body>
+</html>
