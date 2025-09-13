@@ -581,6 +581,90 @@ from reply_interface import create_reply_endpoint
 create_reply_endpoint(app)
 logger.info("✅ Reply interface ready at /reply/{thread_key}")
 
+# Add campaign management endpoints
+try:
+    from campaigns.campaign_orchestrator import CampaignOrchestrator
+    campaign_orchestrator = CampaignOrchestrator()
+    logger.info("✅ Campaign orchestrator initialized")
+
+    @app.post("/api/campaigns/create")
+    async def create_campaign(request: Request):
+        """Create new AI-powered campaign"""
+        try:
+            data = await request.json()
+
+            # Handle natural language request
+            if data.get('human_request'):
+                campaign = campaign_orchestrator.create_campaign(
+                    campaign_type='auto',
+                    human_request=data['human_request']
+                )
+            else:
+                campaign = campaign_orchestrator.create_campaign(
+                    campaign_type=data.get('type', 'general'),
+                    filters=data.get('filters', {}),
+                    context=data.get('context')
+                )
+
+            return {
+                "success": True,
+                "campaign_id": campaign['id'],
+                "campaign": campaign
+            }
+        except Exception as e:
+            logger.error(f"Campaign creation error: {e}")
+            return {"success": False, "error": str(e)}
+
+    @app.get("/api/campaigns/{campaign_id}/preview")
+    async def preview_campaign(campaign_id: str):
+        """Preview campaign before sending"""
+        preview = campaign_orchestrator.preview_campaign(campaign_id)
+        return preview
+
+    @app.post("/api/campaigns/{campaign_id}/send")
+    async def send_campaign(campaign_id: str, request: Request):
+        """Send campaign to customers"""
+        try:
+            data = await request.json()
+
+            result = campaign_orchestrator.send_campaign(
+                campaign_id=campaign_id,
+                channels=data.get('channels', ['whatsapp', 'email']),
+                test_mode=data.get('test_mode', False)
+            )
+
+            return {"success": True, "result": result}
+        except Exception as e:
+            logger.error(f"Campaign send error: {e}")
+            return {"success": False, "error": str(e)}
+
+    @app.get("/api/campaigns/statistics")
+    async def campaign_statistics():
+        """Get campaign and customer statistics"""
+        stats = campaign_orchestrator.get_campaign_statistics()
+        return stats
+
+    @app.post("/api/campaigns/response")
+    async def handle_campaign_response(request: Request):
+        """Handle response to campaign (called by bot when campaign response detected)"""
+        try:
+            data = await request.json()
+
+            result = campaign_orchestrator.handle_campaign_response(
+                phone_or_email=data.get('identifier'),
+                message=data.get('message'),
+                channel=data.get('channel', 'whatsapp')
+            )
+
+            return {"success": True, "result": result}
+        except Exception as e:
+            logger.error(f"Campaign response error: {e}")
+            return {"success": False, "error": str(e)}
+
+except Exception as e:
+    logger.warning(f"Campaign system not available: {e}")
+    campaign_orchestrator = None
+
 @app.post("/webhooks/google-chat")
 async def google_chat_webhook(request: Request):
     """Handle incoming messages from Google Chat for two-way communication"""
