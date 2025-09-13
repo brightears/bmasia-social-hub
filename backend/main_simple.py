@@ -5,6 +5,9 @@ FastAPI application with BMA Social Music Bot
 
 import os
 import logging
+import hmac
+import hashlib
+import base64
 from datetime import datetime
 from typing import Dict, Any, Optional
 
@@ -195,7 +198,23 @@ async def webhook_diagnostics():
             "whatsapp_webhook": "https://bma-social-api-q9uu.onrender.com/webhooks/whatsapp",
             "line_webhook": "https://bma-social-api-q9uu.onrender.com/webhooks/line"
         },
-        "verify_token": "bma_whatsapp_verify_2024",
+        "configuration": {
+            "whatsapp_configured": bool(os.environ.get('WHATSAPP_ACCESS_TOKEN')),
+            "line_configured": bool(os.environ.get('LINE_CHANNEL_ACCESS_TOKEN')),
+            "bot_initialized": music_bot is not None
+        },
+        "platforms": {
+            "whatsapp": {
+                "endpoint": "/webhooks/whatsapp",
+                "verify_token": "bma_whatsapp_verify_2024",
+                "status": "active"
+            },
+            "line": {
+                "endpoint": "/webhooks/line",
+                "signature_verification": "enabled",
+                "status": "active"
+            }
+        },
         "service_status": "active",
         "timestamp": datetime.utcnow().isoformat()
     }
@@ -355,6 +374,211 @@ async def whatsapp_verify(request: Request):
     
     return {"status": "failed"}
 
+@app.post("/webhooks/line")
+async def line_webhook(request: Request):
+    """Handle Line webhook with signature verification"""
+    try:
+        # Get raw body for signature verification
+        body = await request.body()
+        signature = request.headers.get("x-line-signature", "")
+
+        # Verify Line webhook signature
+        if not verify_line_signature(signature, body):
+            logger.error("Invalid Line webhook signature")
+            raise HTTPException(status_code=400, detail="Invalid signature")
+
+        # Parse JSON data
+        data = await request.json()
+        logger.info(f"Line webhook received: {data}")
+
+        # Process Line events
+        for event in data.get("events", []):
+            await process_line_event(event)
+
+        return {"status": "success"}
+
+    except Exception as e:
+        logger.error(f"Line webhook error: {e}")
+        return {"status": "error", "message": str(e)}
+
+def verify_line_signature(signature: str, body: bytes) -> bool:
+    """Verify Line webhook signature"""
+    line_secret = os.environ.get('LINE_CHANNEL_SECRET')
+    if not line_secret:
+        logger.warning("LINE_CHANNEL_SECRET not configured")
+        return False
+
+    hash_value = hmac.new(
+        line_secret.encode("utf-8"),
+        body,
+        hashlib.sha256
+    ).digest()
+
+    expected_signature = base64.b64encode(hash_value).decode("utf-8")
+    return hmac.compare_digest(signature, expected_signature)
+
+async def process_line_event(event: Dict[str, Any]):
+    """Process individual Line event"""
+    event_type = event.get("type")
+
+    if event_type == "message":
+        message = event.get("message", {})
+        source = event.get("source", {})
+        reply_token = event.get("replyToken")
+
+        # Extract message details
+        message_type = message.get("type")
+        if message_type == "text":
+            text = message.get("text", "")
+            user_id = source.get("userId", "")
+
+            # Get user profile for display name
+            user_name = await get_line_user_name(user_id)
+
+            response = ""  # Initialize response
+
+            # Check if conversation is in human mode (similar to WhatsApp)
+            from conversation_tracker import conversation_tracker
+
+            if conversation_tracker.is_human_mode(user_id):
+                # Human is handling - forward directly to Google Chat
+                logger.info(f"Human mode active for {user_id} - forwarding to Google Chat")
+
+                # Get the active conversation to continue the thread
+                active_conv = conversation_tracker.get_active_conversation(user_id)
+                if active_conv:
+                    # Send to Google Chat in the same thread
+                    from google_chat_client import chat_client, Department, Priority
+
+                    notification_sent = chat_client.send_notification(
+                        message=f"Customer reply: {text}",
+                        venue_name=active_conv.get("venue_name", "Unknown"),
+                        venue_data=None,
+                        user_info={
+                            'name': user_name,
+                            'phone': user_id,
+                            'platform': 'Line'
+                        },
+                        department=Department.GENERAL,
+                        priority=Priority.NORMAL,
+                        context="Continuing conversation with support"
+                    )
+
+                    # Add to conversation history
+                    conversation_tracker.add_message(
+                        thread_key=active_conv.get("thread_key"),
+                        message=text,
+                        sender=user_name,
+                        direction="inbound"
+                    )
+
+                    # Send acknowledgment to customer
+                    response = "Your message has been received by our support team. They'll respond shortly."
+                else:
+                    # Fallback to bot if no active conversation found
+                    if music_bot and text:
+                        response = music_bot.process_message(text, user_id, user_name)
+                        logger.info(f"Bot response: {response}")
+                    else:
+                        response = "Message received. Support will respond soon."
+
+            elif music_bot and text:
+                # Normal bot processing
+                response = music_bot.process_message(
+                    text,
+                    user_id,
+                    user_name
+                )
+                logger.info(f"Bot response: {response}")
+            else:
+                response = "Thank you for your message. How can I help you today?"
+
+            # Send response back via Line API
+            if response:
+                await send_line_message(user_id, response, reply_token)
+
+    elif event_type == "follow":
+        # User added bot as friend
+        source = event.get("source", {})
+        user_id = source.get("userId", "")
+        reply_token = event.get("replyToken")
+
+        welcome_message = "Welcome to BMA Social! I'm your music operations assistant. How can I help you today?"
+        await send_line_message(user_id, welcome_message, reply_token)
+
+    elif event_type == "unfollow":
+        # User blocked bot - just log it
+        source = event.get("source", {})
+        user_id = source.get("userId", "")
+        logger.info(f"Line user {user_id} unfollowed the bot")
+
+async def get_line_user_name(user_id: str) -> str:
+    """Get Line user display name"""
+    try:
+        import aiohttp
+        line_token = os.environ.get('LINE_CHANNEL_ACCESS_TOKEN')
+        if not line_token:
+            return "Line User"
+
+        url = f"https://api.line.me/v2/bot/profile/{user_id}"
+        headers = {"Authorization": f"Bearer {line_token}"}
+
+        async with aiohttp.ClientSession() as session:
+            async with session.get(url, headers=headers) as response:
+                if response.status == 200:
+                    profile = await response.json()
+                    return profile.get("displayName", "Line User")
+                else:
+                    logger.warning(f"Failed to get Line profile: {response.status}")
+                    return "Line User"
+    except Exception as e:
+        logger.error(f"Error getting Line user name: {e}")
+        return "Line User"
+
+async def send_line_message(user_id: str, message: str, reply_token: str = None):
+    """Send message via Line API"""
+    try:
+        import aiohttp
+        line_token = os.environ.get('LINE_CHANNEL_ACCESS_TOKEN')
+        if not line_token:
+            logger.error("LINE_CHANNEL_ACCESS_TOKEN not configured")
+            return
+
+        headers = {
+            "Authorization": f"Bearer {line_token}",
+            "Content-Type": "application/json"
+        }
+
+        message_obj = {
+            "type": "text",
+            "text": message
+        }
+
+        # Use reply if token available (preferred), otherwise use push
+        if reply_token:
+            url = "https://api.line.me/v2/bot/message/reply"
+            payload = {
+                "replyToken": reply_token,
+                "messages": [message_obj]
+            }
+        else:
+            url = "https://api.line.me/v2/bot/message/push"
+            payload = {
+                "to": user_id,
+                "messages": [message_obj]
+            }
+
+        async with aiohttp.ClientSession() as session:
+            async with session.post(url, headers=headers, json=payload) as response:
+                if response.status == 200:
+                    logger.info(f"Line message sent to {user_id}")
+                else:
+                    error_text = await response.text()
+                    logger.error(f"Failed to send Line message: {response.status} - {error_text}")
+
+    except Exception as e:
+        logger.error(f"Error sending Line message: {e}")
+
 # Add reply interface for two-way communication
 from reply_interface import create_reply_endpoint
 create_reply_endpoint(app)
@@ -394,47 +618,68 @@ async def google_chat_webhook(request: Request):
             if conversation:
                 customer_phone = conversation["customer_phone"]
                 customer_name = conversation["customer_name"]
-                
-                # Send the reply to WhatsApp
-                whatsapp_token = os.getenv('WHATSAPP_ACCESS_TOKEN')
-                phone_number_id = os.getenv('WHATSAPP_PHONE_NUMBER_ID')
-                
-                if whatsapp_token and phone_number_id:
-                    url = f"https://graph.facebook.com/v17.0/{phone_number_id}/messages"
-                    headers = {
-                        "Authorization": f"Bearer {whatsapp_token}",
-                        "Content-Type": "application/json"
-                    }
-                    payload = {
-                        "messaging_product": "whatsapp",
-                        "to": customer_phone,
-                        "type": "text",
-                        "text": {"body": text}
-                    }
-                    
+                platform = conversation.get("platform", "WhatsApp")
+
+                # Send reply based on platform
+                if platform.lower() == "line":
+                    # Send to Line
                     try:
-                        response = requests.post(url, headers=headers, json=payload)
-                        if response.status_code == 200:
-                            logger.info(f"Reply sent to WhatsApp customer {customer_phone}")
-                            
-                            # Track the message
-                            conversation_tracker.add_message(
-                                thread_key=thread_key,
-                                message=text,
-                                sender=user.get("displayName", "Support Agent"),
-                                direction="outbound"
-                            )
-                            
-                            # Send confirmation back to Google Chat
-                            return {"text": f"✅ Reply sent to {customer_name}"}
-                        else:
-                            logger.error(f"Failed to send WhatsApp message: {response.text}")
-                            return {"text": f"❌ Failed to send reply: {response.status_code}"}
+                        await send_line_message(customer_phone, text)
+                        logger.info(f"Reply sent to Line customer {customer_phone}")
+
+                        # Track the message
+                        conversation_tracker.add_message(
+                            thread_key=thread_key,
+                            message=text,
+                            sender=user.get("displayName", "Support Agent"),
+                            direction="outbound"
+                        )
+
+                        return {"text": f"✅ Reply sent to {customer_name} via Line"}
                     except Exception as e:
-                        logger.error(f"Error sending WhatsApp message: {e}")
-                        return {"text": f"❌ Error: {str(e)}"}
+                        logger.error(f"Error sending Line message: {e}")
+                        return {"text": f"❌ Error sending to Line: {str(e)}"}
                 else:
-                    return {"text": "❌ WhatsApp not configured"}
+                    # Send to WhatsApp (existing logic)
+                    whatsapp_token = os.getenv('WHATSAPP_ACCESS_TOKEN')
+                    phone_number_id = os.getenv('WHATSAPP_PHONE_NUMBER_ID')
+
+                    if whatsapp_token and phone_number_id:
+                        url = f"https://graph.facebook.com/v17.0/{phone_number_id}/messages"
+                        headers = {
+                            "Authorization": f"Bearer {whatsapp_token}",
+                            "Content-Type": "application/json"
+                        }
+                        payload = {
+                            "messaging_product": "whatsapp",
+                            "to": customer_phone,
+                            "type": "text",
+                            "text": {"body": text}
+                        }
+
+                        try:
+                            response = requests.post(url, headers=headers, json=payload)
+                            if response.status_code == 200:
+                                logger.info(f"Reply sent to WhatsApp customer {customer_phone}")
+
+                                # Track the message
+                                conversation_tracker.add_message(
+                                    thread_key=thread_key,
+                                    message=text,
+                                    sender=user.get("displayName", "Support Agent"),
+                                    direction="outbound"
+                                )
+
+                                # Send confirmation back to Google Chat
+                                return {"text": f"✅ Reply sent to {customer_name} via WhatsApp"}
+                            else:
+                                logger.error(f"Failed to send WhatsApp message: {response.text}")
+                                return {"text": f"❌ Failed to send reply: {response.status_code}"}
+                        except Exception as e:
+                            logger.error(f"Error sending WhatsApp message: {e}")
+                            return {"text": f"❌ Error: {str(e)}"}
+                    else:
+                        return {"text": "❌ WhatsApp not configured"}
             else:
                 logger.warning(f"No conversation found for thread {thread_key}")
                 return {"text": "⚠️ No active conversation found for this thread"}
