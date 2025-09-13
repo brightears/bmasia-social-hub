@@ -1,4 +1,4 @@
-# BMA Social Product Information & Technical Details
+image.png# BMA Social Product Information & Technical Details
 
 ## Products Overview
 
