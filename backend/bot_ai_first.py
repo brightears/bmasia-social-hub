@@ -37,12 +37,15 @@ logger = logging.getLogger(__name__)
 
 class AIFirstBot:
     """AI-driven bot where OpenAI makes ALL decisions"""
-    
+
     def __init__(self):
         self.openai = OpenAI(api_key=os.getenv('OPENAI_API_KEY'))
         self.model = 'gpt-4o-mini'
         self.venue_manager = VenueManager()
-        
+
+        # Load public product information
+        self.product_info = self._load_product_info()
+
         # Initialize Soundtrack API if available
         self.soundtrack = None
         if HAS_SOUNDTRACK:
@@ -51,6 +54,38 @@ class AIFirstBot:
                 logger.info("Soundtrack API initialized")
             except Exception as e:
                 logger.error(f"Failed to initialize Soundtrack API: {e}")
+
+    def _load_product_info(self) -> str:
+        """Load product information from markdown file - PUBLIC information, no verification needed"""
+        try:
+            product_file = os.path.join(os.path.dirname(__file__), 'product_info.md')
+            with open(product_file, 'r', encoding='utf-8') as f:
+                content = f.read()
+
+            # Extract key sections for the AI prompt (avoid overwhelming the model)
+            sections = []
+
+            # SYB Pricing
+            if "### Pricing Tiers" in content:
+                sections.append("SYB PRICING: Essential $29/zone/month, Unlimited $39/zone/month, Enterprise custom pricing")
+
+            # Beat Breeze Pricing
+            if "### Pricing" in content and "Beat Breeze" in content:
+                sections.append("BEAT BREEZE PRICING: Basic $15/location/month, Pro $25/location/month")
+
+            # Key differences
+            sections.append("KEY DIFFERENCE: SYB supports multiple zones per venue, Beat Breeze is one zone per location")
+            sections.append("FEATURES: SYB has Spotify integration & API access, Beat Breeze is more affordable but basic")
+            sections.append("LICENSING: Both include proper commercial music licensing (cannot use consumer Spotify/YouTube)")
+
+            # Support escalation
+            sections.append("SUPPORT: Bot handles volume/skip/pause. Humans handle playlist changes, billing, setup")
+
+            return "\n".join(sections)
+
+        except Exception as e:
+            logger.error(f"Failed to load product info: {e}")
+            return "PRODUCT INFO: SYB ($29-39/zone/month) and Beat Breeze ($15-25/location/month) - both include commercial licensing"
     
     def process_message(self, message: str, phone: str, user_name: Optional[str] = None) -> str:
         """
@@ -158,6 +193,9 @@ You handle background music systems for venues across Thailand.
 
 {venue_info}
 
+📋 PRODUCT INFORMATION (PUBLIC - NO VERIFICATION NEEDED):
+{self.product_info}
+
 YOUR CAPABILITIES via Soundtrack API:
 ✅ You CAN: Adjust volume, skip songs, pause/play music, check what's playing/current song
 ❌ You CANNOT: Change playlists, block songs, schedule music (due to licensing)
@@ -194,6 +232,8 @@ WHEN TO ANSWER DIRECTLY (don't escalate):
 - Basic venue details
 - Volume/skip/pause/play controls
 - What song is currently playing (via API)
+- Product information (SYB vs Beat Breeze features, pricing, capabilities)
+- General questions about our services and offerings
 
 WHEN TO ESCALATE:
 - CRITICAL + TECHNICAL: System down, all zones offline, complete failure
