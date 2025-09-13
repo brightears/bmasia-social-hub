@@ -27,6 +27,13 @@ def test_campaign_system():
     print("BMA SOCIAL CAMPAIGN SYSTEM TEST")
     print("="*50 + "\n")
 
+    # Check if OpenAI is configured
+    if not os.getenv('OPENAI_API_KEY'):
+        print("⚠️  OPENAI_API_KEY not set in environment")
+        print("   To test with AI features, set your OpenAI API key:")
+        print("   export OPENAI_API_KEY='your-key-here'\n")
+        print("   For now, testing without AI features...\n")
+
     try:
         # Import campaign system
         from campaigns.campaign_orchestrator import CampaignOrchestrator
