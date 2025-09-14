@@ -173,12 +173,17 @@ async function showCampaignPreview(campaign) {
 
         // Show all target customers
         preview.sample_messages.forEach(sample => {
+            // Format contacts list
+            const contactsList = sample.contacts && sample.contacts.length > 0
+                ? sample.contacts.join('<br>')
+                : sample.contact;
+
             previewHTML += `
                 <div class="preview-item">
                     <h4>${sample.customer}</h4>
                     <p><strong>Brand:</strong> ${sample.brand || 'Independent'}</p>
                     <p><strong>Zones:</strong> ${sample.zones.join(', ')}</p>
-                    <p><strong>Contact:</strong> ${sample.contact}</p>
+                    <p><strong>📧 Selected Recipients:</strong><br>${contactsList}</p>
                     <p><strong>Channels:</strong> ${sample.channels.join(', ')}</p>
                 </div>
             `;

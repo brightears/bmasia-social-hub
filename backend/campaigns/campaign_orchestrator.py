@@ -13,6 +13,7 @@ from typing import Dict, List, Optional, Any
 from campaigns.campaign_ai import AICampaignManager
 from campaigns.customer_manager import CustomerManager
 from campaigns.campaign_sender import CampaignSender
+from campaigns.contact_selector import SmartContactSelector
 
 logger = logging.getLogger(__name__)
 
@@ -27,6 +28,7 @@ class CampaignOrchestrator:
         self.ai_manager = AICampaignManager()
         self.customer_manager = CustomerManager()
         self.sender = CampaignSender()
+        self.contact_selector = SmartContactSelector()
         self.active_campaigns = {}
 
     def create_campaign(
@@ -66,6 +68,17 @@ class CampaignOrchestrator:
         # Filter customers based on criteria
         target_customers = self.customer_manager.filter_customers(filters or {})
         logger.info(f"Found {len(target_customers)} customers matching filters")
+
+        # Select appropriate contacts for each customer based on campaign type
+        for customer in target_customers:
+            selected_contacts = self.contact_selector.select_contacts(
+                customer=customer,
+                campaign_type=campaign_type,
+                campaign_context=campaign_plan
+            )
+            # Store selected contacts for this customer
+            customer['selected_contacts'] = selected_contacts
+            logger.info(f"Selected {len(selected_contacts)} contacts for {customer['name']}: {[c['name'] for c in selected_contacts]}")
 
         # Generate messages for each customer
         messages_by_customer = {}
@@ -126,11 +139,16 @@ class CampaignOrchestrator:
             customer_id = customer['customer_id']
             messages = campaign['messages'].get(customer_id, {})
 
+            # Get all selected contacts for this customer
+            selected_contacts = customer.get('selected_contacts', [customer.get('primary_contact')])
+            contact_names = [f"{c['name']} ({c['role']})" for c in selected_contacts if c]
+
             sample_messages.append({
                 'customer': customer['name'],
                 'brand': customer.get('brand', 'Independent'),
                 'zones': customer.get('zones', []),
-                'contact': customer.get('primary_contact', {}).get('name', 'Unknown'),
+                'contacts': contact_names,  # Show all selected contacts
+                'contact': ', '.join(contact_names) if contact_names else 'Unknown',
                 'whatsapp': messages.get('whatsapp', '')[:200] + '...',
                 'email_subject': messages.get('email_subject', ''),
                 'channels': self._determine_channels(customer)
