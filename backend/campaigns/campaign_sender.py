@@ -99,6 +99,8 @@ class CampaignSender:
                     # Override with test contact details
                     recipient['primary_contact']['phone'] = self.test_override_contacts['whatsapp']
                     recipient['primary_contact']['email'] = self.test_override_contacts['email']
+                # Add Line user ID for test mode (using the phone number as Line ID)
+                recipient['line_user_id'] = self.test_override_contacts.get('line', self.test_override_contacts['whatsapp'])
             logger.info(f"TEST MODE: Overriding contacts to send to {self.test_override_contacts}")
 
         # Process each channel
@@ -264,8 +266,8 @@ class CampaignSender:
         """Send email campaigns with rate limiting"""
 
         if not self.email_password:
-            logger.warning("Email not configured - skipping")
-            results['errors'].append("Email not configured")
+            logger.error(f"Email not configured - password missing. Sender: {self.email_sender}")
+            results['errors'].append("Email not configured - check EMAIL_PASSWORD environment variable")
             return
 
         sent_this_hour = 0
@@ -306,6 +308,8 @@ class CampaignSender:
     def _send_single_email(self, to_email: str, subject: str, body: str) -> bool:
         """Send single email via SMTP"""
         try:
+            logger.info(f"Attempting to send email to {to_email} via {self.smtp_server}:{self.smtp_port}")
+
             # Create message
             msg = MIMEMultipart('alternative')
             msg['From'] = self.email_sender
@@ -317,10 +321,12 @@ class CampaignSender:
                 # HTML email
                 html_part = MIMEText(body, 'html')
                 msg.attach(html_part)
+                logger.info("Sending as HTML email")
             else:
                 # Plain text email
                 text_part = MIMEText(body, 'plain')
                 msg.attach(text_part)
+                logger.info("Sending as plain text email")
 
             # Send via SMTP
             with smtplib.SMTP(self.smtp_server, self.smtp_port) as server:
@@ -328,10 +334,14 @@ class CampaignSender:
                 server.login(self.email_sender, self.email_password)
                 server.send_message(msg)
 
+            logger.info(f"Email successfully sent to {to_email}")
             return True
 
+        except smtplib.SMTPAuthenticationError as e:
+            logger.error(f"Email authentication failed for {self.email_sender}: {e}")
+            return False
         except Exception as e:
-            logger.error(f"Email send error: {e}")
+            logger.error(f"Email send error to {to_email}: {type(e).__name__}: {e}")
             return False
 
     def _personalize_message(self, template: str, recipient: Dict[str, Any]) -> str:
