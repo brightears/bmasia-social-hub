@@ -179,7 +179,8 @@ class CampaignOrchestrator:
         campaign_id: str,
         channels: List[str] = None,
         test_mode: bool = False,
-        schedule_time: str = None
+        schedule_time: str = None,
+        edited_messages: Dict[str, str] = None
     ) -> Dict[str, Any]:
         """
         Execute campaign sending
@@ -189,6 +190,7 @@ class CampaignOrchestrator:
             channels: Channels to use (default: all available)
             test_mode: Send to first customer only
             schedule_time: ISO format time to schedule (optional)
+            edited_messages: Override messages with user edits (optional)
 
         Returns:
             Send results
@@ -222,6 +224,15 @@ class CampaignOrchestrator:
         for customer in campaign['target_customers']:
             customer_id = customer['customer_id']
             messages = campaign['messages'].get(customer_id, {})
+
+            # Override with edited messages if provided
+            if edited_messages:
+                if edited_messages.get('whatsapp'):
+                    messages['whatsapp'] = edited_messages['whatsapp']
+                if edited_messages.get('email_subject'):
+                    messages['email_subject'] = edited_messages['email_subject']
+                if edited_messages.get('email_body'):
+                    messages['email_body'] = edited_messages['email_body']
 
             # Determine available channels for this customer
             available_channels = self._determine_channels(customer)

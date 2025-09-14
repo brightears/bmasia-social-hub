@@ -659,7 +659,8 @@ try:
             result = campaign_orchestrator.send_campaign(
                 campaign_id=campaign_id,
                 channels=data.get('channels', ['whatsapp', 'email']),
-                test_mode=data.get('test_mode', False)
+                test_mode=data.get('test_mode', False),
+                edited_messages=data.get('edited_messages')
             )
 
             return {"success": True, "result": result}

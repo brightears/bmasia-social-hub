@@ -165,6 +165,12 @@ async function showCampaignPreview(campaign) {
                 <input type="text" id="edit-email-subject" value="${sample.email_subject}" />
 
                 <h5 style="margin-top: 15px;">Email Body:</h5>
+                <div style="margin-bottom: 10px; padding: 10px; border: 1px solid #ddd; border-radius: 4px; background: #f9f9f9;">
+                    <strong>Preview:</strong>
+                    <div style="margin-top: 8px; padding: 10px; background: white; border-radius: 3px;">
+                        ${sample.email_body || sample.whatsapp || 'Email body content'}
+                    </div>
+                </div>
                 <textarea id="edit-email-body" class="message-editor">${sample.email_body || sample.whatsapp || 'Email body content'}</textarea>
             </div>
 

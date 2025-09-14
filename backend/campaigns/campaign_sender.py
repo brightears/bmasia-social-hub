@@ -94,13 +94,11 @@ class CampaignSender:
             # Override recipient contacts with test contacts
             for recipient in recipients:
                 if recipient.get('primary_contact'):
+                    # Store original for logging before overriding
+                    recipient['original_contact'] = recipient['primary_contact'].copy()
                     # Override with test contact details
                     recipient['primary_contact']['phone'] = self.test_override_contacts['whatsapp']
                     recipient['primary_contact']['email'] = self.test_override_contacts['email']
-                    # Store original for logging
-                    recipient['original_contact'] = recipient['primary_contact'].copy()
-                    recipient['original_contact']['phone'] = recipient['primary_contact']['phone']
-                    recipient['original_contact']['email'] = recipient['primary_contact']['email']
             logger.info(f"TEST MODE: Overriding contacts to send to {self.test_override_contacts}")
 
         # Process each channel
@@ -314,9 +312,15 @@ class CampaignSender:
             msg['To'] = to_email
             msg['Subject'] = subject
 
-            # Add HTML body
-            html_part = MIMEText(body, 'html')
-            msg.attach(html_part)
+            # Check if body contains HTML tags
+            if '<' in body and '>' in body:
+                # HTML email
+                html_part = MIMEText(body, 'html')
+                msg.attach(html_part)
+            else:
+                # Plain text email
+                text_part = MIMEText(body, 'plain')
+                msg.attach(text_part)
 
             # Send via SMTP
             with smtplib.SMTP(self.smtp_server, self.smtp_port) as server:
