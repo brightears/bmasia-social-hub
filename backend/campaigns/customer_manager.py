@@ -28,8 +28,24 @@ class CustomerManager:
     def load_customer_data(self):
         """Load and parse customer data from venue_data.md"""
         try:
-            with open('venue_data.md', 'r') as f:
-                content = f.read()
+            # Try different paths to find venue_data.md
+            import os
+            possible_paths = [
+                'venue_data.md',
+                os.path.join(os.path.dirname(__file__), '..', 'venue_data.md'),
+                os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', 'venue_data.md')
+            ]
+
+            content = None
+            for path in possible_paths:
+                if os.path.exists(path):
+                    with open(path, 'r') as f:
+                        content = f.read()
+                        logger.info(f"Loaded venue_data.md from: {path}")
+                        break
+
+            if content is None:
+                raise FileNotFoundError("venue_data.md not found in any expected location")
 
             # Parse customers from markdown
             customer_sections = re.split(r'\n### (?=\w)', content)
@@ -173,10 +189,20 @@ class CustomerManager:
             logger.info(f"Loaded {len(self.customers)} customers from venue_data.md")
             logger.info(f"Identified {len(self.brands)} brands")
 
-        except FileNotFoundError:
-            logger.warning("venue_data.md not found - no customer data loaded")
+            # Debug: Log customer details
+            for cid, customer in self.customers.items():
+                logger.info(f"Customer: {customer['name']}, Type: {customer.get('business_type')}, Zones: {len(customer.get('zones', []))}")
+
+        except FileNotFoundError as e:
+            logger.error(f"venue_data.md not found - no customer data loaded: {e}")
+            # Initialize empty to prevent crashes
+            self.customers = {}
+            self.brands = {}
         except Exception as e:
             logger.error(f"Error loading customer data: {e}")
+            # Initialize empty to prevent crashes
+            self.customers = {}
+            self.brands = {}
 
     def filter_customers(self, filters: Dict[str, Any]) -> List[Dict[str, Any]]:
         """
