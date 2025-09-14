@@ -165,7 +165,7 @@ async function showCampaignPreview(campaign) {
                 <input type="text" id="edit-email-subject" value="${sample.email_subject}" />
 
                 <h5 style="margin-top: 15px;">Email Body:</h5>
-                <textarea id="edit-email-body" class="message-editor">${sample.email_body || 'Email body will be similar to WhatsApp message'}</textarea>
+                <textarea id="edit-email-body" class="message-editor">${sample.email_body || sample.whatsapp || 'Email body content'}</textarea>
             </div>
 
             <h4 style="margin-top: 20px;">👥 This will be sent to:</h4>

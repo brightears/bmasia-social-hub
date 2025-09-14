@@ -83,10 +83,15 @@ class CampaignOrchestrator:
         # Generate messages for each customer
         messages_by_customer = {}
         for customer in target_customers:
+            # Check if customer has multiple selected contacts
+            selected_contacts = customer.get('selected_contacts', [customer.get('primary_contact')])
+            multiple_recipients = len([c for c in selected_contacts if c]) > 1
+
             messages = self.ai_manager.compose_message(
                 customer=customer,
                 campaign_type=campaign_type,
-                campaign_context=campaign_plan
+                campaign_context=campaign_plan,
+                multiple_recipients=multiple_recipients
             )
             messages_by_customer[customer['customer_id']] = messages
 
@@ -149,8 +154,9 @@ class CampaignOrchestrator:
                 'zones': customer.get('zones', []),
                 'contacts': contact_names,  # Show all selected contacts
                 'contact': ', '.join(contact_names) if contact_names else 'Unknown',
-                'whatsapp': messages.get('whatsapp', '')[:200] + '...',
+                'whatsapp': messages.get('whatsapp', ''),
                 'email_subject': messages.get('email_subject', ''),
+                'email_body': messages.get('email_body', ''),
                 'channels': self._determine_channels(customer)
             })
 

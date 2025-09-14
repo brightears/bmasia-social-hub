@@ -34,6 +34,13 @@ class CampaignSender:
         self.smtp_server = os.environ.get('SMTP_SERVER', 'smtp.gmail.com')
         self.smtp_port = int(os.environ.get('SMTP_PORT', '587'))
 
+        # Test mode override contacts - always send to these when in test mode
+        self.test_override_contacts = {
+            'whatsapp': '+66856644142',
+            'email': 'norbert@bmasiamusic.com',
+            'line': '+66856644142'
+        }
+
         # Rate limiting
         self.whatsapp_daily_limit = 1000  # Template messages per day
         self.line_batch_size = 500  # Messages per broadcast
@@ -81,10 +88,20 @@ class CampaignSender:
         # Reset daily counters if needed
         self._check_daily_reset()
 
-        # Test mode - only first recipient
+        # Test mode - override with test contacts and limit to first recipient
         if test_mode:
             recipients = recipients[:1]
-            logger.info(f"TEST MODE: Sending to 1 recipient only")
+            # Override recipient contacts with test contacts
+            for recipient in recipients:
+                if recipient.get('primary_contact'):
+                    # Override with test contact details
+                    recipient['primary_contact']['phone'] = self.test_override_contacts['whatsapp']
+                    recipient['primary_contact']['email'] = self.test_override_contacts['email']
+                    # Store original for logging
+                    recipient['original_contact'] = recipient['primary_contact'].copy()
+                    recipient['original_contact']['phone'] = recipient['primary_contact']['phone']
+                    recipient['original_contact']['email'] = recipient['primary_contact']['email']
+            logger.info(f"TEST MODE: Overriding contacts to send to {self.test_override_contacts}")
 
         # Process each channel
         for channel in channels:

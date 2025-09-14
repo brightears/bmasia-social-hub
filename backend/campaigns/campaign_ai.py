@@ -147,7 +147,8 @@ Return a JSON with:
         self,
         customer: Dict[str, Any],
         campaign_type: str,
-        campaign_context: Dict[str, Any]
+        campaign_context: Dict[str, Any],
+        multiple_recipients: bool = False
     ) -> Dict[str, str]:
         """
         AI composes personalized message for specific customer
@@ -169,6 +170,19 @@ Return a JSON with:
         contract_end = customer.get('contract_end', '')
         platform = customer.get('platform', 'Soundtrack Your Brand')
 
+        # Determine greeting style based on multiple recipients
+        greeting_guidance = ""
+        if multiple_recipients:
+            greeting_guidance = """
+IMPORTANT: This message will be sent to MULTIPLE contacts for this customer.
+Use team/generic greetings like "Hello team", "Greetings", "Dear team at [Customer]", or "Hi there"
+instead of personal names. DO NOT use individual names in greetings.
+"""
+        else:
+            greeting_guidance = """
+GREETING STYLE: This will be sent to a single contact, so you can use their name if available.
+"""
+
         prompt = f"""Compose a personalized campaign message for this customer:
 
 CUSTOMER: {customer_name}
@@ -181,8 +195,10 @@ PLATFORM: {platform}
 CAMPAIGN TYPE: {campaign_type}
 CAMPAIGN CONTEXT: {json.dumps(campaign_context, indent=2)}
 
+{greeting_guidance}
+
 Requirements:
-1. Address the primary contact by name if known
+1. Use appropriate greeting based on recipient count (see guidance above)
 2. Reference ALL their venues/zones specifically
 3. Match tone to brand (Hilton = formal, Beach Club = casual)
 4. Include specific value proposition
@@ -216,40 +232,48 @@ Return JSON with:
 
             except Exception as e:
                 logger.error(f"Error composing message: {e}")
-                return self._get_template_message(customer, campaign_type, campaign_context)
+                return self._get_template_message(customer, campaign_type, campaign_context, multiple_recipients)
         else:
-            return self._get_template_message(customer, campaign_type, campaign_context)
+            return self._get_template_message(customer, campaign_type, campaign_context, multiple_recipients)
 
     def _get_template_message(
         self,
         customer: Dict[str, Any],
         campaign_type: str,
-        campaign_context: Dict[str, Any]
+        campaign_context: Dict[str, Any],
+        multiple_recipients: bool = False
     ) -> Dict[str, str]:
         """Get template message when AI is not available"""
         customer_name = customer.get('name', 'Customer')
         contact = customer.get('primary_contact', {})
-        contact_name = contact.get('name', 'there')
+
+        # Use generic greeting for multiple recipients
+        if multiple_recipients:
+            greeting = f"Hello team at {customer_name}"
+        else:
+            contact_name = contact.get('name', 'there')
+            greeting = f"Hi {contact_name}"
+
         venues = customer.get('zones', [])
         venues_text = ', '.join(venues) if venues else 'your venue'
 
         templates = {
             "renewal": {
-                "whatsapp": f"Hi {contact_name}! This is BMA Social. Your music service at {customer_name} ({venues_text}) is expiring on {customer.get('contract_end', 'soon')}. Would you like to renew for another year? Reply to discuss renewal options.",
+                "whatsapp": f"{greeting}! This is BMA Social. Your music service at {customer_name} ({venues_text}) is expiring on {customer.get('contract_end', 'soon')}. Would you like to renew for another year? Reply to discuss renewal options.",
                 "email_subject": f"Renewal Reminder - {customer_name} Music Service",
-                "email_body": f"<p>Dear {contact_name},</p><p>Your BMA Social music service for {customer_name} is expiring on {customer.get('contract_end', 'soon')}.</p><p>Zones: {venues_text}</p><p>Please contact us to discuss renewal options.</p>"
+                "email_body": f"<p>{greeting},</p><p>Your BMA Social music service for {customer_name} is expiring on {customer.get('contract_end', 'soon')}.</p><p>Zones: {venues_text}</p><p>Please contact us to discuss renewal options.</p>"
             },
             "seasonal": {
-                "whatsapp": f"Hi {contact_name}! Enhance the atmosphere at {customer_name} with our special seasonal playlists. Available now for all your zones: {venues_text}. Reply to learn more!",
+                "whatsapp": f"{greeting}! Enhance the atmosphere at {customer_name} with our special seasonal playlists. Available now for all your zones: {venues_text}. Reply to learn more!",
                 "email_subject": f"Seasonal Music Update - {customer_name}",
-                "email_body": f"<p>Dear {contact_name},</p><p>New seasonal playlists are available for {customer_name}!</p><p>Available for: {venues_text}</p><p>Contact us to activate these special playlists.</p>"
+                "email_body": f"<p>{greeting},</p><p>New seasonal playlists are available for {customer_name}!</p><p>Available for: {venues_text}</p><p>Contact us to activate these special playlists.</p>"
             }
         }
 
         template = templates.get(campaign_type, {
-            "whatsapp": f"Hi {contact_name}, this is BMA Social with an update about your music service at {customer_name} ({venues_text}). Please reply for more information.",
+            "whatsapp": f"{greeting}, this is BMA Social with an update about your music service at {customer_name} ({venues_text}). Please reply for more information.",
             "email_subject": f"BMA Social - Update for {customer_name}",
-            "email_body": f"<p>Dear {contact_name},</p><p>We have an important update regarding your music service at {customer_name}.</p><p>Zones: {venues_text}</p>"
+            "email_body": f"<p>{greeting},</p><p>We have an important update regarding your music service at {customer_name}.</p><p>Zones: {venues_text}</p>"
         })
 
         # Add Line and SMS
