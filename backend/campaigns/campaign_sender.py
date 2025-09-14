@@ -28,17 +28,17 @@ class CampaignSender:
         # Line configuration
         self.line_token = os.environ.get('LINE_CHANNEL_ACCESS_TOKEN')
 
-        # Email configuration (using Gmail for now, can be changed)
-        self.email_sender = os.environ.get('CAMPAIGN_EMAIL_SENDER', 'campaigns@bmasocial.com')
-        self.email_password = os.environ.get('CAMPAIGN_EMAIL_PASSWORD')
-        self.smtp_server = os.environ.get('SMTP_SERVER', 'smtp.gmail.com')
+        # Email configuration - using existing SMTP env vars from .env
+        self.email_sender = os.environ.get('SMTP_USER', 'norbert@bmasiamusic.com')
+        self.email_password = os.environ.get('SMTP_PASSWORD')
+        self.smtp_server = os.environ.get('SMTP_HOST', 'smtp.gmail.com')
         self.smtp_port = int(os.environ.get('SMTP_PORT', '587'))
 
         # Test mode override contacts - always send to these when in test mode
         self.test_override_contacts = {
             'whatsapp': '+66856644142',
             'email': 'norbert@bmasiamusic.com',
-            'line': '+66856644142'
+            'line': None  # Line needs actual user ID from Line platform, not phone number
         }
 
         # Rate limiting
@@ -99,8 +99,14 @@ class CampaignSender:
                     # Override with test contact details
                     recipient['primary_contact']['phone'] = self.test_override_contacts['whatsapp']
                     recipient['primary_contact']['email'] = self.test_override_contacts['email']
-                # Add Line user ID for test mode (using the phone number as Line ID)
-                recipient['line_user_id'] = self.test_override_contacts.get('line', self.test_override_contacts['whatsapp'])
+                # Line requires actual user ID - skip if not available
+                if self.test_override_contacts.get('line'):
+                    recipient['line_user_id'] = self.test_override_contacts['line']
+                else:
+                    # Remove Line from channels if no test Line ID
+                    if 'line' in channels:
+                        channels.remove('line')
+                        logger.info("TEST MODE: Skipping Line (no test Line user ID configured)")
             logger.info(f"TEST MODE: Overriding contacts to send to {self.test_override_contacts}")
 
         # Process each channel
