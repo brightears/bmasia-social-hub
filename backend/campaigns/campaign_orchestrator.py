@@ -336,43 +336,73 @@ class CampaignOrchestrator:
             (filters, campaign_type) tuple
         """
 
-        # Let AI interpret the request
-        prompt = f"""Interpret this campaign request into filters and type:
+        # Simple keyword-based interpretation when AI is not available
+        request_lower = request.lower()
+        filters = {}
+        campaign_type = 'general'
 
-Request: "{request}"
+        # Detect business type
+        if 'hotel' in request_lower or 'hotels' in request_lower:
+            filters['business_type'] = 'Hotel'
+        elif 'restaurant' in request_lower:
+            filters['business_type'] = 'Restaurant'
+        elif 'beach club' in request_lower:
+            filters['business_type'] = 'Beach Club'
+        elif 'spa' in request_lower:
+            filters['business_type'] = 'Spa'
 
-Determine:
-1. Campaign type (renewal, seasonal, announcement, follow_up, survey)
-2. Filters to apply
+        # Detect brand
+        if 'hilton' in request_lower:
+            filters['brand'] = 'Hilton Hotels & Resorts'
+        elif 'marriott' in request_lower:
+            filters['brand'] = 'Marriott International'
+        elif 'hyatt' in request_lower:
+            filters['brand'] = 'Hyatt Hotels Corporation'
 
-Return JSON with:
-{{
-    "campaign_type": "type",
-    "filters": {{
-        "brand": "brand name if mentioned",
-        "business_type": "Hotel/Restaurant/etc if mentioned",
-        "region": "region if mentioned",
-        "contract_expiry": {{"days": number}} if renewal mentioned,
-        "platform": "SYB/Beat Breeze if mentioned"
-    }}
-}}"""
+        # Detect location
+        if 'thailand' in request_lower:
+            filters['country'] = 'Thailand'
+        elif 'bangkok' in request_lower:
+            filters['city'] = 'Bangkok'
+        elif 'pattaya' in request_lower:
+            filters['city'] = 'Pattaya'
+        elif 'phuket' in request_lower:
+            filters['city'] = 'Phuket'
 
-        try:
-            response = self.ai_manager.openai.chat.completions.create(
-                model=self.ai_manager.model,
-                messages=[
-                    {"role": "system", "content": "You interpret campaign requests."},
-                    {"role": "user", "content": prompt}
-                ],
-                response_format={"type": "json_object"}
-            )
+        # Detect campaign type
+        if 'renewal' in request_lower or 'renew' in request_lower or 'expir' in request_lower:
+            campaign_type = 'renewal'
+            # Check for specific months
+            if 'october' in request_lower:
+                filters['contract_expiry'] = {'month': 10}
+            elif 'november' in request_lower:
+                filters['contract_expiry'] = {'month': 11}
+            elif 'december' in request_lower:
+                filters['contract_expiry'] = {'month': 12}
+            elif any(word in request_lower for word in ['30 day', '30day', 'thirty day', 'next month']):
+                filters['contract_expiry'] = {'days': 30}
+            elif any(word in request_lower for word in ['60 day', '60day', 'sixty day', 'two month']):
+                filters['contract_expiry'] = {'days': 60}
+            elif any(word in request_lower for word in ['90 day', '90day', 'ninety day', 'three month']):
+                filters['contract_expiry'] = {'days': 90}
 
-            result = json.loads(response.choices[0].message.content)
-            return result.get('filters', {}), result.get('campaign_type', 'general')
+        elif any(word in request_lower for word in ['christmas', 'holiday', 'seasonal', 'new year', 'valentine']):
+            campaign_type = 'seasonal'
+        elif any(word in request_lower for word in ['announce', 'feature', 'update', 'new']):
+            campaign_type = 'announcement'
+        elif any(word in request_lower for word in ['survey', 'feedback', 'satisfaction']):
+            campaign_type = 'survey'
+        elif any(word in request_lower for word in ['follow', 'check']):
+            campaign_type = 'follow_up'
 
-        except Exception as e:
-            logger.error(f"Error interpreting request: {e}")
-            return {}, 'general'
+        # Detect platform
+        if 'soundtrack' in request_lower or 'syb' in request_lower:
+            filters['platform'] = 'Soundtrack Your Brand'
+        elif 'beat breeze' in request_lower:
+            filters['platform'] = 'Beat Breeze'
+
+        logger.info(f"Interpreted request: type={campaign_type}, filters={filters}")
+        return filters, campaign_type
 
     def _count_by_brand(self, customers: List[Dict]) -> Dict[str, int]:
         """Count customers by brand"""

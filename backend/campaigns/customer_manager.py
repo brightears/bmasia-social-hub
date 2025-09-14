@@ -226,9 +226,15 @@ class CustomerManager:
                     continue
 
             if filters.get('contract_expiry'):
-                days = filters['contract_expiry'].get('days', 30)
-                if not self._expires_within_days(customer['contract_end'], days):
-                    continue
+                expiry_filter = filters['contract_expiry']
+                if 'days' in expiry_filter:
+                    days = expiry_filter['days']
+                    if not self._expires_within_days(customer['contract_end'], days):
+                        continue
+                elif 'month' in expiry_filter:
+                    month = expiry_filter['month']
+                    if not self._expires_in_month(customer['contract_end'], month):
+                        continue
 
             if filters.get('tags'):
                 required_tags = filters['tags']
@@ -353,6 +359,18 @@ class CustomerManager:
             end_date = datetime.strptime(contract_end, '%Y-%m-%d')
             days_until = (end_date - datetime.now()).days
             return 0 <= days_until <= days
+        except:
+            return False
+
+    def _expires_in_month(self, contract_end: str, month: int) -> bool:
+        """Check if contract expires in specific month"""
+        if not contract_end:
+            return False
+
+        try:
+            # Parse contract end date
+            end_date = datetime.strptime(contract_end, '%Y-%m-%d')
+            return end_date.month == month
         except:
             return False
 

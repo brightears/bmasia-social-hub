@@ -125,7 +125,10 @@ async function showCampaignPreview(campaign) {
     const response = await fetch(`${API_BASE}/api/campaigns/${campaign.id}/preview`);
     const preview = await response.json();
 
-    // Build preview HTML
+    // Store campaign data for editing
+    window.currentCampaignData = preview;
+
+    // Build preview HTML with editable messages
     let previewHTML = `
         <div class="campaign-summary">
             <h3>Campaign: ${preview.plan?.campaign_name || 'Campaign'}</h3>
@@ -134,37 +137,52 @@ async function showCampaignPreview(campaign) {
             <p><strong>Target Audience:</strong> ${preview.total_customers} customers (${preview.statistics?.total_zones || 0} zones)</p>
         </div>
 
-        <h4 style="margin-top: 20px;">Sample Messages:</h4>
+        <h4 style="margin-top: 20px;">📝 Edit Messages Before Sending:</h4>
+        <p class="help-text">Review and edit the messages below. Your changes will be applied to all customers.</p>
     `;
 
-    // Add sample messages
+    // Add editable message templates
     if (preview.sample_messages && preview.sample_messages.length > 0) {
+        const sample = preview.sample_messages[0];
+        previewHTML += `
+            <div class="edit-section">
+                <h5>WhatsApp/Line Message:</h5>
+                <textarea id="edit-whatsapp" class="message-editor">${sample.whatsapp}</textarea>
+
+                <h5 style="margin-top: 15px;">Email Subject:</h5>
+                <input type="text" id="edit-email-subject" value="${sample.email_subject}" />
+
+                <h5 style="margin-top: 15px;">Email Body:</h5>
+                <textarea id="edit-email-body" class="message-editor">${sample.email_body || 'Email body will be similar to WhatsApp message'}</textarea>
+            </div>
+
+            <h4 style="margin-top: 20px;">👥 This will be sent to:</h4>
+        `;
+
+        // Show all target customers
         preview.sample_messages.forEach(sample => {
             previewHTML += `
                 <div class="preview-item">
                     <h4>${sample.customer}</h4>
-                    <p><strong>Brand:</strong> ${sample.brand}</p>
+                    <p><strong>Brand:</strong> ${sample.brand || 'Independent'}</p>
                     <p><strong>Zones:</strong> ${sample.zones.join(', ')}</p>
                     <p><strong>Contact:</strong> ${sample.contact}</p>
-                    <div class="preview-message">
-                        <strong>WhatsApp Message:</strong><br>
-                        ${sample.whatsapp}
-                    </div>
-                    <p style="margin-top: 10px;"><strong>Email Subject:</strong> ${sample.email_subject}</p>
+                    <p><strong>Channels:</strong> ${sample.channels.join(', ')}</p>
                 </div>
             `;
         });
     } else {
-        previewHTML += '<p>No preview available</p>';
+        previewHTML += '<p>No customers found matching your criteria.</p>';
     }
 
     // Show estimated sends
     previewHTML += `
         <div style="margin-top: 20px; padding: 15px; background: #f0f0f0; border-radius: 8px;">
-            <h4>Estimated Sends:</h4>
-            <p>WhatsApp: ${preview.estimated_sends?.whatsapp || 0} messages</p>
-            <p>Email: ${preview.estimated_sends?.email || 0} messages</p>
-            <p>Line: ${preview.estimated_sends?.line || 0} messages</p>
+            <h4>📊 Campaign Summary:</h4>
+            <p>Total Customers: ${preview.total_customers || 0}</p>
+            <p>WhatsApp Messages: ${preview.estimated_sends?.whatsapp || 0}</p>
+            <p>Email Messages: ${preview.estimated_sends?.email || 0}</p>
+            <p>Line Messages: ${preview.estimated_sends?.line || 0}</p>
         </div>
     `;
 
@@ -179,9 +197,14 @@ async function sendCampaign(testMode) {
         return;
     }
 
+    // Get edited messages
+    const editedWhatsApp = document.getElementById('edit-whatsapp')?.value;
+    const editedEmailSubject = document.getElementById('edit-email-subject')?.value;
+    const editedEmailBody = document.getElementById('edit-email-body')?.value;
+
     const confirmMessage = testMode
         ? 'Send test campaign to FIRST customer only?'
-        : 'Send campaign to ALL customers? This cannot be undone!';
+        : `Send campaign to ALL ${window.currentCampaignData?.total_customers || 0} customers? This cannot be undone!`;
 
     if (!confirm(confirmMessage)) {
         return;
@@ -190,15 +213,26 @@ async function sendCampaign(testMode) {
     showLoading(true);
 
     try {
+        const requestBody = {
+            channels: ['whatsapp', 'email'],
+            test_mode: testMode
+        };
+
+        // Include edited messages if they exist
+        if (editedWhatsApp || editedEmailSubject || editedEmailBody) {
+            requestBody.edited_messages = {
+                whatsapp: editedWhatsApp,
+                email_subject: editedEmailSubject,
+                email_body: editedEmailBody
+            };
+        }
+
         const response = await fetch(`${API_BASE}/api/campaigns/${currentCampaignId}/send`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json'
             },
-            body: JSON.stringify({
-                channels: ['whatsapp', 'email'],
-                test_mode: testMode
-            })
+            body: JSON.stringify(requestBody)
         });
 
         const result = await response.json();
