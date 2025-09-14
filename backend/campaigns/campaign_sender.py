@@ -38,7 +38,7 @@ class CampaignSender:
         self.test_override_contacts = {
             'whatsapp': '+66856644142',
             'email': 'norbert@bmasiamusic.com',
-            'line': None  # Line needs actual user ID from Line platform, not phone number
+            'line': 'U49eaeb725e78ee7beec48d5ee82f8f2f'  # Your actual Line user ID
         }
 
         # Rate limiting
@@ -209,7 +209,7 @@ class CampaignSender:
         message: str,
         results: Dict[str, Any]
     ):
-        """Send Line messages using broadcast API"""
+        """Send Line messages using push API for targeted messaging"""
 
         if not self.line_token:
             logger.error("Line token not configured")
@@ -217,50 +217,58 @@ class CampaignSender:
             return
 
         # For Line, we need user IDs from previous interactions
-        # This would typically come from a database of Line users
-        # For now, we'll check if recipient has a line_user_id field
+        # Check if recipient has a line_user_id field
 
-        line_users = []
-        for recipient in recipients:
-            if recipient.get('line_user_id'):
-                line_users.append(recipient['line_user_id'])
-
-        if not line_users:
-            logger.warning("No Line user IDs found for recipients")
-            results['errors'].append("No Line users found")
-            return
-
-        # Line broadcast API
-        url = "https://api.line.me/v2/bot/message/broadcast"
         headers = {
             "Authorization": f"Bearer {self.line_token}",
             "Content-Type": "application/json"
         }
 
-        # Personalize for broadcast (use general version)
-        broadcast_message = self._personalize_message(message, {})
+        sent_count = 0
+        failed_count = 0
 
-        payload = {
-            "messages": [
-                {
-                    "type": "text",
-                    "text": broadcast_message
-                }
-            ]
-        }
+        for recipient in recipients:
+            line_user_id = recipient.get('line_user_id')
 
-        try:
-            response = requests.post(url, headers=headers, json=payload)
-            if response.status_code == 200:
-                results['sent']['line'] = len(line_users)
-                self.sent_today['line'] += len(line_users)
-                logger.info(f"Line broadcast sent to {len(line_users)} users")
-            else:
-                results['failed']['line'] = len(line_users)
-                logger.error(f"Line broadcast failed: {response.text}")
-        except Exception as e:
-            results['failed']['line'] = len(line_users)
-            logger.error(f"Line error: {e}")
+            if not line_user_id:
+                logger.warning(f"No Line user ID for {recipient.get('name')}")
+                failed_count += 1
+                continue
+
+            # Use push API for targeted messaging
+            url = "https://api.line.me/v2/bot/message/push"
+
+            # Personalize message for this recipient
+            personalized_message = self._personalize_message(message, recipient)
+
+            payload = {
+                "to": line_user_id,
+                "messages": [
+                    {
+                        "type": "text",
+                        "text": personalized_message
+                    }
+                ]
+            }
+
+            try:
+                response = requests.post(url, headers=headers, json=payload)
+                if response.status_code == 200:
+                    sent_count += 1
+                    logger.info(f"Line message sent to {recipient.get('name')} ({line_user_id})")
+                else:
+                    failed_count += 1
+                    logger.error(f"Line push failed for {line_user_id}: {response.text}")
+            except Exception as e:
+                failed_count += 1
+                logger.error(f"Line error for {line_user_id}: {e}")
+
+        results['sent']['line'] = sent_count
+        results['failed']['line'] = failed_count
+        self.sent_today['line'] += sent_count
+
+        if sent_count > 0:
+            logger.info(f"Line messages sent: {sent_count} successful, {failed_count} failed")
 
     def _send_email_batch(
         self,
