@@ -53,15 +53,25 @@ async function createQuickCampaign() {
             })
         });
 
-        const campaign = await response.json();
+        const result = await response.json();
+        console.log('Campaign API response:', result);  // Debug log
 
-        if (response.ok) {
+        if (response.ok && result.success) {
+            const campaign = result.campaign;  // Extract campaign from result
             currentCampaignId = campaign.id;
+
+            // Check if campaign has target customers
+            if (campaign.statistics && campaign.statistics.total_customers === 0) {
+                showLoading(false);
+                alert('No customers found matching your criteria. Try "all hotels" or "Hilton" or check the customer database.');
+                resetForm();
+                return;
+            }
             showCampaignPreview(campaign);
             showLoading(false);
         } else {
             showLoading(false);
-            alert('Error creating campaign: ' + (campaign.error || 'Unknown error'));
+            alert('Error creating campaign: ' + (result.error || 'Unknown error'));
         }
     } catch (error) {
         showLoading(false);
@@ -98,9 +108,10 @@ async function createAdvancedCampaign() {
             })
         });
 
-        const campaign = await response.json();
+        const result = await response.json();
 
-        if (response.ok) {
+        if (response.ok && result.success) {
+            const campaign = result.campaign;  // Extract campaign from result
             currentCampaignId = campaign.id;
             showCampaignPreview(campaign);
             showLoading(false);
@@ -124,6 +135,7 @@ async function showCampaignPreview(campaign) {
     // Get preview data
     const response = await fetch(`${API_BASE}/api/campaigns/${campaign.id}/preview`);
     const preview = await response.json();
+    console.log('Campaign preview:', preview);  // Debug log
 
     // Store campaign data for editing
     window.currentCampaignData = preview;
