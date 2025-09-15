@@ -270,12 +270,13 @@ async function showCampaignPreview(campaign) {
                 contactCheckboxes += '</div>';
             }
 
-            // Build the recipients HTML with checkboxes inline (simpler approach)
+            // Build the recipients HTML with checkboxes and email addresses
             let recipientsHTML = '';
             if (sample.contacts && Array.isArray(sample.contacts)) {
                 sample.contacts.forEach((contact, idx) => {
+                    // Contacts now include email addresses in format "Name (Role) - email@example.com"
                     recipientsHTML += `
-                        <label style="display: block; margin: 5px 0; cursor: pointer;">
+                        <label style="display: block; margin: 5px 0; cursor: pointer; font-size: 14px;">
                             <input type="checkbox" checked
                                    data-customer="${customerIndex}"
                                    data-contact="${idx}"
@@ -286,7 +287,7 @@ async function showCampaignPreview(campaign) {
                 });
             } else if (sample.contact) {
                 recipientsHTML = `
-                    <label style="display: block; margin: 5px 0; cursor: pointer;">
+                    <label style="display: block; margin: 5px 0; cursor: pointer; font-size: 14px;">
                         <input type="checkbox" checked
                                data-customer="${customerIndex}"
                                data-contact="0"
@@ -305,7 +306,7 @@ async function showCampaignPreview(campaign) {
                     <div style="margin-left: 20px;">
                         ${recipientsHTML || '<p>No recipients available</p>'}
                     </div>
-                    <p><strong>Channels:</strong> ${sample.channels && sample.channels.length > 0 ? sample.channels.join(', ') : 'No channels'}</p>
+                    <p><strong>Channel:</strong> Email</p>
                 </div>
             `;
         });
@@ -318,9 +319,7 @@ async function showCampaignPreview(campaign) {
         <div style="margin-top: 20px; padding: 15px; background: #f0f0f0; border-radius: 8px;">
             <h4>📊 Campaign Summary:</h4>
             <p>Total Customers: ${preview.total_customers || 0}</p>
-            <p>WhatsApp Messages: ${preview.estimated_sends?.whatsapp || 0}</p>
             <p>Email Messages: ${preview.estimated_sends?.email || 0}</p>
-            <p>Line Messages: ${preview.estimated_sends?.line || 0}</p>
         </div>
     `;
 

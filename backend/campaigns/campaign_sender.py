@@ -88,50 +88,30 @@ class CampaignSender:
         # Reset daily counters if needed
         self._check_daily_reset()
 
-        # Test mode - override with test contacts and limit to first recipient
+        # Test mode - override with test email and limit to first recipient
         if test_mode:
             recipients = recipients[:1]
-            # Make a copy of channels to avoid modifying the original array
-            channels = channels.copy()
-            # Override recipient contacts with test contacts
+            # Override recipient email with test email
             for recipient in recipients:
                 if recipient.get('primary_contact'):
                     # Store original for logging before overriding
                     recipient['original_contact'] = recipient['primary_contact'].copy()
-                    # Override with test contact details
-                    recipient['primary_contact']['phone'] = self.test_override_contacts['whatsapp']
+                    # Override with test email
                     recipient['primary_contact']['email'] = self.test_override_contacts['email']
-                # Line requires actual user ID - skip if not available
-                if self.test_override_contacts.get('line'):
-                    recipient['line_user_id'] = self.test_override_contacts['line']
-                else:
-                    # Remove Line from channels if no test Line ID (now safe since we have a copy)
-                    if 'line' in channels:
-                        channels.remove('line')
-                        logger.info("TEST MODE: Skipping Line (no test Line user ID configured)")
-            logger.info(f"TEST MODE: Overriding contacts to send to {self.test_override_contacts}")
+            logger.info(f"TEST MODE: Sending to test email {self.test_override_contacts['email']}")
 
-        # Process each channel
-        for channel in channels:
-            if channel not in ['whatsapp', 'line', 'email']:
-                logger.warning(f"Unknown channel: {channel}")
-                continue
+        # Email-only campaigns for simplicity and reliability
+        # (WhatsApp requires templates, Line requires prior interaction)
+        results['sent']['email'] = 0
+        results['failed']['email'] = 0
 
-            results['sent'][channel] = 0
-            results['failed'][channel] = 0
-
-            # Send based on channel
-            if channel == 'whatsapp':
-                self._send_whatsapp_batch(recipients, messages.get('whatsapp', ''), results)
-            elif channel == 'line':
-                self._send_line_batch(recipients, messages.get('line', ''), results)
-            elif channel == 'email':
-                self._send_email_batch(
-                    recipients,
-                    messages.get('email_subject', 'BMA Social Update'),
-                    messages.get('email_body', ''),
-                    results
-                )
+        # Send email campaign
+        self._send_email_batch(
+            recipients,
+            messages.get('email_subject', 'BMA Social Update'),
+            messages.get('email_body', ''),
+            results
+        )
 
         logger.info(f"Campaign {campaign_id} sent - Results: {results}")
         return results

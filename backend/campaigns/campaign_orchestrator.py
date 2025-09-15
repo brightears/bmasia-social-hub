@@ -144,20 +144,24 @@ class CampaignOrchestrator:
             customer_id = customer['customer_id']
             messages = campaign['messages'].get(customer_id, {})
 
-            # Get all selected contacts for this customer
+            # Get all selected contacts for this customer with email addresses
             selected_contacts = customer.get('selected_contacts', [customer.get('primary_contact')])
-            contact_names = [f"{c['name']} ({c['role']})" for c in selected_contacts if c]
+            contact_info = []
+            for c in selected_contacts:
+                if c:
+                    email = c.get('email', 'no-email@example.com')
+                    contact_info.append(f"{c['name']} ({c['role']}) - {email}")
 
             sample_messages.append({
                 'customer': customer['name'],
                 'brand': customer.get('brand', 'Independent'),
                 'zones': customer.get('zones', []),
-                'contacts': contact_names,  # Show all selected contacts
-                'contact': ', '.join(contact_names) if contact_names else 'Unknown',
+                'contacts': contact_info,  # Show contacts with email addresses
+                'contact': ', '.join([c.split(' - ')[0] for c in contact_info]) if contact_info else 'Unknown',
                 'whatsapp': messages.get('whatsapp', ''),
                 'email_subject': messages.get('email_subject', ''),
                 'email_body': messages.get('email_body', ''),
-                'channels': self._determine_channels(customer)
+                'channels': ['email']  # Email-only campaigns
             })
 
         return {
@@ -168,8 +172,6 @@ class CampaignOrchestrator:
             'sample_messages': sample_messages,
             'total_customers': len(campaign['target_customers']),
             'estimated_sends': {
-                'whatsapp': self._count_channel(campaign['target_customers'], 'whatsapp'),
-                'line': self._count_channel(campaign['target_customers'], 'line'),
                 'email': self._count_channel(campaign['target_customers'], 'email')
             }
         }
@@ -200,11 +202,10 @@ class CampaignOrchestrator:
         if not campaign:
             return {'error': 'Campaign not found'}
 
-        # Default channels if not specified
-        if not channels:
-            channels = ['whatsapp', 'email']  # Line requires prior interaction
+        # Email-only campaigns for simplicity and reliability
+        channels = ['email']  # Always use email for campaigns
 
-        logger.info(f"Sending campaign {campaign_id} via {channels}")
+        logger.info(f"Sending email campaign {campaign_id}")
 
         # Update status
         campaign['status'] = 'sending'
