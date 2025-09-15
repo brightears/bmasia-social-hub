@@ -196,12 +196,16 @@ async function showCampaignPreview(campaign) {
                         }
                     }
                     contactCheckboxes += `
-                        <label style="display: block; margin: 5px 0; cursor: pointer;">
+                        <label class="contact-checkbox">
                             <input type="checkbox" checked
                                    data-customer="${customerIndex}"
                                    data-contact="${idx}"
-                                   style="margin-right: 8px;">
-                            ${name} ${role ? `(${role})` : ''}
+                                   data-contact-name="${name}"
+                                   data-contact-role="${role}">
+                            <span class="contact-info">
+                                <strong>${name}</strong>
+                                ${role ? `<br><small>${role}</small>` : ''}
+                            </span>
                         </label>
                     `;
                 });
@@ -212,9 +216,11 @@ async function showCampaignPreview(campaign) {
                     <h4>${sample.customer}</h4>
                     <p><strong>Brand:</strong> ${sample.brand || 'Independent'}</p>
                     <p><strong>Zones:</strong> ${sample.zones.join(', ')}</p>
-                    <p><strong>📧 Selected Recipients:</strong></p>
-                    <div style="margin-left: 20px; margin-bottom: 10px;">
-                        ${contactCheckboxes || '<p>No contacts available</p>'}
+                    <div class="contact-selection">
+                        <h5>📧 Selected Recipients:</h5>
+                        <div class="contacts-checkbox-list">
+                            ${contactCheckboxes || '<p>No contacts available</p>'}
+                        </div>
                     </div>
                     <p><strong>Channels:</strong> ${sample.channels && sample.channels.length > 0 ? sample.channels.join(', ') : 'No channels'}</p>
                 </div>
@@ -333,16 +339,7 @@ async function sendCampaign(testMode) {
     }
 
     // Get selected contacts
-    const selectedContacts = [];
-    const checkboxes = document.querySelectorAll('input[type="checkbox"][data-customer]');
-    checkboxes.forEach(checkbox => {
-        if (checkbox.checked) {
-            selectedContacts.push({
-                customer: checkbox.getAttribute('data-customer'),
-                contact: checkbox.getAttribute('data-contact')
-            });
-        }
-    });
+    const selectedContacts = getSelectedContacts();
 
     // Get edited messages
     const editedWhatsApp = document.getElementById('edit-whatsapp')?.value;
