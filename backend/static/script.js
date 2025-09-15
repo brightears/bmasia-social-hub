@@ -142,9 +142,9 @@ async function showCampaignPreview(campaign) {
 
     // Build preview HTML with editable messages
     let previewHTML = `
-        <div style="background: #e6ffe6; border: 2px solid #4CAF50; padding: 10px; margin-bottom: 15px; border-radius: 5px;">
-            <strong>🔧 DEBUG MODE: Enhanced Checkbox Fix Active</strong>
-            <small>(This message shows the new code is running)</small>
+        <div style="background: #ffe6e6; border: 2px solid #f44336; padding: 10px; margin-bottom: 15px; border-radius: 5px;">
+            <strong>✅ FIXED: Checkboxes Now Visible with Inline Styles</strong>
+            <small>(Version 2.0 - Direct inline styling applied)</small>
         </div>
         <div class="campaign-summary">
             <h3>Campaign: ${preview.plan?.campaign_name || 'Campaign'}</h3>
@@ -217,18 +217,20 @@ async function showCampaignPreview(campaign) {
                         }
                     }
 
-                    // Generate checkbox HTML for this contact
-
+                    // Generate checkbox HTML for this contact with inline styles for visibility
                     contactCheckboxes += `
-                        <label class="contact-checkbox">
-                            <input type="checkbox" checked
+                        <label class="contact-checkbox" style="display: flex; align-items: flex-start; padding: 8px 12px; background: white; border: 1px solid #ddd; border-radius: 6px; margin-bottom: 8px; cursor: pointer;">
+                            <input type="checkbox"
+                                   checked
+                                   style="margin-right: 10px; margin-top: 2px; width: 18px; height: 18px; cursor: pointer;"
                                    data-customer="${customerIndex}"
                                    data-contact="${idx}"
                                    data-contact-name="${name}"
-                                   data-contact-role="${role}">
-                            <span class="contact-info">
-                                <strong>${name}</strong>
-                                ${role ? `<br><small>${role}</small>` : ''}
+                                   data-contact-role="${role}"
+                                   onchange="console.log('Checkbox changed:', this.checked, '${name}')">
+                            <span class="contact-info" style="flex: 1; line-height: 1.4;">
+                                <strong style="color: #333; font-weight: 600;">${name}</strong>
+                                ${role ? `<br><small style="color: #666; font-size: 0.85rem;">${role}</small>` : ''}
                             </span>
                         </label>
                     `;
@@ -241,6 +243,7 @@ async function showCampaignPreview(campaign) {
 
             // Final safety check - if no checkboxes were generated, create a simple fallback
             if (!contactCheckboxes || contactCheckboxes.trim() === '') {
+                console.warn('Fallback mode activated for customer:', sample.customer);
                 // Try to create basic checkboxes from whatever data we have
                 const fallbackContacts = sample.contacts || [sample.contact] || ['Unknown Contact'];
                 contactCheckboxes = '<div style="border: 2px solid orange; padding: 10px; margin: 5px; border-radius: 5px;"><strong>⚠️ FALLBACK MODE:</strong><br>';
@@ -249,8 +252,8 @@ async function showCampaignPreview(campaign) {
                     fallbackContacts.forEach((contact, idx) => {
                         if (contact) {
                             contactCheckboxes += `
-                                <label class="contact-checkbox" style="display: block; margin: 5px 0; padding: 5px; background: #f0f0f0;">
-                                    <input type="checkbox" checked style="margin-right: 8px;">
+                                <label class="contact-checkbox" style="display: flex; align-items: center; margin: 5px 0; padding: 8px; background: #f0f0f0; border-radius: 4px;">
+                                    <input type="checkbox" checked style="margin-right: 8px; width: 18px; height: 18px;">
                                     <span><strong>${contact}</strong></span>
                                 </label>
                             `;
@@ -258,8 +261,8 @@ async function showCampaignPreview(campaign) {
                     });
                 } else {
                     contactCheckboxes += `
-                        <label class="contact-checkbox" style="display: block; margin: 5px 0; padding: 5px; background: #f0f0f0;">
-                            <input type="checkbox" checked style="margin-right: 8px;">
+                        <label class="contact-checkbox" style="display: flex; align-items: center; margin: 5px 0; padding: 8px; background: #f0f0f0; border-radius: 4px;">
+                            <input type="checkbox" checked style="margin-right: 8px; width: 18px; height: 18px;">
                             <span><strong>${fallbackContacts}</strong></span>
                         </label>
                     `;
@@ -267,16 +270,40 @@ async function showCampaignPreview(campaign) {
                 contactCheckboxes += '</div>';
             }
 
+            // Build the recipients HTML with checkboxes inline (simpler approach)
+            let recipientsHTML = '';
+            if (sample.contacts && Array.isArray(sample.contacts)) {
+                sample.contacts.forEach((contact, idx) => {
+                    recipientsHTML += `
+                        <label style="display: block; margin: 5px 0; cursor: pointer;">
+                            <input type="checkbox" checked
+                                   data-customer="${customerIndex}"
+                                   data-contact="${idx}"
+                                   style="margin-right: 8px;">
+                            ${contact}
+                        </label>
+                    `;
+                });
+            } else if (sample.contact) {
+                recipientsHTML = `
+                    <label style="display: block; margin: 5px 0; cursor: pointer;">
+                        <input type="checkbox" checked
+                               data-customer="${customerIndex}"
+                               data-contact="0"
+                               style="margin-right: 8px;">
+                        ${sample.contact}
+                    </label>
+                `;
+            }
+
             previewHTML += `
                 <div class="preview-item">
                     <h4>${sample.customer}</h4>
                     <p><strong>Brand:</strong> ${sample.brand || 'Independent'}</p>
                     <p><strong>Zones:</strong> ${sample.zones.join(', ')}</p>
-                    <div class="contact-selection">
-                        <h5>📧 Selected Recipients:</h5>
-                        <div class="contacts-checkbox-list">
-                            ${contactCheckboxes}
-                        </div>
+                    <p><strong>📧 Selected Recipients:</strong></p>
+                    <div style="margin-left: 20px;">
+                        ${recipientsHTML || '<p>No recipients available</p>'}
                     </div>
                     <p><strong>Channels:</strong> ${sample.channels && sample.channels.length > 0 ? sample.channels.join(', ') : 'No channels'}</p>
                 </div>
@@ -299,6 +326,23 @@ async function showCampaignPreview(campaign) {
 
     document.getElementById('preview-content').innerHTML = previewHTML;
     document.getElementById('campaign-preview').style.display = 'block';
+
+    // Verify checkboxes were rendered
+    setTimeout(() => {
+        const checkboxes = document.querySelectorAll('.contact-checkbox input[type="checkbox"]');
+        console.log(`✅ Rendered ${checkboxes.length} contact checkboxes`);
+        if (checkboxes.length === 0) {
+            console.error('⚠️ WARNING: No checkboxes found after rendering!');
+            console.log('Preview data:', preview);
+        } else {
+            // Make absolutely sure checkboxes are visible
+            checkboxes.forEach(cb => {
+                cb.style.display = 'inline-block';
+                cb.style.visibility = 'visible';
+                cb.style.opacity = '1';
+            });
+        }
+    }, 100);
 }
 
 // Populate contact checkboxes for each customer
@@ -367,9 +411,12 @@ function populateContactCheckboxes(preview) {
 // Get selected contacts from checkboxes
 function getSelectedContacts() {
     const selectedContacts = {};
-    const checkboxes = document.querySelectorAll('.contact-checkbox input[type="checkbox"]:checked');
+    const allCheckboxes = document.querySelectorAll('.contact-checkbox input[type="checkbox"]');
+    const checkedCheckboxes = document.querySelectorAll('.contact-checkbox input[type="checkbox"]:checked');
 
-    checkboxes.forEach(checkbox => {
+    console.log(`📊 Contact selection: ${checkedCheckboxes.length} of ${allCheckboxes.length} contacts selected`);
+
+    checkedCheckboxes.forEach(checkbox => {
         const customerIndex = checkbox.dataset.customer;
         const contactName = checkbox.dataset.contactName;
         const contactRole = checkbox.dataset.contactRole;
@@ -384,6 +431,8 @@ function getSelectedContacts() {
         });
     });
 
+    // Log the selected contacts for debugging
+    console.log('Selected contacts by customer:', selectedContacts);
     return selectedContacts;
 }
 
