@@ -179,20 +179,43 @@ async function showCampaignPreview(campaign) {
 
         // Show all target customers with contact selection
         preview.sample_messages.forEach((sample, customerIndex) => {
+            // Build contact checkboxes HTML directly
+            let contactCheckboxes = '';
+            const contacts = sample.contacts || [sample.contact];
+
+            if (Array.isArray(contacts)) {
+                contacts.forEach((contact, idx) => {
+                    // Parse contact string if it's in format "Name (Role)"
+                    let name = contact;
+                    let role = '';
+                    if (typeof contact === 'string' && contact.includes('(')) {
+                        const match = contact.match(/(.+)\s*\((.+)\)/);
+                        if (match) {
+                            name = match[1].trim();
+                            role = match[2].trim();
+                        }
+                    }
+                    contactCheckboxes += `
+                        <label style="display: block; margin: 5px 0; cursor: pointer;">
+                            <input type="checkbox" checked
+                                   data-customer="${customerIndex}"
+                                   data-contact="${idx}"
+                                   style="margin-right: 8px;">
+                            ${name} ${role ? `(${role})` : ''}
+                        </label>
+                    `;
+                });
+            }
+
             previewHTML += `
                 <div class="preview-item">
                     <h4>${sample.customer}</h4>
                     <p><strong>Brand:</strong> ${sample.brand || 'Independent'}</p>
                     <p><strong>Zones:</strong> ${sample.zones.join(', ')}</p>
-
-                    <div class="contact-selection">
-                        <h5>📧 Select Recipients:</h5>
-                        <p class="help-text">Choose which contacts should receive this campaign (AI has pre-selected based on campaign type)</p>
-                        <div class="contacts-checkbox-list" id="contacts-${customerIndex}">
-                            <!-- Contact checkboxes will be populated here -->
-                        </div>
+                    <p><strong>📧 Selected Recipients:</strong></p>
+                    <div style="margin-left: 20px; margin-bottom: 10px;">
+                        ${contactCheckboxes || '<p>No contacts available</p>'}
                     </div>
-
                     <p><strong>Channels:</strong> ${sample.channels && sample.channels.length > 0 ? sample.channels.join(', ') : 'No channels'}</p>
                 </div>
             `;
@@ -213,10 +236,6 @@ async function showCampaignPreview(campaign) {
     `;
 
     document.getElementById('preview-content').innerHTML = previewHTML;
-
-    // Populate contact checkboxes after HTML is inserted
-    populateContactCheckboxes(preview);
-
     document.getElementById('campaign-preview').style.display = 'block';
 }
 
@@ -313,13 +332,22 @@ async function sendCampaign(testMode) {
         return;
     }
 
+    // Get selected contacts
+    const selectedContacts = [];
+    const checkboxes = document.querySelectorAll('input[type="checkbox"][data-customer]');
+    checkboxes.forEach(checkbox => {
+        if (checkbox.checked) {
+            selectedContacts.push({
+                customer: checkbox.getAttribute('data-customer'),
+                contact: checkbox.getAttribute('data-contact')
+            });
+        }
+    });
+
     // Get edited messages
     const editedWhatsApp = document.getElementById('edit-whatsapp')?.value;
     const editedEmailSubject = document.getElementById('edit-email-subject')?.value;
     const editedEmailBody = document.getElementById('edit-email-body')?.value;
-
-    // Get selected contacts
-    const selectedContacts = getSelectedContacts();
 
     const confirmMessage = testMode
         ? 'Send test campaign to YOUR personal contacts?\n\nWhatsApp: +66856644142\nEmail: norbert@bmasiamusic.com\n\n(Will NOT send to actual customers)'
