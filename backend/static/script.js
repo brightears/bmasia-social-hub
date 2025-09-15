@@ -142,6 +142,10 @@ async function showCampaignPreview(campaign) {
 
     // Build preview HTML with editable messages
     let previewHTML = `
+        <div style="background: #e6ffe6; border: 2px solid #4CAF50; padding: 10px; margin-bottom: 15px; border-radius: 5px;">
+            <strong>🔧 DEBUG MODE: Enhanced Checkbox Fix Active</strong>
+            <small>(This message shows the new code is running)</small>
+        </div>
         <div class="campaign-summary">
             <h3>Campaign: ${preview.plan?.campaign_name || 'Campaign'}</h3>
             <p><strong>Type:</strong> ${preview.type}</p>
@@ -181,20 +185,40 @@ async function showCampaignPreview(campaign) {
         preview.sample_messages.forEach((sample, customerIndex) => {
             // Build contact checkboxes HTML directly
             let contactCheckboxes = '';
-            const contacts = sample.contacts || [sample.contact];
 
-            if (Array.isArray(contacts)) {
+            // Get contacts array, handling various data structures
+            let contacts = [];
+            if (sample.contacts && Array.isArray(sample.contacts) && sample.contacts.length > 0) {
+                contacts = sample.contacts.filter(c => c && c.trim() !== ''); // Filter out empty contacts
+            } else if (sample.contact && sample.contact.trim() !== '') {
+                contacts = [sample.contact];
+            }
+
+            // Debug logging (can be removed in production)
+            console.log(`Processing customer: ${sample.customer}`);
+            console.log('Contacts data:', { contacts: sample.contacts, contact: sample.contact });
+
+            // Generate checkbox HTML for each contact
+            if (contacts.length > 0) {
                 contacts.forEach((contact, idx) => {
+                    // Skip empty or null contacts
+                    if (!contact || typeof contact !== 'string' || contact.trim() === '') {
+                        return;
+                    }
+
                     // Parse contact string if it's in format "Name (Role)"
-                    let name = contact;
+                    let name = contact.trim();
                     let role = '';
-                    if (typeof contact === 'string' && contact.includes('(')) {
+                    if (contact.includes('(') && contact.includes(')')) {
                         const match = contact.match(/(.+)\s*\((.+)\)/);
                         if (match) {
                             name = match[1].trim();
                             role = match[2].trim();
                         }
                     }
+
+                    // Generate checkbox HTML for this contact
+
                     contactCheckboxes += `
                         <label class="contact-checkbox">
                             <input type="checkbox" checked
@@ -209,6 +233,38 @@ async function showCampaignPreview(campaign) {
                         </label>
                     `;
                 });
+            } else {
+                // No valid contacts found - create fallback display
+                const contactInfo = sample.contact || (sample.contacts && sample.contacts.length > 0 ? sample.contacts.join(', ') : 'Unknown');
+                contactCheckboxes = `<p style="color: #666; font-style: italic;">Debug: Contact data received: "${contactInfo}" - No valid contacts to display checkboxes</p>`;
+            }
+
+            // Final safety check - if no checkboxes were generated, create a simple fallback
+            if (!contactCheckboxes || contactCheckboxes.trim() === '') {
+                // Try to create basic checkboxes from whatever data we have
+                const fallbackContacts = sample.contacts || [sample.contact] || ['Unknown Contact'];
+                contactCheckboxes = '<div style="border: 2px solid orange; padding: 10px; margin: 5px; border-radius: 5px;"><strong>⚠️ FALLBACK MODE:</strong><br>';
+
+                if (Array.isArray(fallbackContacts)) {
+                    fallbackContacts.forEach((contact, idx) => {
+                        if (contact) {
+                            contactCheckboxes += `
+                                <label class="contact-checkbox" style="display: block; margin: 5px 0; padding: 5px; background: #f0f0f0;">
+                                    <input type="checkbox" checked style="margin-right: 8px;">
+                                    <span><strong>${contact}</strong></span>
+                                </label>
+                            `;
+                        }
+                    });
+                } else {
+                    contactCheckboxes += `
+                        <label class="contact-checkbox" style="display: block; margin: 5px 0; padding: 5px; background: #f0f0f0;">
+                            <input type="checkbox" checked style="margin-right: 8px;">
+                            <span><strong>${fallbackContacts}</strong></span>
+                        </label>
+                    `;
+                }
+                contactCheckboxes += '</div>';
             }
 
             previewHTML += `
@@ -219,7 +275,7 @@ async function showCampaignPreview(campaign) {
                     <div class="contact-selection">
                         <h5>📧 Selected Recipients:</h5>
                         <div class="contacts-checkbox-list">
-                            ${contactCheckboxes || '<p>No contacts available</p>'}
+                            ${contactCheckboxes}
                         </div>
                     </div>
                     <p><strong>Channels:</strong> ${sample.channels && sample.channels.length > 0 ? sample.channels.join(', ') : 'No channels'}</p>
