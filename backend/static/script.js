@@ -190,7 +190,7 @@ async function showCampaignPreview(campaign) {
                     <p><strong>Brand:</strong> ${sample.brand || 'Independent'}</p>
                     <p><strong>Zones:</strong> ${sample.zones.join(', ')}</p>
                     <p><strong>📧 Selected Recipients:</strong><br>${contactsList}</p>
-                    <p><strong>Channels:</strong> ${sample.channels.join(', ')}</p>
+                    <p><strong>Channels:</strong> ${sample.channels && sample.channels.length > 0 ? sample.channels.join(', ') : 'No channels'}</p>
                 </div>
             `;
         });
@@ -283,7 +283,7 @@ function showResults(result) {
         <div class="result-summary">
             <h3>Campaign Sent Successfully!</h3>
             <p><strong>Campaign ID:</strong> ${result.campaign_id}</p>
-            <p><strong>Channels Used:</strong> ${result.channels.join(', ')}</p>
+            <p><strong>Channels Used:</strong> ${result.channels && result.channels.length > 0 ? result.channels.join(', ') : 'No channels'}</p>
         </div>
 
         <h4 style="margin-top: 20px;">Results by Customer:</h4>

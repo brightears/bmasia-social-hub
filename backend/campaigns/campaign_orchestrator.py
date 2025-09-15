@@ -213,7 +213,7 @@ class CampaignOrchestrator:
         # Prepare recipients with their messages
         results = {
             'campaign_id': campaign_id,
-            'channels': channels,
+            'channels': channels.copy() if channels else [],  # Ensure we always have a channels array
             'results_by_customer': []
         }
 

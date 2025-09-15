@@ -91,6 +91,8 @@ class CampaignSender:
         # Test mode - override with test contacts and limit to first recipient
         if test_mode:
             recipients = recipients[:1]
+            # Make a copy of channels to avoid modifying the original array
+            channels = channels.copy()
             # Override recipient contacts with test contacts
             for recipient in recipients:
                 if recipient.get('primary_contact'):
@@ -103,7 +105,7 @@ class CampaignSender:
                 if self.test_override_contacts.get('line'):
                     recipient['line_user_id'] = self.test_override_contacts['line']
                 else:
-                    # Remove Line from channels if no test Line ID
+                    # Remove Line from channels if no test Line ID (now safe since we have a copy)
                     if 'line' in channels:
                         channels.remove('line')
                         logger.info("TEST MODE: Skipping Line (no test Line user ID configured)")
