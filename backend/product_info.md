@@ -278,6 +278,40 @@ A: Check that volume is not controlled by your amplifier. The app controls the p
 
 ---
 
+## WhatsApp Business API - Campaign Limitations
+
+### CRITICAL: 24-Hour Messaging Window Rule
+- **Regular text messages** can ONLY be sent within 24 hours of customer's last message
+- After 24 hours, you MUST use **pre-approved template messages**
+- This is a WhatsApp/Meta policy that applies to ALL business accounts globally
+
+### Why Campaigns Are Affected
+- Campaign messages are typically sent days/weeks after last customer interaction
+- Without template messages, campaigns will fail with error 131047
+- This affects ALL customers, not just test accounts
+
+### Solution: Template Messages
+To send campaigns via WhatsApp, you need:
+1. **Register templates** with Meta/WhatsApp Business
+2. **Get approval** (usually 24-48 hours)
+3. **Use template format** in API calls
+
+Example template:
+```
+Template Name: venue_campaign_2024
+Content: "Hi {{customer_name}}, exciting news for {{venue_name}}! {{campaign_message}}"
+```
+
+### Current Status
+- ✅ **Email**: Works anytime (no restrictions)
+- ✅ **Line**: Works anytime with push API
+- ⚠️ **WhatsApp**: Only works within 24-hour window without templates
+
+### Next Steps
+1. Register campaign templates with WhatsApp Business
+2. Update campaign_sender.py to use template format
+3. Store template names in campaign configuration
+
 ## Notes for Bot Implementation
 
 ### Current Integration Status (Sept 13, 2025 V2)

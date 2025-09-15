@@ -396,3 +396,60 @@ header p {
         margin-bottom: 10px;
     }
 }
+
+/* Contact Selection Styles */
+.contact-selection {
+    margin: 15px 0;
+    padding: 15px;
+    background: #f8f9fa;
+    border-radius: 8px;
+    border: 1px solid #e9ecef;
+}
+
+.contact-selection h5 {
+    margin-bottom: 8px;
+    color: #333;
+}
+
+.contacts-checkbox-list {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.contact-checkbox {
+    display: flex;
+    align-items: flex-start;
+    padding: 8px 12px;
+    background: white;
+    border: 1px solid #ddd;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: background-color 0.2s, border-color 0.2s;
+}
+
+.contact-checkbox:hover {
+    background: #f0f7ff;
+    border-color: #2196F3;
+}
+
+.contact-checkbox input[type="checkbox"] {
+    margin-right: 10px;
+    margin-top: 2px;
+    transform: scale(1.1);
+}
+
+.contact-info {
+    flex: 1;
+    line-height: 1.4;
+}
+
+.contact-info strong {
+    color: #333;
+    font-weight: 600;
+}
+
+.contact-info small {
+    color: #666;
+    font-size: 0.85rem;
+}

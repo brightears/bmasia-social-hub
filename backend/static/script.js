@@ -177,19 +177,22 @@ async function showCampaignPreview(campaign) {
             <h4 style="margin-top: 20px;">👥 This will be sent to:</h4>
         `;
 
-        // Show all target customers
-        preview.sample_messages.forEach(sample => {
-            // Format contacts list
-            const contactsList = sample.contacts && sample.contacts.length > 0
-                ? sample.contacts.join('<br>')
-                : sample.contact;
-
+        // Show all target customers with contact selection
+        preview.sample_messages.forEach((sample, customerIndex) => {
             previewHTML += `
                 <div class="preview-item">
                     <h4>${sample.customer}</h4>
                     <p><strong>Brand:</strong> ${sample.brand || 'Independent'}</p>
                     <p><strong>Zones:</strong> ${sample.zones.join(', ')}</p>
-                    <p><strong>📧 Selected Recipients:</strong><br>${contactsList}</p>
+
+                    <div class="contact-selection">
+                        <h5>📧 Select Recipients:</h5>
+                        <p class="help-text">Choose which contacts should receive this campaign (AI has pre-selected based on campaign type)</p>
+                        <div class="contacts-checkbox-list" id="contacts-${customerIndex}">
+                            <!-- Contact checkboxes will be populated here -->
+                        </div>
+                    </div>
+
                     <p><strong>Channels:</strong> ${sample.channels && sample.channels.length > 0 ? sample.channels.join(', ') : 'No channels'}</p>
                 </div>
             `;
@@ -210,7 +213,97 @@ async function showCampaignPreview(campaign) {
     `;
 
     document.getElementById('preview-content').innerHTML = previewHTML;
+
+    // Populate contact checkboxes after HTML is inserted
+    populateContactCheckboxes(preview);
+
     document.getElementById('campaign-preview').style.display = 'block';
+}
+
+// Populate contact checkboxes for each customer
+function populateContactCheckboxes(preview) {
+    if (!preview.sample_messages) return;
+
+    preview.sample_messages.forEach((sample, customerIndex) => {
+        const container = document.getElementById(`contacts-${customerIndex}`);
+        if (!container) return;
+
+        // For now, use the contacts information from the sample
+        // In future, we'd get all available contacts from the backend
+        const selectedContacts = sample.contacts || [sample.contact];
+
+        let checkboxHTML = '';
+
+        if (Array.isArray(selectedContacts)) {
+            selectedContacts.forEach((contact, contactIndex) => {
+                // Parse contact string if it's in format "Name (Role)"
+                let contactName = contact;
+                let contactRole = '';
+                if (contact.includes('(') && contact.includes(')')) {
+                    const parts = contact.match(/(.+)\s*\((.+)\)/);
+                    if (parts) {
+                        contactName = parts[1].trim();
+                        contactRole = parts[2].trim();
+                    }
+                }
+
+                checkboxHTML += `
+                    <label class="contact-checkbox">
+                        <input type="checkbox"
+                               checked
+                               data-customer="${customerIndex}"
+                               data-contact="${contactIndex}"
+                               data-contact-name="${contactName}"
+                               data-contact-role="${contactRole}">
+                        <span class="contact-info">
+                            <strong>${contactName}</strong>
+                            ${contactRole ? `<br><small>${contactRole}</small>` : ''}
+                        </span>
+                    </label>
+                `;
+            });
+        } else {
+            // Handle single contact string
+            checkboxHTML = `
+                <label class="contact-checkbox">
+                    <input type="checkbox"
+                           checked
+                           data-customer="${customerIndex}"
+                           data-contact="0"
+                           data-contact-name="${selectedContacts}"
+                           data-contact-role="">
+                    <span class="contact-info">
+                        <strong>${selectedContacts}</strong>
+                    </span>
+                </label>
+            `;
+        }
+
+        container.innerHTML = checkboxHTML;
+    });
+}
+
+// Get selected contacts from checkboxes
+function getSelectedContacts() {
+    const selectedContacts = {};
+    const checkboxes = document.querySelectorAll('.contact-checkbox input[type="checkbox"]:checked');
+
+    checkboxes.forEach(checkbox => {
+        const customerIndex = checkbox.dataset.customer;
+        const contactName = checkbox.dataset.contactName;
+        const contactRole = checkbox.dataset.contactRole;
+
+        if (!selectedContacts[customerIndex]) {
+            selectedContacts[customerIndex] = [];
+        }
+
+        selectedContacts[customerIndex].push({
+            name: contactName,
+            role: contactRole || ''
+        });
+    });
+
+    return selectedContacts;
 }
 
 // Send campaign
@@ -224,6 +317,9 @@ async function sendCampaign(testMode) {
     const editedWhatsApp = document.getElementById('edit-whatsapp')?.value;
     const editedEmailSubject = document.getElementById('edit-email-subject')?.value;
     const editedEmailBody = document.getElementById('edit-email-body')?.value;
+
+    // Get selected contacts
+    const selectedContacts = getSelectedContacts();
 
     const confirmMessage = testMode
         ? 'Send test campaign to YOUR personal contacts?\n\nWhatsApp: +66856644142\nEmail: norbert@bmasiamusic.com\n\n(Will NOT send to actual customers)'
@@ -248,6 +344,11 @@ async function sendCampaign(testMode) {
                 email_subject: editedEmailSubject,
                 email_body: editedEmailBody
             };
+        }
+
+        // Include selected contacts if any were manually selected/deselected
+        if (selectedContacts && Object.keys(selectedContacts).length > 0) {
+            requestBody.selected_contacts = selectedContacts;
         }
 
         const response = await fetch(`${API_BASE}/api/campaigns/${currentCampaignId}/send`, {

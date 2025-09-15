@@ -205,6 +205,7 @@ Requirements:
 5. Clear call-to-action
 6. Keep WhatsApp under 1024 chars
 7. Make email version more detailed
+8. IMPORTANT: Always end emails with "Best regards,\nBMAsia Team" signature
 
 Return JSON with:
 {{
@@ -261,19 +262,19 @@ Return JSON with:
             "renewal": {
                 "whatsapp": f"{greeting}! This is BMA Social. Your music service at {customer_name} ({venues_text}) is expiring on {customer.get('contract_end', 'soon')}. Would you like to renew for another year? Reply to discuss renewal options.",
                 "email_subject": f"Renewal Reminder - {customer_name} Music Service",
-                "email_body": f"<p>{greeting},</p><p>Your BMA Social music service for {customer_name} is expiring on {customer.get('contract_end', 'soon')}.</p><p>Zones: {venues_text}</p><p>Please contact us to discuss renewal options.</p>"
+                "email_body": f"<p>{greeting},</p><p>Your BMA Social music service for {customer_name} is expiring on {customer.get('contract_end', 'soon')}.</p><p>Zones: {venues_text}</p><p>Please contact us to discuss renewal options.</p><p><br>Best regards,<br>BMAsia Team</p>"
             },
             "seasonal": {
                 "whatsapp": f"{greeting}! Enhance the atmosphere at {customer_name} with our special seasonal playlists. Available now for all your zones: {venues_text}. Reply to learn more!",
                 "email_subject": f"Seasonal Music Update - {customer_name}",
-                "email_body": f"<p>{greeting},</p><p>New seasonal playlists are available for {customer_name}!</p><p>Available for: {venues_text}</p><p>Contact us to activate these special playlists.</p>"
+                "email_body": f"<p>{greeting},</p><p>New seasonal playlists are available for {customer_name}!</p><p>Available for: {venues_text}</p><p>Contact us to activate these special playlists.</p><p><br>Best regards,<br>BMAsia Team</p>"
             }
         }
 
         template = templates.get(campaign_type, {
             "whatsapp": f"{greeting}, this is BMA Social with an update about your music service at {customer_name} ({venues_text}). Please reply for more information.",
             "email_subject": f"BMA Social - Update for {customer_name}",
-            "email_body": f"<p>{greeting},</p><p>We have an important update regarding your music service at {customer_name}.</p><p>Zones: {venues_text}</p>"
+            "email_body": f"<p>{greeting},</p><p>We have an important update regarding your music service at {customer_name}.</p><p>Zones: {venues_text}</p><p><br>Best regards,<br>BMAsia Team</p>"
         })
 
         # Add Line and SMS

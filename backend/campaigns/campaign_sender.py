@@ -215,7 +215,7 @@ class CampaignSender:
 
         if not self.line_token:
             logger.error("Line token not configured")
-            results['errors'].append("Line not configured")
+            results['errors'].append("Line not configured - missing LINE_CHANNEL_ACCESS_TOKEN")
             return
 
         # For Line, we need user IDs from previous interactions
@@ -233,7 +233,7 @@ class CampaignSender:
             line_user_id = recipient.get('line_user_id')
 
             if not line_user_id:
-                logger.warning(f"No Line user ID for {recipient.get('name')}")
+                logger.warning(f"No Line user ID for {recipient.get('name')} - customer must interact with Line bot first")
                 failed_count += 1
                 continue
 
@@ -271,6 +271,10 @@ class CampaignSender:
 
         if sent_count > 0:
             logger.info(f"Line messages sent: {sent_count} successful, {failed_count} failed")
+        elif failed_count > 0:
+            logger.warning(f"Line messages: {failed_count} failed (no customers have interacted with Line bot yet)")
+        else:
+            logger.info("Line messages: no eligible recipients")
 
     def _send_email_batch(
         self,
