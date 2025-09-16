@@ -46,35 +46,6 @@ Last Updated: 2025-09-16
 
 ---
 
-### Mana Beach Club
-- **Business Type**: Beach Club
-- **Zone Count**: 3
-- **Zone Names**: Beach Bar, Restaurant, Pool Area
-- **Music Platform**: Beat Breeze
-- **Annual Price per Zone**: THB 8,000
-- **Currency**: THB
-- **Contract Start**: 2024-09-01
-- **Contract End**: 2025-08-31
-- **Hardware Type**: Beat Breeze Streaming Boxes
-
-#### Contacts
-- **Owner**: James Mitchell
-  - Email: james@manabeachclub.com
-  - Phone: +66 89 123 4567
-  - Preferred Contact: WhatsApp
-  - Notes: Handles all decisions
-
-#### Issue History
-- No recorded issues yet.
-
-#### Special Notes
-- Beat Breeze platform - no API control available
-- Manual playlist changes only
-- Prefers beach/tropical house music during daytime
-- Wants party vibes after sunset
-
----
-
 ### & Co. - One Bangkok
 - **Business Type**: Retail
 - **Zone Count**: 1
