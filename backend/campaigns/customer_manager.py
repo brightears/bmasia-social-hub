@@ -247,6 +247,25 @@ class CustomerManager:
                 if customer['platform'] != filters['platform']:
                     continue
 
+            if filters.get('contact_role'):
+                # Check if any contact has the specified role
+                has_role = False
+                target_role = filters['contact_role']
+
+                # Check primary contact
+                if customer.get('primary_contact') and customer['primary_contact'].get('role') == target_role:
+                    has_role = True
+
+                # Check all contacts
+                if not has_role:
+                    for contact in customer.get('contacts', []):
+                        if contact.get('role') == target_role:
+                            has_role = True
+                            break
+
+                if not has_role:
+                    continue
+
             if filters.get('min_zones'):
                 if customer['total_zones'] < filters['min_zones']:
                     continue
@@ -428,3 +447,44 @@ class CustomerManager:
             stats['by_region'][region] = stats['by_region'].get(region, 0) + 1
 
         return stats
+
+    def get_unique_roles(self) -> List[str]:
+        """Get all unique contact roles from database"""
+        roles = set()
+
+        for customer in self.customers.values():
+            # Check primary contact
+            if customer.get('primary_contact') and customer['primary_contact'].get('role'):
+                roles.add(customer['primary_contact']['role'])
+
+            # Check all contacts
+            for contact in customer.get('contacts', []):
+                if contact.get('role'):
+                    roles.add(contact['role'])
+
+        # Return sorted list
+        return sorted(list(roles))
+
+    def get_unique_brands(self) -> List[str]:
+        """Get all unique brands from database"""
+        brands = set()
+
+        for customer in self.customers.values():
+            if customer.get('brand'):
+                brands.add(customer['brand'])
+
+        # Add "Independent" for venues without brands
+        if any(not c.get('brand') for c in self.customers.values()):
+            brands.add('Independent')
+
+        return sorted(list(brands))
+
+    def get_unique_business_types(self) -> List[str]:
+        """Get all unique business types from database"""
+        business_types = set()
+
+        for customer in self.customers.values():
+            if customer.get('business_type'):
+                business_types.add(customer['business_type'])
+
+        return sorted(list(business_types))

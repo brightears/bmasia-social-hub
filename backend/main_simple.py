@@ -674,6 +674,31 @@ try:
         stats = campaign_orchestrator.get_campaign_statistics()
         return stats
 
+    @app.get("/api/campaigns/filter-options")
+    async def get_filter_options():
+        """Get available filter options for campaigns"""
+        try:
+            # Get unique values from customer manager
+            customer_manager = campaign_orchestrator.customer_manager
+
+            filter_options = {
+                "roles": customer_manager.get_unique_roles(),
+                "brands": customer_manager.get_unique_brands(),
+                "business_types": customer_manager.get_unique_business_types(),
+                "campaign_types": [
+                    "renewal",
+                    "seasonal",
+                    "announcement",
+                    "survey",
+                    "follow_up"
+                ]
+            }
+
+            return {"success": True, "filters": filter_options}
+        except Exception as e:
+            logger.error(f"Filter options error: {e}")
+            return {"success": False, "error": str(e)}
+
     @app.post("/api/campaigns/response")
     async def handle_campaign_response(request: Request):
         """Handle response to campaign (called by bot when campaign response detected)"""
