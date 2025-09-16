@@ -24,8 +24,17 @@ async function loadStatistics() {
             stats.customer_statistics?.total_zones || 0;
         document.getElementById('expiring-30').textContent =
             stats.customer_statistics?.expiring_30_days || 0;
-        document.getElementById('active-campaigns').textContent =
-            stats.active_campaigns || 0;
+        const activeCampaignsCount = stats.active_campaigns || 0;
+        const activeCampaignsEl = document.getElementById('active-campaigns');
+        if (activeCampaignsEl) {
+            activeCampaignsEl.textContent = activeCampaignsCount;
+            // Make clickable if there are campaigns
+            if (activeCampaignsCount > 0) {
+                activeCampaignsEl.style.cursor = 'pointer';
+                activeCampaignsEl.style.textDecoration = 'underline';
+                activeCampaignsEl.onclick = () => showCampaignsList();
+            }
+        }
     } catch (error) {
         console.error('Error loading statistics:', error);
     }
@@ -456,35 +465,52 @@ function showResults(result) {
     document.getElementById('campaign-preview').style.display = 'none';
 
     // Build results HTML
+    const totalSent = result.results_by_customer?.reduce((sum, c) =>
+        sum + Object.values(c.sent || {}).reduce((a, b) => a + b, 0), 0) || 0;
+    const totalFailed = result.results_by_customer?.reduce((sum, c) =>
+        sum + Object.values(c.failed || {}).reduce((a, b) => a + b, 0), 0) || 0;
+
     let resultsHTML = `
-        <div class="result-summary">
-            <h3>Campaign Sent Successfully!</h3>
+        <div class="result-summary" style="background: #f0f8ff; padding: 20px; border-radius: 8px; margin-bottom: 20px;">
+            <h3>✅ Campaign Sent Successfully!</h3>
             <p><strong>Campaign ID:</strong> ${result.campaign_id}</p>
-            <p><strong>Channels Used:</strong> ${result.channels && result.channels.length > 0 ? result.channels.join(', ') : 'No channels'}</p>
+            <p><strong>Channel:</strong> Email</p>
+            <p><strong>Total Sent:</strong> ${totalSent} | <strong>Failed:</strong> ${totalFailed}</p>
         </div>
 
-        <h4 style="margin-top: 20px;">Results by Customer:</h4>
+        <h4 style="margin-top: 20px;">📧 Email Recipients:</h4>
     `;
 
     // Add customer results
     if (result.results_by_customer && result.results_by_customer.length > 0) {
+        resultsHTML += `<div style="background: white; border: 1px solid #ddd; border-radius: 5px; padding: 15px;">`;
+
         result.results_by_customer.forEach(customer => {
-            const totalSent = Object.values(customer.sent || {}).reduce((a, b) => a + b, 0);
-            const totalFailed = Object.values(customer.failed || {}).reduce((a, b) => a + b, 0);
+            const emailSent = customer.sent?.email || 0;
+            const emailFailed = customer.failed?.email || 0;
+            const status = emailSent > 0 ? '✅ Sent' : emailFailed > 0 ? '❌ Failed' : '⏳ Pending';
+            const statusColor = emailSent > 0 ? '#4CAF50' : emailFailed > 0 ? '#f44336' : '#ff9800';
 
             resultsHTML += `
-                <div class="result-item">
+                <div style="padding: 10px; border-bottom: 1px solid #eee; display: flex; justify-content: space-between; align-items: center;">
                     <div>
-                        <strong>${customer.customer}</strong><br>
-                        Channels: ${customer.channels_used.join(', ')}
+                        <strong style="font-size: 16px;">${customer.customer}</strong><br>
+                        <span style="color: #666; font-size: 14px;">📧 ${customer.email || 'No email'}</span><br>
+                        <span style="color: #999; font-size: 12px;">Zones: ${customer.zones ? customer.zones.join(', ') : 'N/A'}</span>
                     </div>
-                    <div>
-                        <span class="result-success">Sent: ${totalSent}</span> |
-                        <span class="result-failed">Failed: ${totalFailed}</span>
+                    <div style="text-align: right;">
+                        <span style="color: ${statusColor}; font-weight: bold;">${status}</span><br>
+                        <span style="font-size: 12px; color: #666;">
+                            ${customer.contact_count || 1} contact(s)
+                        </span>
                     </div>
                 </div>
             `;
         });
+
+        resultsHTML += `</div>`;
+    } else {
+        resultsHTML += `<p style="color: #666;">No recipient details available.</p>`;
     }
 
     // Add AI report if available
@@ -542,19 +568,58 @@ async function loadRecentCampaigns() {
         const response = await fetch(`${API_BASE}/api/campaigns/statistics`);
         const stats = await response.json();
 
-        // For now, just show campaign counts by status
         let html = '';
 
-        if (stats.campaigns_by_status) {
+        // Show recent campaigns if available
+        if (stats.recent_campaigns && stats.recent_campaigns.length > 0) {
+            html = '<div style="max-height: 400px; overflow-y: auto;">';
+
+            stats.recent_campaigns.forEach(campaign => {
+                const statusColor = campaign.status === 'completed' ? '#4CAF50' :
+                                  campaign.status === 'tested' ? '#2196F3' :
+                                  campaign.status === 'sending' ? '#ff9800' : '#666';
+
+                const sentTime = campaign.completed_at || campaign.sent_at || campaign.created_at;
+                const timeStr = sentTime ? new Date(sentTime).toLocaleString() : 'Not sent yet';
+
+                html += `
+                    <div style="background: white; border: 1px solid #ddd; border-radius: 5px; padding: 15px; margin-bottom: 10px;">
+                        <div style="display: flex; justify-content: space-between; align-items: start;">
+                            <div>
+                                <h4 style="margin: 0 0 5px 0; color: #333;">${campaign.name}</h4>
+                                <p style="margin: 0; color: #666; font-size: 14px;">
+                                    Type: ${campaign.type} | Recipients: ${campaign.recipients} | Zones: ${campaign.zones}
+                                </p>
+                                <p style="margin: 5px 0 0 0; color: #999; font-size: 12px;">
+                                    ${timeStr}
+                                </p>
+                            </div>
+                            <div style="text-align: right;">
+                                <span style="background: ${statusColor}; color: white; padding: 3px 8px; border-radius: 3px; font-size: 12px;">
+                                    ${campaign.status.toUpperCase()}
+                                </span>
+                                ${campaign.results ? `
+                                    <p style="margin: 5px 0 0 0; font-size: 12px;">
+                                        ✅ ${campaign.results.sent} sent<br>
+                                        ${campaign.results.failed > 0 ? `❌ ${campaign.results.failed} failed` : ''}
+                                    </p>
+                                ` : ''}
+                            </div>
+                        </div>
+                    </div>
+                `;
+            });
+
+            html += '</div>';
+        } else if (stats.campaigns_by_status) {
+            // Fallback to showing status counts
             for (const [status, count] of Object.entries(stats.campaigns_by_status)) {
-                const statusClass = `status-${status}`;
                 html += `
                     <div class="campaign-list-item">
                         <div class="campaign-info">
                             <h4>${status.charAt(0).toUpperCase() + status.slice(1)} Campaigns</h4>
                             <p>${count} campaign(s)</p>
                         </div>
-                        <span class="campaign-status ${statusClass}">${status}</span>
                     </div>
                 `;
             }
@@ -569,6 +634,44 @@ async function loadRecentCampaigns() {
         console.error('Error loading recent campaigns:', error);
         document.getElementById('recent-campaigns').innerHTML =
             '<p class="help-text">Error loading campaigns</p>';
+    }
+}
+
+// Show campaigns list modal
+async function showCampaignsList() {
+    try {
+        const response = await fetch(`${API_BASE}/api/campaigns/list`);
+        const data = await response.json();
+
+        if (data.success && data.campaigns) {
+            let modalHTML = `
+                <div style="position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.5); z-index: 1000; display: flex; align-items: center; justify-content: center;" onclick="if(event.target === this) this.remove()">
+                    <div style="background: white; border-radius: 8px; padding: 20px; max-width: 800px; width: 90%; max-height: 80vh; overflow-y: auto;">
+                        <h2>📊 All Campaigns</h2>
+                        <button onclick="this.closest('div').parentElement.remove()" style="float: right; margin-top: -40px;">✖</button>
+            `;
+
+            if (data.campaigns.length > 0) {
+                data.campaigns.forEach(campaign => {
+                    modalHTML += `
+                        <div style="border: 1px solid #ddd; border-radius: 5px; padding: 15px; margin: 10px 0;">
+                            <h3>${campaign.name}</h3>
+                            <p>Type: ${campaign.type} | Status: ${campaign.status}</p>
+                            <p>Recipients: ${campaign.recipients} | Zones: ${campaign.zones}</p>
+                            ${campaign.results ? `<p>Sent: ${campaign.results.sent} | Failed: ${campaign.results.failed}</p>` : ''}
+                        </div>
+                    `;
+                });
+            } else {
+                modalHTML += '<p>No campaigns found.</p>';
+            }
+
+            modalHTML += '</div></div>';
+            document.body.insertAdjacentHTML('beforeend', modalHTML);
+        }
+    } catch (error) {
+        console.error('Error loading campaigns list:', error);
+        alert('Error loading campaigns');
     }
 }
 

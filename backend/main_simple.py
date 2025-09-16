@@ -674,6 +674,12 @@ try:
         stats = campaign_orchestrator.get_campaign_statistics()
         return stats
 
+    @app.get("/api/campaigns/list")
+    async def list_campaigns(limit: int = 10):
+        """Get list of all campaigns with details"""
+        campaigns = campaign_orchestrator.get_recent_campaigns(limit=limit)
+        return {"success": True, "campaigns": campaigns}
+
     @app.get("/api/campaigns/filter-options")
     async def get_filter_options():
         """Get available filter options for campaigns"""

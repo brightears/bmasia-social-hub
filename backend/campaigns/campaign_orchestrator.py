@@ -252,12 +252,15 @@ class CampaignOrchestrator:
                 test_mode=test_mode
             )
 
-            # Track results
+            # Track results with more details
             customer_result = {
                 'customer': customer['name'],
+                'email': customer.get('primary_contact', {}).get('email', 'No email'),
                 'channels_used': send_channels,
                 'sent': send_result.get('sent', {}),
-                'failed': send_result.get('failed', {})
+                'failed': send_result.get('failed', {}),
+                'zones': customer.get('zones', []),
+                'contact_count': len(customer.get('selected_contacts', []))
             }
 
             results['results_by_customer'].append(customer_result)
@@ -273,9 +276,13 @@ class CampaignOrchestrator:
 
         # Update campaign status
         campaign['status'] = 'completed' if not test_mode else 'tested'
+        campaign['completed_at'] = datetime.now().isoformat()
         campaign['results'] = {
             'total_sent': total_sent,
             'total_failed': total_failed,
+            'total_recipients': len(campaign['target_customers']),
+            'channels': channels,
+            'test_mode': test_mode,
             'details': results
         }
 
@@ -513,8 +520,40 @@ class CampaignOrchestrator:
             'customer_statistics': self.customer_manager.get_statistics(),
             'send_statistics': self.sender.get_send_statistics(),
             'campaigns_by_type': self._count_campaigns_by_type(),
-            'campaigns_by_status': self._count_campaigns_by_status()
+            'campaigns_by_status': self._count_campaigns_by_status(),
+            'recent_campaigns': self.get_recent_campaigns(limit=5)
         }
+
+    def get_recent_campaigns(self, limit: int = 5) -> List[Dict[str, Any]]:
+        """Get recent campaigns with summary info"""
+        campaigns = []
+
+        # Sort campaigns by creation date
+        sorted_campaigns = sorted(
+            self.active_campaigns.items(),
+            key=lambda x: x[1].get('created_at', ''),
+            reverse=True
+        )[:limit]
+
+        for campaign_id, campaign in sorted_campaigns:
+            summary = {
+                'id': campaign_id,
+                'name': campaign.get('plan', {}).get('campaign_name', 'Unnamed Campaign'),
+                'type': campaign.get('type', 'unknown'),
+                'status': campaign.get('status', 'draft'),
+                'created_at': campaign.get('created_at'),
+                'sent_at': campaign.get('sent_at'),
+                'completed_at': campaign.get('completed_at'),
+                'recipients': len(campaign.get('target_customers', [])),
+                'zones': campaign.get('statistics', {}).get('total_zones', 0),
+                'results': {
+                    'sent': campaign.get('results', {}).get('total_sent', 0),
+                    'failed': campaign.get('results', {}).get('total_failed', 0)
+                } if campaign.get('results') else None
+            }
+            campaigns.append(summary)
+
+        return campaigns
 
     def _count_campaigns_by_type(self) -> Dict[str, int]:
         """Count campaigns by type"""
