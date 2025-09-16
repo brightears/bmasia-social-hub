@@ -98,10 +98,6 @@ async function showCampaignPreview(campaign) {
 
     // Build preview HTML with editable messages
     let previewHTML = `
-        <div style="background: #ffe6e6; border: 2px solid #f44336; padding: 10px; margin-bottom: 15px; border-radius: 5px;">
-            <strong>✅ FIXED: Checkboxes Now Visible with Inline Styles</strong>
-            <small>(Version 2.0 - Direct inline styling applied)</small>
-        </div>
         <div class="campaign-summary">
             <h3>Campaign: ${preview.plan?.campaign_name || 'Campaign'}</h3>
             <p><strong>Type:</strong> ${preview.type}</p>
@@ -118,10 +114,7 @@ async function showCampaignPreview(campaign) {
         const sample = preview.sample_messages[0];
         previewHTML += `
             <div class="edit-section">
-                <h5>WhatsApp/Line Message:</h5>
-                <textarea id="edit-whatsapp" class="message-editor">${sample.whatsapp}</textarea>
-
-                <h5 style="margin-top: 15px;">Email Subject:</h5>
+                <h5>Email Subject:</h5>
                 <input type="text" id="edit-email-subject" value="${sample.email_subject}" />
 
                 <h5 style="margin-top: 15px;">Email Body:</h5>
@@ -131,7 +124,7 @@ async function showCampaignPreview(campaign) {
                         ${sample.email_body || sample.whatsapp || 'Email body content'}
                     </div>
                 </div>
-                <textarea id="edit-email-body" class="message-editor">${sample.email_body || sample.whatsapp || 'Email body content'}</textarea>
+                <textarea id="edit-email-body" class="message-editor">${sample.email_body || 'Email body content'}</textarea>
             </div>
 
             <h4 style="margin-top: 20px;">👥 This will be sent to:</h4>
@@ -402,7 +395,6 @@ async function sendCampaign(testMode) {
     const selectedContacts = getSelectedContacts();
 
     // Get edited messages
-    const editedWhatsApp = document.getElementById('edit-whatsapp')?.value;
     const editedEmailSubject = document.getElementById('edit-email-subject')?.value;
     const editedEmailBody = document.getElementById('edit-email-body')?.value;
 
@@ -423,9 +415,8 @@ async function sendCampaign(testMode) {
         };
 
         // Include edited messages if they exist
-        if (editedWhatsApp || editedEmailSubject || editedEmailBody) {
+        if (editedEmailSubject || editedEmailBody) {
             requestBody.edited_messages = {
-                whatsapp: editedWhatsApp,
                 email_subject: editedEmailSubject,
                 email_body: editedEmailBody
             };
