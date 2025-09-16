@@ -451,7 +451,7 @@ async function sendCampaign(testMode) {
     const editedEmailBody = document.getElementById('edit-email-body')?.value;
 
     const confirmMessage = testMode
-        ? 'Send test campaign to YOUR personal contacts?\n\nWhatsApp: +66856644142\nEmail: norbert@bmasiamusic.com\n\n(Will NOT send to actual customers)'
+        ? 'Send test EMAIL campaign to YOUR personal email?\n\nEmail: norbert@bmasiamusic.com\n\n(Will NOT send to actual customers)'
         : `Send campaign to ALL ${window.currentCampaignData?.total_customers || 0} customers? This cannot be undone!`;
 
     if (!confirm(confirmMessage)) {
