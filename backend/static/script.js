@@ -9,57 +9,7 @@ let currentCampaignId = null;
 document.addEventListener('DOMContentLoaded', function() {
     loadStatistics();
     loadRecentCampaigns();
-    loadFilterOptions();
 });
-
-// Load dynamic filter options
-async function loadFilterOptions() {
-    try {
-        const response = await fetch(`${API_BASE}/api/campaigns/filter-options`);
-        const data = await response.json();
-
-        if (data.success && data.filters) {
-            // Populate role dropdown
-            const roleSelect = document.getElementById('filter-role');
-            if (roleSelect && data.filters.roles) {
-                // Keep "All Roles" as first option
-                roleSelect.innerHTML = '<option value="">All Roles</option>';
-                data.filters.roles.forEach(role => {
-                    const option = document.createElement('option');
-                    option.value = role;
-                    option.textContent = role;
-                    roleSelect.appendChild(option);
-                });
-            }
-
-            // Populate brand dropdown
-            const brandSelect = document.getElementById('filter-brand');
-            if (brandSelect && data.filters.brands) {
-                brandSelect.innerHTML = '<option value="">All Brands</option>';
-                data.filters.brands.forEach(brand => {
-                    const option = document.createElement('option');
-                    option.value = brand;
-                    option.textContent = brand;
-                    brandSelect.appendChild(option);
-                });
-            }
-
-            // Populate business type dropdown
-            const businessSelect = document.getElementById('filter-business');
-            if (businessSelect && data.filters.business_types) {
-                businessSelect.innerHTML = '<option value="">All Types</option>';
-                data.filters.business_types.forEach(type => {
-                    const option = document.createElement('option');
-                    option.value = type;
-                    option.textContent = type;
-                    businessSelect.appendChild(option);
-                });
-            }
-        }
-    } catch (error) {
-        console.error('Failed to load filter options:', error);
-    }
-}
 
 // Load statistics
 async function loadStatistics() {
@@ -129,53 +79,7 @@ async function createQuickCampaign() {
     }
 }
 
-// Create advanced campaign with filters
-async function createAdvancedCampaign() {
-    const campaignType = document.getElementById('campaign-type').value;
-    const filterRole = document.getElementById('filter-role').value;
-    const filterBrand = document.getElementById('filter-brand').value;
-    const filterBusiness = document.getElementById('filter-business').value;
-    const filterExpiry = document.getElementById('filter-expiry').value;
-    const context = document.getElementById('campaign-context').value;
-
-    // Build filters object
-    const filters = {};
-    if (filterRole) filters.contact_role = filterRole;
-    if (filterBrand) filters.brand = filterBrand;
-    if (filterBusiness) filters.business_type = filterBusiness;
-    if (filterExpiry) filters.contract_expiry = { days: parseInt(filterExpiry) };
-
-    showLoading(true);
-
-    try {
-        const response = await fetch(`${API_BASE}/api/campaigns/create`, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({
-                type: campaignType,
-                filters: filters,
-                context: context || undefined
-            })
-        });
-
-        const result = await response.json();
-
-        if (response.ok && result.success) {
-            const campaign = result.campaign;  // Extract campaign from result
-            currentCampaignId = campaign.id;
-            showCampaignPreview(campaign);
-            showLoading(false);
-        } else {
-            showLoading(false);
-            alert('Error creating campaign: ' + (campaign.error || 'Unknown error'));
-        }
-    } catch (error) {
-        showLoading(false);
-        alert('Error creating campaign: ' + error.message);
-    }
-}
+// Removed createAdvancedCampaign - using AI Quick Creator only
 
 // Show campaign preview
 async function showCampaignPreview(campaign) {
