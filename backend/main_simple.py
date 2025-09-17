@@ -258,7 +258,8 @@ async def bot_message(message: BotMessage):
         response = music_bot.process_message(
             message.message,
             message.user_phone,
-            message.user_name
+            message.user_name,
+            platform="WhatsApp"  # Default to WhatsApp for API endpoint
         )
         return {
             "success": True,
@@ -336,17 +337,18 @@ async def whatsapp_webhook(request: Request):
                                     else:
                                         # Fallback to bot if no active conversation found
                                         if music_bot and text:
-                                            response = music_bot.process_message(text, from_number, customer_name)
+                                            response = music_bot.process_message(text, from_number, customer_name, platform="WhatsApp")
                                             logger.info(f"Bot response: {response}")
                                         else:
                                             response = "Message received. Support will respond soon."
-                                    
+
                                 elif music_bot and text:
                                     # Normal bot processing
                                     response = music_bot.process_message(
                                         text,
                                         from_number,
-                                        customer_name
+                                        customer_name,
+                                        platform="WhatsApp"
                                     )
                                     logger.info(f"Bot response: {response}")
                                 else:
@@ -506,7 +508,7 @@ async def process_line_event(event: Dict[str, Any]):
                 else:
                     # Fallback to bot if no active conversation found
                     if music_bot and text:
-                        response = music_bot.process_message(text, user_id, user_name)
+                        response = music_bot.process_message(text, user_id, user_name, platform="Line")
                         logger.info(f"Bot response: {response}")
                     else:
                         response = "Message received. Support will respond soon."
@@ -516,7 +518,8 @@ async def process_line_event(event: Dict[str, Any]):
                 response = music_bot.process_message(
                     text,
                     user_id,
-                    user_name
+                    user_name,
+                    platform="Line"
                 )
                 logger.info(f"Bot response: {response}")
             else:

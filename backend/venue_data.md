@@ -111,8 +111,8 @@ Last Updated: 2025-09-16
 - **Hardware Type**: Mini PC / Windows 10 Pro / DESKTOP-M6QD65B
 
 #### Contacts
-- **General Manager**: —
-  - Email: —
+- **General Manager**: Thitikorn Kanlaya
+  - Email: thitikorn.k@adlibhotels.co
   - Phone: —
   - Preferred Contact: —
   - Notes: —
@@ -163,8 +163,8 @@ Last Updated: 2025-09-16
 - **Hardware Type**: Laptop / Windows 10 Home / LAPTOP-TN7TA9I4
 
 #### Contacts
-- **General Manager**: —
-  - Email: —
+- **General Manager**: Victor Pangilinan
+  - Email: victor.pangilinan@accor.com
   - Phone: —
   - Preferred Contact: —
   - Notes: —
@@ -371,8 +371,8 @@ Last Updated: 2025-09-16
 - **Hardware Type**: Desktop / Windows 7 Pro SP1 / AAJA-IT-BMASIA
 
 #### Contacts
-- **General Manager**: —
-  - Email: —
+- **General Manager**: Siva Sai
+  - Email: ssaimova@anantara.com
   - Phone: —
   - Preferred Contact: —
   - Notes: —
@@ -423,8 +423,8 @@ Last Updated: 2025-09-16
 - **Hardware Type**: Phone / Android 11 / ZTE Blade A31 Lite
 
 #### Contacts
-- **General Manager**: —
-  - Email: —
+- **General Manager**: Yiannis Kosmas
+  - Email: ykosmas@anantara.com
   - Phone: —
   - Preferred Contact: —
   - Notes: —
@@ -527,8 +527,8 @@ Last Updated: 2025-09-16
 - **Hardware Type**: Desktop / Windows 10 Pro / MPC590182L
 
 #### Contacts
-- **General Manager**: —
-  - Email: —
+- **General Manager**: Catarina Simoes
+  - Email: csimoes@anantara.com
   - Phone: —
   - Preferred Contact: —
   - Notes: —
@@ -683,8 +683,8 @@ Last Updated: 2025-09-16
 - **Hardware Type**: Mobile Phone / Android 11 / OPPO CPH2269
 
 #### Contacts
-- **General Manager**: —
-  - Email: —
+- **General Manager**: Farin Sriarunlap
+  - Email: farin_sr@anantara.com
   - Phone: —
   - Preferred Contact: —
   - Notes: —
@@ -839,8 +839,8 @@ Last Updated: 2025-09-16
 - **Hardware Type**: Mini PC / Windows 10 Home / BMASIAMUSIC5
 
 #### Contacts
-- **General Manager**: —
-  - Email: —
+- **General Manager**: Bao La
+  - Email: it.vquy@avanihotels.com
   - Phone: —
   - Preferred Contact: —
   - Notes: —
@@ -3075,8 +3075,8 @@ Last Updated: 2025-09-16
 - **Hardware Type**: Desktop / Windows 7 Pro / Centara-Acces
 
 #### Contacts
-- **General Manager**: —
-  - Email: —
+- **General Manager**: Khwan Doonsang
+  - Email: khwan_do@avanihotels.com
   - Phone: —
   - Preferred Contact: —
   - Notes: —
@@ -3439,8 +3439,8 @@ Last Updated: 2025-09-16
 - **Hardware Type**: Desktop / Windows 7 Pro / MPC610014L
 
 #### Contacts
-- **General Manager**: —
-  - Email: —
+- **General Manager**: Anan Hayicheteh
+  - Email: anan_ha@minor.com
   - Phone: —
   - Preferred Contact: —
   - Notes: —
@@ -3595,8 +3595,8 @@ Last Updated: 2025-09-16
 - **Hardware Type**: Mini PC / Windows 10 Pro / DESKTOP-T2B4L4J
 
 #### Contacts
-- **General Manager**: —
-  - Email: —
+- **General Manager**: Supakit Kaewthongbua
+  - Email: Supakit.KAEWTHONGBUA@accor.com
   - Phone: —
   - Preferred Contact: —
   - Notes: —
@@ -3751,8 +3751,8 @@ Last Updated: 2025-09-16
 - **Hardware Type**: —
 
 #### Contacts
-- **General Manager**: —
-  - Email: —
+- **General Manager**: Jade Simmanee
+  - Email: it.abr@awayresorts.com
   - Phone: —
   - Preferred Contact: —
   - Notes: —
@@ -3855,8 +3855,8 @@ Last Updated: 2025-09-16
 - **Hardware Type**: Mini PC / Windows 10 Home / Desktop-31VHKQI
 
 #### Contacts
-- **General Manager**: —
-  - Email: —
+- **General Manager**: Katerawee Thepprachum
+  - Email: katerawee.thepprachum@crosshotelsandresorts.com
   - Phone: —
   - Preferred Contact: —
   - Notes: —
@@ -4063,8 +4063,8 @@ Last Updated: 2025-09-16
 - **Hardware Type**: Desktop / Windows 10 Pro / ADOH-MUSIC
 
 #### Contacts
-- **General Manager**: —
-  - Email: —
+- **General Manager**: Prashan Sathyanadan
+  - Email: psathyanadan@anantara.com
   - Phone: —
   - Preferred Contact: —
   - Notes: —
@@ -4791,8 +4791,8 @@ Last Updated: 2025-09-16
 - **Hardware Type**: —
 
 #### Contacts
-- **General Manager**: —
-  - Email: —
+- **General Manager**: Chanissa Smathivat (Chompoo)
+  - Email: chanissa.s@siamparagon.co.th
   - Phone: —
   - Preferred Contact: —
   - Notes: —
@@ -5727,8 +5727,8 @@ Last Updated: 2025-09-16
 - **Hardware Type**: Desktop / Windows 10 Pro / DESKTOP-VFIOLLS
 
 #### Contacts
-- **General Manager**: —
-  - Email: —
+- **General Manager**: Prayat Sripakdee (Gugg)
+  - Email: prayatsr@chr.co.th
   - Phone: —
   - Preferred Contact: —
   - Notes: —
@@ -5779,8 +5779,8 @@ Last Updated: 2025-09-16
 - **Hardware Type**: Desktop / Windows XP SP3 / COMANCHE_TMF
 
 #### Contacts
-- **General Manager**: —
-  - Email: —
+- **General Manager**: Thanakorn Krupanit
+  - Email: itchbr@chr.co.th
   - Phone: —
   - Preferred Contact: —
   - Notes: —
@@ -5831,8 +5831,8 @@ Last Updated: 2025-09-16
 - **Hardware Type**: Laptop / Windows 11 Pro / CGOJCP501
 
 #### Contacts
-- **General Manager**: —
-  - Email: —
+- **General Manager**: Naomi Umaki
+  - Email: NaomiUm@chr.co.th
   - Phone: —
   - Preferred Contact: —
   - Notes: —
@@ -5987,8 +5987,8 @@ Last Updated: 2025-09-16
 - **Hardware Type**: Desktop / Windows 10 Pro / BMASIA-PC-01
 
 #### Contacts
-- **General Manager**: —
-  - Email: —
+- **General Manager**: Prasongsin
+  - Email: cmbritmgr@chr.co.th
   - Phone: —
   - Preferred Contact: —
   - Notes: —
@@ -6039,8 +6039,8 @@ Last Updated: 2025-09-16
 - **Hardware Type**: Mini PC / Windows 10 Home
 
 #### Contacts
-- **General Manager**: —
-  - Email: —
+- **General Manager**: Withul Sakaro
+  - Email: fcchy@chr.co.th
   - Phone: —
   - Preferred Contact: —
   - Notes: —
@@ -6195,8 +6195,8 @@ Last Updated: 2025-09-16
 - **Hardware Type**: Mini PC / Windows 10 Pro / BMA-01
 
 #### Contacts
-- **General Manager**: —
-  - Email: —
+- **General Manager**: Punyaphat Kamonkorn
+  - Email: fbckc@chr.co.th
   - Phone: —
   - Preferred Contact: —
   - Notes: —
@@ -6247,8 +6247,8 @@ Last Updated: 2025-09-16
 - **Hardware Type**: Desktop / Windows 10 Pro / DESKTOP-JR9HBA3
 
 #### Contacts
-- **General Manager**: —
-  - Email: —
+- **General Manager**: Kitti
+  - Email: hmcko@chr.co.th
   - Phone: —
   - Preferred Contact: —
   - Notes: —
@@ -6507,8 +6507,8 @@ Last Updated: 2025-09-16
 - **Hardware Type**: Laptop / Windows 10 Home / LAPTOP-8L5C91MQ
 
 #### Contacts
-- **General Manager**: —
-  - Email: —
+- **General Manager**: Muhammad Arshath
+  - Email: MuhammadAr@chr.co.th
   - Phone: —
   - Preferred Contact: —
   - Notes: —
@@ -6559,8 +6559,8 @@ Last Updated: 2025-09-16
 - **Hardware Type**: Desktop / Windows 10 Pro / BGM
 
 #### Contacts
-- **General Manager**: —
-  - Email: —
+- **General Manager**: Ashish Nehra
+  - Email: eamfbcmv@chr.co.th
   - Phone: —
   - Preferred Contact: —
   - Notes: —
@@ -6767,8 +6767,8 @@ Last Updated: 2025-09-16
 - **Hardware Type**: Desktop / Windows 11 Pro / CPY-DES004
 
 #### Contacts
-- **General Manager**: —
-  - Email: —
+- **General Manager**: Nathapol Kuywaree (Plome)
+  - Email: itcpy@chr.co.th
   - Phone: —
   - Preferred Contact: —
   - Notes: —
@@ -6871,8 +6871,8 @@ Last Updated: 2025-09-16
 - **Hardware Type**: Desktop / Windows 10 Pro / HAcnxcmsvrms01
 
 #### Contacts
-- **General Manager**: —
-  - Email: —
+- **General Manager**: Panus Alex Jureeratana
+  - Email: gmccm@chr.co.th
   - Phone: —
   - Preferred Contact: —
   - Notes: —
@@ -7027,8 +7027,8 @@ Last Updated: 2025-09-16
 - **Hardware Type**: Mini PC / Windows 10 Pro / DESKTOP-6I7R6NE
 
 #### Contacts
-- **General Manager**: —
-  - Email: —
+- **General Manager**: Mitree Suwannapet (Fam)
+  - Email: fccub@chr.co.th
   - Phone: —
   - Preferred Contact: —
   - Notes: —
@@ -10355,8 +10355,8 @@ Last Updated: 2025-09-16
 - **Hardware Type**: Desktop / Windows 7 Pro SP1 / Onity
 
 #### Contacts
-- **General Manager**: —
-  - Email: —
+- **General Manager**: Thomas Zhang
+  - Email: Thomas.Zhang@hilton.com
   - Phone: —
   - Preferred Contact: —
   - Notes: —
@@ -10615,8 +10615,8 @@ Last Updated: 2025-09-16
 - **Hardware Type**: Desktop / Windows 10 Pro / MakanKitchen
 
 #### Contacts
-- **General Manager**: —
-  - Email: —
+- **General Manager**: Lycan Hon
+  - Email: Lycan.Hon@hilton.com
   - Phone: —
   - Preferred Contact: —
   - Notes: —
@@ -10771,8 +10771,8 @@ Last Updated: 2025-09-16
 - **Hardware Type**: Desktop / Windows 10 Pro / DESKTOP-TO9A5D0
 
 #### Contacts
-- **General Manager**: —
-  - Email: —
+- **General Manager**: Thanongsak Piriyapruet
+  - Email: Thanongsak.Piriyapruet@hilton.com
   - Phone: —
   - Preferred Contact: —
   - Notes: —
@@ -10875,8 +10875,8 @@ Last Updated: 2025-09-16
 - **Hardware Type**: Mobile Phone / Android 11 / realme RMX3231
 
 #### Contacts
-- **General Manager**: —
-  - Email: —
+- **General Manager**: Logendran Supramaniam
+  - Email: Logendran.Supramaniam@hilton.com
   - Phone: —
   - Preferred Contact: —
   - Notes: —
@@ -10927,8 +10927,8 @@ Last Updated: 2025-09-16
 - **Hardware Type**: Desktop / Windows 10 Pro / DESKTOP-SVFOJF7
 
 #### Contacts
-- **General Manager**: —
-  - Email: —
+- **General Manager**: Saksathit Yingyuen
+  - Email: Saksathit.yingyuen@hilton.com
   - Phone: —
   - Preferred Contact: —
   - Notes: —
@@ -11759,8 +11759,8 @@ Last Updated: 2025-09-16
 - **Hardware Type**: Desktop / Windows 10 Pro / SandsBeach
 
 #### Contacts
-- **General Manager**: —
-  - Email: —
+- **General Manager**: Asdang Sukwises
+  - Email: gmcch@chr.co.th
   - Phone: —
   - Preferred Contact: —
   - Notes: —
@@ -12227,8 +12227,8 @@ Last Updated: 2025-09-16
 - **Hardware Type**: Mini PC Media Box / Android TV
 
 #### Contacts
-- **General Manager**: —
-  - Email: —
+- **General Manager**: Marc Bittner
+  - Email: marc.bittner@fusionhotelgroup.com
   - Phone: —
   - Preferred Contact: —
   - Notes: —
@@ -14047,8 +14047,8 @@ Last Updated: 2025-09-16
 - **Hardware Type**: Mini PC / Windows 10 Home 32 Bit / DESKTOP-91C5JHO
 
 #### Contacts
-- **General Manager**: —
-  - Email: —
+- **General Manager**: Artitaya Ponsin
+  - Email: artitaya.ponsin@accor.com
   - Phone: —
   - Preferred Contact: —
   - Notes: —
@@ -15087,8 +15087,8 @@ Last Updated: 2025-09-16
 - **Hardware Type**: —
 
 #### Contacts
-- **General Manager**: —
-  - Email: —
+- **General Manager**: Aniket Chitre
+  - Email: aniket.chitre@hilton.com
   - Phone: —
   - Preferred Contact: —
   - Notes: —
@@ -15139,8 +15139,8 @@ Last Updated: 2025-09-16
 - **Hardware Type**: Mini PC / Windows 10 Home / DESKTOP-NBMIOUV
 
 #### Contacts
-- **General Manager**: —
-  - Email: —
+- **General Manager**: Wildan Alimudin
+  - Email: wildan.alimudin@hilton.com
   - Phone: —
   - Preferred Contact: —
   - Notes: —
@@ -15347,8 +15347,8 @@ Last Updated: 2025-09-16
 - **Hardware Type**: Mobile Phone / iPhone
 
 #### Contacts
-- **General Manager**: —
-  - Email: —
+- **General Manager**: Vaviano Vui
+  - Email: vaviano.vui@hilton.com
   - Phone: —
   - Preferred Contact: —
   - Notes: —
@@ -15919,8 +15919,8 @@ Last Updated: 2025-09-16
 - **Hardware Type**: Media Box / Mini PC / Android 7.1 / Amlogic Modeo
 
 #### Contacts
-- **General Manager**: —
-  - Email: —
+- **General Manager**: Hansie Phillip
+  - Email: hansie.phillip@hilton.com
   - Phone: —
   - Preferred Contact: —
   - Notes: —
@@ -15971,8 +15971,8 @@ Last Updated: 2025-09-16
 - **Hardware Type**: —
 
 #### Contacts
-- **General Manager**: —
-  - Email: —
+- **General Manager**: Aniket Chitre
+  - Email: aniket.chitre@hilton.com
   - Phone: —
   - Preferred Contact: —
   - Notes: —
@@ -16127,8 +16127,8 @@ Last Updated: 2025-09-16
 - **Hardware Type**: Mini PC / Android 8 / Amlogic TX3 Mini
 
 #### Contacts
-- **General Manager**: —
-  - Email: —
+- **General Manager**: Jess Ooi
+  - Email: Jesselina.Ooi@hilton.com
   - Phone: —
   - Preferred Contact: —
   - Notes: —
@@ -16231,8 +16231,8 @@ Last Updated: 2025-09-16
 - **Hardware Type**: Desktop PC? / SINORESTATE
 
 #### Contacts
-- **General Manager**: —
-  - Email: —
+- **General Manager**: Linges Waren
+  - Email: Linges.Waren@Hilton.com
   - Phone: —
   - Preferred Contact: —
   - Notes: —
@@ -16335,8 +16335,8 @@ Last Updated: 2025-09-16
 - **Hardware Type**: Tablet
 
 #### Contacts
-- **General Manager**: —
-  - Email: —
+- **General Manager**: Vanessa Arnott
+  - Email: vanessa.arnott@hilton.com
   - Phone: —
   - Preferred Contact: —
   - Notes: —
@@ -17687,8 +17687,8 @@ Last Updated: 2025-09-16
 - **Hardware Type**: Desktop / Windows 10 Pro / DESKTOP-MUK9SCP
 
 #### Contacts
-- **General Manager**: —
-  - Email: —
+- **General Manager**: Suthinee Hirio (Su)
+  - Email: dor@hotelnikko-amatacity.com
   - Phone: —
   - Preferred Contact: —
   - Notes: —
@@ -17739,8 +17739,8 @@ Last Updated: 2025-09-16
 - **Hardware Type**: Desktop / Windows 10 Pro / DESKTOP-NMR4H0G
 
 #### Contacts
-- **General Manager**: —
-  - Email: —
+- **General Manager**: Chatchai (Joe) Klinson
+  - Email: itm@nikkobangkok.com
   - Phone: —
   - Preferred Contact: —
   - Notes: —
@@ -17791,8 +17791,8 @@ Last Updated: 2025-09-16
 - **Hardware Type**: DESKTOP-KSH0SDA
 
 #### Contacts
-- **General Manager**: —
-  - Email: —
+- **General Manager**: Tran Thi Nga
+  - Email: pur.mgr@hotelnikkohaiphong.com.vn
   - Phone: —
   - Preferred Contact: —
   - Notes: —
@@ -18415,8 +18415,8 @@ Last Updated: 2025-09-16
 - **Hardware Type**: AiO Desktop / Windows 10 Home / DESKTOP-LRJKO15
 
 #### Contacts
-- **General Manager**: —
-  - Email: —
+- **General Manager**: Ruangdet Roekmuang (Duke)
+  - Email: ruangdet.roekmuang@hyatt.com
   - Phone: —
   - Preferred Contact: —
   - Notes: —
@@ -18987,8 +18987,8 @@ Last Updated: 2025-09-16
 - **Hardware Type**: Desktop / Windows 7 Pro / AudioPC
 
 #### Contacts
-- **General Manager**: —
-  - Email: —
+- **General Manager**: Tuan Anh Nguyen
+  - Email: h9468-it@accor.com
   - Phone: —
   - Preferred Contact: —
   - Notes: —
@@ -19091,8 +19091,8 @@ Last Updated: 2025-09-16
 - **Hardware Type**: Desktop SFF / Windows 7 Pro 32 bit / W-AA-H6688-FO3.aa.accor.net
 
 #### Contacts
-- **General Manager**: —
-  - Email: —
+- **General Manager**: Jarinya Chochan
+  - Email: H6688-GL@ACCOR.COM
   - Phone: —
   - Preferred Contact: —
   - Notes: —
@@ -19195,8 +19195,8 @@ Last Updated: 2025-09-16
 - **Hardware Type**: Mini PC / Windows 10 Home / DESKTOP-JS4DN19
 
 #### Contacts
-- **General Manager**: —
-  - Email: —
+- **General Manager**: Warairat SOMPONG
+  - Email: Warairat.SOMPONG@accor.com
   - Phone: —
   - Preferred Contact: —
   - Notes: —
@@ -19247,8 +19247,8 @@ Last Updated: 2025-09-16
 - **Hardware Type**: Desktop / Windows 10 Pro / DESKTOP-TPF7QHI
 
 #### Contacts
-- **General Manager**: —
-  - Email: —
+- **General Manager**: Tosaporn Sukkhasme
+  - Email: Tosaporn.SUKKHASEM@accor.com
   - Phone: —
   - Preferred Contact: —
   - Notes: —
@@ -23303,8 +23303,8 @@ Last Updated: 2025-09-16
 - **Hardware Type**: —
 
 #### Contacts
-- **General Manager**: —
-  - Email: —
+- **General Manager**: Sukson Soosongdee
+  - Email: sukson.s@amari.com
   - Phone: —
   - Preferred Contact: —
   - Notes: —
@@ -23615,8 +23615,8 @@ Last Updated: 2025-09-16
 - **Hardware Type**: Desktop / Windows 7 SP1 / USER-PC
 
 #### Contacts
-- **General Manager**: —
-  - Email: —
+- **General Manager**: Le Tra My
+  - Email: my.le@lotte.net
   - Phone: —
   - Preferred Contact: —
   - Notes: —
@@ -24291,8 +24291,8 @@ Last Updated: 2025-09-16
 - **Hardware Type**: —
 
 #### Contacts
-- **General Manager**: —
-  - Email: —
+- **General Manager**: Avinash Panda
+  - Email: avinash.panda@amari.com
   - Phone: —
   - Preferred Contact: —
   - Notes: —
@@ -24603,8 +24603,8 @@ Last Updated: 2025-09-16
 - **Hardware Type**: —
 
 #### Contacts
-- **General Manager**: —
-  - Email: —
+- **General Manager**: Pei Wai, Hooi
+  - Email: peiwai.hooi@marinabaysands.com
   - Phone: —
   - Preferred Contact: —
   - Notes: —
@@ -25591,8 +25591,8 @@ Last Updated: 2025-09-16
 - **Hardware Type**: Desktop / Windows 10 Home / DESKTOP-E6RRL22
 
 #### Contacts
-- **General Manager**: —
-  - Email: —
+- **General Manager**: NIYOMTHANACHAT Sitthisak
+  - Email: Sitthisak.NIYOMTHANACHAT@accor.com
   - Phone: —
   - Preferred Contact: —
   - Notes: —
@@ -25643,8 +25643,8 @@ Last Updated: 2025-09-16
 - **Hardware Type**: Desktop / Windows 10 Pro / DESKTOP-MN466|1
 
 #### Contacts
-- **General Manager**: —
-  - Email: —
+- **General Manager**: Suchada Jirapanitcharoen
+  - Email: Suchada.JIRAPANITCHAROEN@accor.com
   - Phone: —
   - Preferred Contact: —
   - Notes: —
@@ -26163,8 +26163,8 @@ Last Updated: 2025-09-16
 - **Hardware Type**: Desktop / Windows 10 Pro / DESKTOP-PIQ85CE
 
 #### Contacts
-- **General Manager**: —
-  - Email: —
+- **General Manager**: Anh Dang
+  - Email: QuocAnh.DANGNGUYEN@accor.com
   - Phone: —
   - Preferred Contact: —
   - Notes: —
@@ -26267,8 +26267,8 @@ Last Updated: 2025-09-16
 - **Hardware Type**: Mini PC / Windows 10 Home / DESKTOP-PKPP2QA
 
 #### Contacts
-- **General Manager**: —
-  - Email: —
+- **General Manager**: Tim Tate
+  - Email: Tim.Tate@hilton.com
   - Phone: —
   - Preferred Contact: —
   - Notes: —
@@ -26423,8 +26423,8 @@ Last Updated: 2025-09-16
 - **Hardware Type**: Media Box / mini PC / Android 9.0 Pie
 
 #### Contacts
-- **General Manager**: —
-  - Email: —
+- **General Manager**: Thapanawat Sakolpat-auttakorn
+  - Email: thapanawat.s@modenabyfraser.com
   - Phone: —
   - Preferred Contact: —
   - Notes: —
@@ -27931,8 +27931,8 @@ Last Updated: 2025-09-16
 - **Hardware Type**: Desktop / Windows 7 Pro / NSH-BGM-LOBBY
 
 #### Contacts
-- **General Manager**: —
-  - Email: —
+- **General Manager**: Christophe Pairaud
+  - Email: christophe.pairaud@accor.com
   - Phone: —
   - Preferred Contact: —
   - Notes: —
@@ -27983,8 +27983,8 @@ Last Updated: 2025-09-16
 - **Hardware Type**: Desktop / Windows 10 Pro / BMASIA-H9799
 
 #### Contacts
-- **General Manager**: —
-  - Email: —
+- **General Manager**: Sunardi Song
+  - Email: Sunardi.SONG@accor.com
   - Phone: —
   - Preferred Contact: —
   - Notes: —
@@ -28191,8 +28191,8 @@ Last Updated: 2025-09-16
 - **Hardware Type**: Desktop / Windows 7 Pro
 
 #### Contacts
-- **General Manager**: —
-  - Email: —
+- **General Manager**: Hang Nguyen
+  - Email: Hang.NGUYEN@accor.com
   - Phone: —
   - Preferred Contact: —
   - Notes: —
@@ -28815,8 +28815,8 @@ Last Updated: 2025-09-16
 - **Hardware Type**: Desktop / MP3 Player / Media Box/ Mini PC / Tablet / Windows 7 Pro / Android 9 / Windows 11 Pro / MPC600014L / avcmai_fb’s iPod / TX6 / Spa’s iPod touch / CMBR-DES-BM-02
 
 #### Contacts
-- **General Manager**: —
-  - Email: —
+- **General Manager**: Sirayut Srijaloen
+  - Email: sirayut.s@shama.com
   - Phone: —
   - Preferred Contact: —
   - Notes: —
@@ -29491,8 +29491,8 @@ Last Updated: 2025-09-16
 - **Hardware Type**: Desktop / PI-QAD-DESK
 
 #### Contacts
-- **General Manager**: —
-  - Email: —
+- **General Manager**: Mohamed Iujaz Zuhair
+  - Email: rm@paradise-island.com.mv
   - Phone: —
   - Preferred Contact: —
   - Notes: —
@@ -29543,8 +29543,8 @@ Last Updated: 2025-09-16
 - **Hardware Type**: Phone / Android 8.0 Oreo / samsung SM-A260G
 
 #### Contacts
-- **General Manager**: —
-  - Email: —
+- **General Manager**: Thanachai Niramol (Aey)
+  - Email: itm@paresaresorts.com
   - Phone: —
   - Preferred Contact: —
   - Notes: —
@@ -29699,8 +29699,8 @@ Last Updated: 2025-09-16
 - **Hardware Type**: —
 
 #### Contacts
-- **General Manager**: —
-  - Email: —
+- **General Manager**: Tareq Alnsour
+  - Email: tareq.alnsour@hyatt.com
   - Phone: —
   - Preferred Contact: —
   - Notes: —
@@ -30063,8 +30063,8 @@ Last Updated: 2025-09-16
 - **Hardware Type**: Mini PC / Windows 11 Pro / DESKTOP-VQPG860
 
 #### Contacts
-- **General Manager**: —
-  - Email: —
+- **General Manager**: Pisut Thirangkurat
+  - Email: pisut@pprincess.com
   - Phone: —
   - Preferred Contact: —
   - Notes: —
@@ -31467,8 +31467,8 @@ Last Updated: 2025-09-16
 - **Hardware Type**: Desktop / Windows 7 Pro / Connectivity-HP
 
 #### Contacts
-- **General Manager**: —
-  - Email: —
+- **General Manager**: CHANGKOON Son
+  - Email: Son.CHANGKOON@accor.com
   - Phone: —
   - Preferred Contact: —
   - Notes: —
@@ -35211,8 +35211,8 @@ Last Updated: 2025-09-16
 - **Hardware Type**: —
 
 #### Contacts
-- **General Manager**: —
-  - Email: —
+- **General Manager**: Dennis Bonabon
+  - Email: itmprsi@parkregissingapore.com
   - Phone: —
   - Preferred Contact: —
   - Notes: —
@@ -35367,8 +35367,8 @@ Last Updated: 2025-09-16
 - **Hardware Type**: Desktop / Windows 10 Pro / BOUDIOR
 
 #### Contacts
-- **General Manager**: —
-  - Email: —
+- **General Manager**: EBAN Ymoi
+  - Email: ymoi.eban@sofitel.com
   - Phone: —
   - Preferred Contact: —
   - Notes: —
@@ -36667,8 +36667,8 @@ Last Updated: 2025-09-16
 - **Hardware Type**: Tablet
 
 #### Contacts
-- **General Manager**: —
-  - Email: —
+- **General Manager**: Kajitpan Teawjaroen (Pun)
+  - Email: itmgr@stayphuketresort.com
   - Phone: —
   - Preferred Contact: —
   - Notes: —
@@ -36927,8 +36927,8 @@ Last Updated: 2025-09-16
 - **Hardware Type**: Phone / Android 12
 
 #### Contacts
-- **General Manager**: —
-  - Email: —
+- **General Manager**: Ambareesh CM
+  - Email: ambareesh.cm@sunsiyam.com
   - Phone: —
   - Preferred Contact: —
   - Notes: —
@@ -37707,8 +37707,8 @@ Last Updated: 2025-09-16
 - **Hardware Type**: Mobile Phone / Android 8.0 Oreo / WIKO W-K200
 
 #### Contacts
-- **General Manager**: —
-  - Email: —
+- **General Manager**: Weerawut Ratikun
+  - Email: itsup@thamesvalleykhaoyai.com
   - Phone: —
   - Preferred Contact: —
   - Notes: —
@@ -37811,8 +37811,8 @@ Last Updated: 2025-09-16
 - **Hardware Type**: Desktop / Windows 10 Pro / LOBBY-MUSICPLAY
 
 #### Contacts
-- **General Manager**: —
-  - Email: —
+- **General Manager**: Ricky Hui
+  - Email: ricky.hui@aberdeenmarinaclub.com
   - Phone: —
   - Preferred Contact: —
   - Notes: —
@@ -39059,8 +39059,8 @@ Last Updated: 2025-09-16
 - **Hardware Type**: Desktop / Windows 7 Pro / CGPXSVRGB04
 
 #### Contacts
-- **General Manager**: —
-  - Email: —
+- **General Manager**: Matthew Horvat
+  - Email: gm@sanctuarythailand.com
   - Phone: —
   - Preferred Contact: —
   - Notes: —

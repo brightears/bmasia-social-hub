@@ -87,11 +87,11 @@ class AIFirstBot:
             logger.error(f"Failed to load product info: {e}")
             return "PRODUCT INFO: SYB ($29-39/zone/month) and Beat Breeze ($15-25/location/month) - both include commercial licensing"
     
-    def process_message(self, message: str, phone: str, user_name: Optional[str] = None) -> str:
+    def process_message(self, message: str, phone: str, user_name: Optional[str] = None, platform: str = "WhatsApp") -> str:
         """
         AI-FIRST: Every message goes through AI for analysis and decision-making
         """
-        logger.info(f"Processing message from {phone}: {message[:100]}...")
+        logger.info(f"Processing message from {phone} via {platform}: {message[:100]}...")
         
         # Get conversation context
         context = conversation_tracker.get_conversation_by_phone(phone) or []
@@ -126,7 +126,8 @@ class AIFirstBot:
                 user_name=user_name,
                 department=department,
                 priority=priority,
-                ai_analysis=ai_analysis
+                ai_analysis=ai_analysis,
+                platform=platform
             )
             
             if success:
@@ -323,9 +324,9 @@ When users ask about pricing, contracts, or rates ("how much are we paying", "ou
                 "priority": "NORMAL"
             }
     
-    def _escalate_to_team(self, message: str, venue: Optional[Dict], phone: str, 
-                          user_name: str, department: str, priority: str, 
-                          ai_analysis: Dict) -> bool:
+    def _escalate_to_team(self, message: str, venue: Optional[Dict], phone: str,
+                          user_name: str, department: str, priority: str,
+                          ai_analysis: Dict, platform: str = "WhatsApp") -> bool:
         """
         Escalate to the appropriate Google Chat space based on AI's decision
         """
@@ -357,7 +358,7 @@ When users ask about pricing, contracts, or rates ("how much are we paying", "ou
                 message=enhanced_message,
                 venue_name=venue.get('name') if venue else 'Unknown Venue',
                 venue_data=venue,
-                user_info={'name': user_name or 'Customer', 'phone': phone, 'platform': 'WhatsApp'},
+                user_info={'name': user_name or 'Customer', 'phone': phone, 'platform': platform},
                 department=dept_enum,
                 priority=prio_enum,
                 context=f"AI flagged: {ai_analysis.get('action')}"

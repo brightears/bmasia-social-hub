@@ -1,0 +1,54 @@
+# BMA Social Venue Database
+
+Last Updated: 2025-09-04
+
+## Venue Information
+
+### Grab Malaysia
+- **Business Type**: Taxi Company / Delivery
+- **Zone Count**: 1
+- **Zone Names**: Marketplace MY-FA, Techelligence MY-FA, Tranquility  MY-FA
+- **Music Platform**: SYB
+- **Annual Price per Zone**: —
+- **Currency**: —
+- **Contract Start**: —
+- **Contract End**: 2026-12-08
+- **Soundtrack Account ID**: —
+- **Hardware Type**: —
+
+#### Contacts
+- **General Manager**: —
+  - Email: —
+  - Phone: —
+  - Preferred Contact: —
+  - Notes: —
+
+- **Purchasing Manager**: —
+  - Email: —
+  - Phone: —
+  - Preferred Contact: —
+  - Notes: —
+
+- **Director of Food & Beverage**: —
+  - Email: —
+  - Phone: —
+  - Preferred Contact: —
+  - Notes: —
+
+- **IT Manager**: —
+  - Email: —
+  - Phone: —
+  - Preferred Contact: —
+  - Notes: —
+
+- **Operations Manager**: —
+  - Email: —
+  - Phone: —
+  - Preferred Contact: —
+  - Notes: —
+
+#### Issue History
+- No recorded issues yet.
+
+#### Special Notes
+- —
