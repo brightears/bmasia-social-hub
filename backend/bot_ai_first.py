@@ -382,23 +382,28 @@ When users ask about pricing, contracts, or rates ("how much are we paying", "ou
             enhanced_message = f"{message}\n\n🤖 AI Analysis:\n{ai_analysis.get('reasoning', '')}"
 
             # Determine venue name for notification
-            venue_name = 'Unknown Venue'
+            venue_name = 'Unknown'
+            venue_to_send = None  # Don't send venue data if we don't have a valid venue
+
             if venue:
                 # Check if we have venue confidence in the AI analysis
                 if 'venue_confidence' in ai_analysis:
                     confidence = ai_analysis['venue_confidence']
                     if confidence >= 0.7:
                         venue_name = venue.get('name', 'Unknown Venue')
+                        venue_to_send = venue  # Only send venue data if confidence is high
                     else:
                         venue_name = f"Uncertain: {venue.get('name', 'Unknown')}?"
+                        # Don't send venue data for uncertain matches
                 else:
                     # Fallback if no confidence info
                     venue_name = venue.get('name', 'Unknown Venue')
+                    venue_to_send = venue
 
             success = chat_client.send_notification(
                 message=enhanced_message,
                 venue_name=venue_name,
-                venue_data=venue,
+                venue_data=venue_to_send,  # Only send actual venue data if confident
                 user_info={'name': user_name or 'Customer', 'phone': phone, 'platform': platform},
                 department=dept_enum,
                 priority=prio_enum,
