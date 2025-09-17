@@ -128,9 +128,10 @@ class GoogleChatWebhook:
         }
         
         # Add venue details if available
-        if venue_data:
+        # Only show venue details if we're confident about the venue
+        if venue_data and not venue_name.startswith('Uncertain:'):
             venue_widgets = []
-            
+
             if venue_data.get('zones'):
                 zones_text = ', '.join(venue_data['zones']) if isinstance(venue_data['zones'], list) else str(venue_data['zones'])
                 venue_widgets.append({
@@ -139,7 +140,7 @@ class GoogleChatWebhook:
                         "content": zones_text
                     }
                 })
-            
+
             if venue_data.get('contract_end'):
                 venue_widgets.append({
                     "keyValue": {
@@ -147,7 +148,7 @@ class GoogleChatWebhook:
                         "content": venue_data['contract_end']
                     }
                 })
-            
+
             if venue_widgets:
                 card["cards"][0]["sections"].append({
                     "widgets": venue_widgets

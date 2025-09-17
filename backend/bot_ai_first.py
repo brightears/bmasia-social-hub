@@ -95,19 +95,31 @@ class AIFirstBot:
         
         # Get conversation context
         context = conversation_tracker.get_conversation_by_phone(phone) or []
-        
-        # Find venue if mentioned
-        venue = self.venue_manager.find_venue(message)
-        if not venue and context:
-            # Check previous messages for venue
-            for msg in context:
-                if isinstance(msg, dict) and 'venue' in msg:
-                    venue = self.venue_manager.get_venue_info(msg.get('venue'))
-                    if venue:
-                        break
-        
+
+        # Find venue with confidence scoring
+        venue, confidence = self.venue_manager.find_venue_with_confidence(message)
+        possible_venues = []
+
+        # Only use venue if high confidence
+        if confidence < 0.7:
+            # Get possible venues for context
+            possible_venues = self.venue_manager.find_possible_venues(message, threshold=0.4)
+
+            # Don't use a low-confidence venue
+            if confidence < 0.7:
+                venue = None
+
+                # Check previous messages for venue with high confidence
+                if context:
+                    for msg in context:
+                        if isinstance(msg, dict) and 'venue' in msg:
+                            venue = self.venue_manager.get_venue_info(msg.get('venue'))
+                            if venue:
+                                confidence = 0.9  # Trust previous context
+                                break
+
         # STEP 1: AI ANALYZES THE MESSAGE
-        ai_analysis = self._ai_analyze_message(message, venue, context)
+        ai_analysis = self._ai_analyze_message(message, venue, context, confidence, possible_venues)
         
         # STEP 2: AI DECIDES WHAT TO DO
         action = ai_analysis.get('action', 'respond')
@@ -119,6 +131,8 @@ class AIFirstBot:
         # STEP 3: EXECUTE AI'S DECISION
         if needs_escalation and HAS_GOOGLE_CHAT:
             # AI decided this needs human help
+            # Include venue confidence in the analysis for escalation
+            ai_analysis['venue_confidence'] = confidence
             success = self._escalate_to_team(
                 message=message,
                 venue=venue,
@@ -162,7 +176,8 @@ class AIFirstBot:
         
         return response
     
-    def _ai_analyze_message(self, message: str, venue: Optional[Dict], context: List) -> Dict:
+    def _ai_analyze_message(self, message: str, venue: Optional[Dict], context: List,
+                            confidence: float = 0.0, possible_venues: List = None) -> Dict:
         """
         Let AI analyze the message and decide what to do
         Returns: {
@@ -178,14 +193,26 @@ class AIFirstBot:
         
         # Build context for AI
         venue_info = ""
-        if venue:
+        if venue and confidence >= 0.7:
             venue_info = f"""
-Venue: {venue.get('name')}
+Venue: {venue.get('name')} (Confidence: {confidence:.0%})
 Zones: {', '.join(venue.get('zones', []))}
 Platform: {venue.get('platform', 'Unknown')}
 Contract End: {venue.get('contract_end', 'Unknown')}
 Annual Price per Zone: {venue.get('annual_price', 'Unknown')}
 Total Zones: {len(venue.get('zones', []))}
+"""
+        elif possible_venues:
+            # Include possible venues for AI context
+            possible_names = [f"{v[0]['name']} ({v[1]:.0%})" for v in possible_venues[:3]]
+            venue_info = f"""
+Venue: UNCERTAIN - Possible matches: {', '.join(possible_names)}
+Note: Cannot confirm exact venue from message. User may be from one of these venues or a venue not in our system.
+"""
+        else:
+            venue_info = """
+Venue: UNKNOWN - No venue identified in message
+Note: User has not clearly specified their venue or may not be an existing customer.
 """
         
         # System prompt that makes AI understand its role
@@ -353,10 +380,24 @@ When users ask about pricing, contracts, or rates ("how much are we paying", "ou
             
             # Build notification with AI's analysis
             enhanced_message = f"{message}\n\n🤖 AI Analysis:\n{ai_analysis.get('reasoning', '')}"
-            
+
+            # Determine venue name for notification
+            venue_name = 'Unknown Venue'
+            if venue:
+                # Check if we have venue confidence in the AI analysis
+                if 'venue_confidence' in ai_analysis:
+                    confidence = ai_analysis['venue_confidence']
+                    if confidence >= 0.7:
+                        venue_name = venue.get('name', 'Unknown Venue')
+                    else:
+                        venue_name = f"Uncertain: {venue.get('name', 'Unknown')}?"
+                else:
+                    # Fallback if no confidence info
+                    venue_name = venue.get('name', 'Unknown Venue')
+
             success = chat_client.send_notification(
                 message=enhanced_message,
-                venue_name=venue.get('name') if venue else 'Unknown Venue',
+                venue_name=venue_name,
                 venue_data=venue,
                 user_info={'name': user_name or 'Customer', 'phone': phone, 'platform': platform},
                 department=dept_enum,
