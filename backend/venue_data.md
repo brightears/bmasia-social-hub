@@ -46,7 +46,7 @@ Last Updated: 2025-09-16
 
 ---
 
-### & Co. - One Bangkok
+### One Bangkok
 - **Business Type**: Retail
 - **Zone Count**: 1
 - **Zone Names**: & Co. - One Bangkok
@@ -100,13 +100,13 @@ Last Updated: 2025-09-16
 
 ### Ad Lib Bangkok
 - **Business Type**: Hotel
-- **Zone Count**: 3
-- **Zone Names**: Lobby
+- **Zone Count**: 2
+- **Zone Names**: Lobby, Pool Area
 - **Music Platform**: SYB
-- **Annual Price per Zone**: —
-- **Currency**: —
+- **Annual Price per Zone**: THB 10,500
+- **Currency**: THB
 - **Contract Start**: —
-- **Contract End**: —
+- **Contract End**: 2026-07-31
 - **Soundtrack Account ID**: —
 - **Hardware Type**: Mini PC / Windows 10 Pro / DESKTOP-M6QD65B
 
