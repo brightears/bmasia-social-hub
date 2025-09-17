@@ -487,32 +487,33 @@ Both products provide legal background music for businesses, but their licensing
 
 ## Beat Breeze Licensing
 
-### What's Included
-* **Public Performance License INCLUDED** — No additional PRO fees
+### Complete All-Inclusive Licensing
+* **NO additional licenses needed** — Everything is included in one payment
+* **Public Performance License INCLUDED** — No PRO fees ever
+* **Licensing certificate provided** — Official documentation for your records
 * **30,000 tracks** — All fully licensed for commercial use
-* **Not connected to music rights organizations** — No need to pay additional fees to PROs
-* **License-Free Cost Efficiency** — One payment covers everything
-* **Simplified licensing** — No complex regional variations
+* **Works in ALL countries** — No regional complications
 
 ### Key Advantage
-Beat Breeze eliminates the need for separate public performance licenses. Businesses using Beat Breeze don't need to pay additional fees to music rights organizations like PPL PRS (UK), OneMusic (Australia/NZ), or other local PROs.
+**With Beat Breeze, you pay once and you're done.** No additional licenses, no PRO fees, no complications. We provide a licensing certificate for your venue. You will NEVER need to pay any music rights organization or collecting society.
 
 ---
 
 ## Soundtrack Your Brand Licensing
 
 ### What's Included
-* **100 Million tracks** — Vast library with full commercial licenses
-* **Licenses for streaming and caching** — From record labels and publishers
+* **100 Million tracks** — Vast library with copyrights cleared
+* **Copyright licenses included** — From record labels and publishers
 * **Legal Spotify synchronization** — Convert personal playlists for business use
 * **Multi-country availability** — 50+ countries supported
 
-### Regional PRO Requirements
-* **US & Canada**: Public performance covered for typical background music
-* **UK**: Requires separate PPL PRS Ltd (The Music Licence)
-* **Australia/New Zealand**: Requires OneMusic / OneMusic NZ
-* **EU & other countries**: Local PRO license typically required
-* **Asia**: Varies by country - check local requirements
+### Additional PRO License Required
+**IMPORTANT**: With Soundtrack Your Brand, you still need to pay for Public Performance Rights to your local collecting society:
+* **Thailand**: MPC Thailand license required
+* **UK**: PPL PRS Ltd (The Music Licence) required
+* **Australia/New Zealand**: OneMusic / OneMusic NZ required
+* **EU & other countries**: Local PRO license required
+* **US & Canada**: Exception - PRO included for typical background music
 
 ---
 
@@ -545,21 +546,25 @@ Beat Breeze eliminates the need for separate public performance licenses. Busine
 
 ---
 
-## Important Warning
-
-**Never use consumer services (Spotify, Apple Music, YouTube) for business!**
-These are not licensed for commercial use and could result in significant fines.
-
 ## Bot Guidance for Licensing Questions
 
 When customers ask about licensing:
 
-1. **Identify their location** — Licensing requirements vary by country
-2. **Explain the key difference**:
-   - Beat Breeze = All licenses included, no PRO fees
-   - SYB = May need additional PRO license depending on country
-3. **For specific country requirements** — Escalate to Sales team
-4. **Emphasize legality** — Both products are legal; consumer services are not
+### For Beat Breeze:
+"No, you don't need any additional licenses with Beat Breeze. Everything is included - all copyrights and public performance rights. We'll provide you with a licensing certificate for your venue. You won't need to pay any collecting societies or PROs."
+
+### For Soundtrack Your Brand:
+"With Soundtrack Your Brand, the copyrights are included, but you'll still need to obtain a Public Performance License from your local collecting society. For example, in Thailand that would be MPC Thailand. The cost varies by country and venue size."
+
+### If comparing both:
+"The main difference is:
+- Beat Breeze: ALL licenses included, no additional fees
+- Soundtrack Your Brand: Copyrights included, but you pay PRO separately
+
+Would you like to know more about either option?"
+
+### Note to bot:
+Only mention consumer services (Spotify, YouTube) being illegal if the customer specifically asks about using them.
 
 ---
 
