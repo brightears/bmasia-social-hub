@@ -24,7 +24,8 @@ class VenueManager:
                 content = f.read()
                 
             # Parse venues from markdown
-            venue_sections = re.split(r'\n### (?=\w)', content)
+            # Split on ### followed by any non-whitespace character
+            venue_sections = re.split(r'\n### (?=.)', content)
             
             for venue_section in venue_sections[1:]:  # Skip header
                 lines = venue_section.strip().split('\n')
@@ -38,6 +39,7 @@ class VenueManager:
                     'contract_end': None,
                     'annual_price': None,
                     'platform': None,
+                    'hardware_type': None,
                     'account_id': None,
                     'contacts': []
                 }
@@ -52,6 +54,8 @@ class VenueManager:
                         venue_info['annual_price'] = line.split(':', 1)[1].strip()
                     elif '**Music Platform**:' in line:
                         venue_info['platform'] = line.split(':', 1)[1].strip()
+                    elif '**Hardware Type**:' in line:
+                        venue_info['hardware_type'] = line.split(':', 1)[1].strip()
                     elif '**Soundtrack Account ID**:' in line:
                         venue_info['account_id'] = line.split(':', 1)[1].strip()
                 
