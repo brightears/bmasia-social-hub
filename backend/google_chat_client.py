@@ -397,13 +397,31 @@ class GoogleChatClient:
                     })
                 
                 if venue_data.get('zones'):
+                    # Format zones properly
+                    zones_text = ', '.join(venue_data['zones']) if isinstance(venue_data['zones'], list) else str(venue_data['zones'])
                     venue_widgets.append({
                         "keyValue": {
                             "topLabel": "Total Zones",
-                            "content": str(venue_data['zones'])
+                            "content": zones_text
                         }
                     })
-                
+
+                if venue_data.get('platform'):
+                    venue_widgets.append({
+                        "keyValue": {
+                            "topLabel": "Music Platform",
+                            "content": venue_data['platform']
+                        }
+                    })
+
+                if venue_data.get('hardware_type'):
+                    venue_widgets.append({
+                        "keyValue": {
+                            "topLabel": "Hardware Type",
+                            "content": venue_data['hardware_type']
+                        }
+                    })
+
                 if venue_data.get('contact'):
                     venue_widgets.append({
                         "keyValue": {
