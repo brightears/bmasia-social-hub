@@ -28802,7 +28802,7 @@ Last Updated: 2025-09-16
 
 ---
 
-### ok
+### OK Venue Bangkok
 - **Business Type**: Desktop
 - **Zone Count**: 6
 - **Zone Names**: Sala Siam, Taurus (Formerly Chaam Restaurant), All Day Dining, Restaurant ESSENCE, OASIS Restaurant/Bar, Bar
