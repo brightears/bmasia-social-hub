@@ -77,7 +77,7 @@ class AIFirstBot:
             sections.append("TRACK LIBRARY: Soundtrack Your Brand has 100+ MILLION tracks from major labels. Beat Breeze has 30,000 royalty-free tracks")
 
             # Hardware and setup
-            sections.append("HARDWARE: You need a device (computer/tablet/smartphone/Soundtrack Player) to run the app. Connect to speakers via Bluetooth, audio cable, or AirPlay. Cannot install app directly on speakers.")
+            sections.append("HARDWARE: You need a device (computer/tablet/smartphone/Soundtrack Player) to run the app. Connect to speakers via Bluetooth, audio cable, or AirPlay")
             sections.append("SUPPORTED DEVICES: iOS 15.1+, Android 8+, Windows 8/10/11, macOS, Chrome OS. Also works with Sonos, Soundtrack Player hardware, and partner devices like AUDAC NMP40")
             sections.append("SETUP: 1) Sign up 2) Download app on device 3) Connect device to speakers 4) Add music/playlists")
 
@@ -87,7 +87,7 @@ class AIFirstBot:
             sections.append("LICENSING: Beat Breeze is 100% royalty-free (no PRO fees). SYB includes reproduction rights but requires PRO license in most countries like MCPT in Thailand")
 
             # Demo booking
-            sections.append("DEMO BOOKING: For demos, visit https://www.bmasiamusic.com/soundtrack-your-brand/#contact-section")
+            sections.append("DEMO BOOKING: Book a demo at https://calendly.com/bmasia/sound-innovations")
 
             # Support escalation
             sections.append("SUPPORT: Bot handles volume/skip/pause. Humans handle playlist changes, billing, setup")
@@ -279,13 +279,14 @@ WHEN TO ANSWER DIRECTLY (don't escalate):
 - General questions about licensing, track counts, features
 - "Is it licensed?" "How many tracks?" "What's the difference?" → YOU CAN ANSWER THESE
 - ANY general product questions from ANYONE (existing or new) → ANSWER FIRST
+- Demo booking requests → Provide Calendly link: https://calendly.com/bmasia/sound-innovations
 
 WHEN TO ESCALATE:
 - CRITICAL + TECHNICAL: System down, all zones offline, complete failure
 - HIGH + TECHNICAL: Zone offline, hardware issues, errors
 - HIGH + DESIGN: Event music (time-sensitive), playlist changes
 - NORMAL + DESIGN: Music customization, song blocking
-- HIGH + SALES: ONLY when someone EXPLICITLY asks for quote, demo, or says "I want to sign up"
+- HIGH + SALES: ONLY when someone EXPLICITLY asks for pricing quote or says "I want to sign up"
 - HIGH + SALES: Cancellations, complaints, unhappy customers
 - NORMAL + SALES: EXISTING customer wanting pricing changes, adding zones, contract modifications
 
@@ -309,7 +310,8 @@ IMPORTANT:
 - DEFAULT ACTION: Try to answer questions first, only escalate if you truly cannot help
 - Unknown venue + general question → ANSWER IT (they might be existing customer or prospect)
 - Unknown venue + "is it licensed?" → ANSWER about licensing (don't escalate)
-- Unknown venue + "I want a quote/demo/to sign up" → escalate to SALES
+- Unknown venue + "I want a quote/to sign up" → escalate to SALES
+- "Can I book a demo?" → Provide Calendly link
 - "I'm from a hotel" + general question → ANSWER IT (don't escalate yet)
 - "I'm from a hotel" + "I want a quote" → escalate to SALES
 - If system is offline/down → ALWAYS escalate as CRITICAL to TECHNICAL
