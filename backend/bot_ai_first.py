@@ -86,8 +86,7 @@ class AIFirstBot:
             sections.append("FEATURES: SYB has Spotify integration & API access, Beat Breeze is more affordable but basic")
             sections.append("LICENSING: Beat Breeze is 100% royalty-free (no PRO fees). SYB includes reproduction rights but requires PRO license in most countries like MCPT in Thailand")
 
-            # Demo booking
-            sections.append("DEMO BOOKING: Book a demo at https://calendly.com/bmasia/sound-innovations")
+            # Demo booking info removed - will be handled by Sales team
 
             # Support escalation
             sections.append("SUPPORT: Bot handles volume/skip/pause. Humans handle playlist changes, billing, setup")
@@ -279,14 +278,13 @@ WHEN TO ANSWER DIRECTLY (don't escalate):
 - General questions about licensing, track counts, features
 - "Is it licensed?" "How many tracks?" "What's the difference?" → YOU CAN ANSWER THESE
 - ANY general product questions from ANYONE (existing or new) → ANSWER FIRST
-- Demo booking requests → Provide Calendly link: https://calendly.com/bmasia/sound-innovations
 
 WHEN TO ESCALATE:
 - CRITICAL + TECHNICAL: System down, all zones offline, complete failure
 - HIGH + TECHNICAL: Zone offline, hardware issues, errors
 - HIGH + DESIGN: Event music (time-sensitive), playlist changes
 - NORMAL + DESIGN: Music customization, song blocking
-- HIGH + SALES: ONLY when someone EXPLICITLY asks for pricing quote or says "I want to sign up"
+- HIGH + SALES: ONLY when someone EXPLICITLY asks for demo, pricing quote, or says "I want to sign up"
 - HIGH + SALES: Cancellations, complaints, unhappy customers
 - NORMAL + SALES: EXISTING customer wanting pricing changes, adding zones, contract modifications
 
@@ -310,8 +308,8 @@ IMPORTANT:
 - DEFAULT ACTION: Try to answer questions first, only escalate if you truly cannot help
 - Unknown venue + general question → ANSWER IT (they might be existing customer or prospect)
 - Unknown venue + "is it licensed?" → ANSWER about licensing (don't escalate)
-- Unknown venue + "I want a quote/to sign up" → escalate to SALES
-- "Can I book a demo?" → Provide Calendly link
+- Unknown venue + "I want a demo/quote/to sign up" → escalate to SALES
+- "Can I book a demo?" → escalate to SALES
 - "I'm from a hotel" + general question → ANSWER IT (don't escalate yet)
 - "I'm from a hotel" + "I want a quote" → escalate to SALES
 - If system is offline/down → ALWAYS escalate as CRITICAL to TECHNICAL
