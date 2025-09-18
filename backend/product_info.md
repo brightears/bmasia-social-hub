@@ -83,11 +83,13 @@
 # Soundtrack Your Brand — Licensing & Availability
 
 ## Licensing Model (Summary)
-- Soundtrack provides licenses for most rights needed to stream and cache background music from record labels and music publishers.
-- In many countries, **public performance rights** for playing music in a business are handled by a local collection society (PRO) and may need to be obtained by the venue.
-- **US & Canada**: Public performance is covered through Soundtrack's agreements for typical background‑music use. Extra activities (live music, DJs, karaoke, ticketed events) may require additional licensing.
-- **UK, Australia, New Zealand**: A separate public performance license from the local PRO is required for venues.
-- **Elsewhere**: Requirements vary. As a rule of thumb, assume the venue needs a local public performance license unless explicitly covered.
+- Soundtrack provides **reproduction rights** (copyrights) for streaming and caching background music from record labels and music publishers.
+- **Public performance rights** are handled differently by country:
+  - **US & Canada**: Public performance is covered through Soundtrack's agreements for typical background‑music use. Extra activities (live music, DJs, karaoke, ticketed events) may require additional licensing.
+  - **UK, Australia, New Zealand**: A separate public performance license from the local PRO is required for venues.
+  - **Thailand**: Venues need to obtain a license from MPC Thailand for public performance rights.
+  - **Other countries**: Most require a local public performance license from their PRO/collecting society.
+- **Important**: While Soundtrack includes reproduction rights, most venues outside US/Canada will still need to pay their local PRO for public performance rights.
 
 ## Where Soundtrack Is Available (by region)
 
@@ -428,14 +430,14 @@ A **location** groups one or more zones under a single venue/site (address). Loc
 
 ## Beat Breeze Overview
 
-Beat Breeze is BMAsia's proprietary background music solution designed for businesses seeking a cost-efficient, license-free music system.
+Beat Breeze is BMAsia's proprietary background music solution designed for businesses seeking a cost-efficient, completely royalty-free music system.
 
 ## Key Features
 
-* **30,000 Tracks** — Curated music library
+* **30,000 Royalty-Free Tracks** — Curated library of completely royalty-free music
 * **50 Playlists** — Ready-made playlists for various business types
-* **Licenses for business use** — Fully licensed for commercial environments
-* **Public Performance License Included** — No additional PRO fees required
+* **Complete Royalty-Free Licensing** — No copyright or performance rights fees ever
+* **No PRO Fees Required** — Completely royalty-free means no collecting society payments
 * **Centralized Multi-Zone Setup** — Control multiple zones from one interface
 * **Hardware Diagnostics Service** — Monitor and troubleshoot hardware remotely
 * **Advanced Scheduling Function** — Day-parting and time-based playlist changes
@@ -487,29 +489,29 @@ Both products provide legal background music for businesses, but their licensing
 
 ## Beat Breeze Licensing
 
-### Complete All-Inclusive Licensing
-* **NO additional licenses needed** — Everything is included in one payment
-* **Public Performance License INCLUDED** — No PRO fees ever
-* **Licensing certificate provided** — Official documentation for your records
-* **30,000 tracks** — All fully licensed for commercial use
-* **Works in ALL countries** — No regional complications
+### Complete Royalty-Free Solution
+* **100% Royalty-Free Music** — No copyright or performance rights fees
+* **NO PRO payments ever** — Completely royalty-free library
+* **30,000 royalty-free tracks** — All cleared for commercial use worldwide
+* **Works in ALL countries** — No regional licensing complications
+* **One simple payment** — No hidden fees or additional licenses
 
 ### Key Advantage
-**With Beat Breeze, you pay once and you're done.** No additional licenses, no PRO fees, no complications. We provide a licensing certificate for your venue. You will NEVER need to pay any music rights organization or collecting society.
+**Beat Breeze uses completely royalty-free music.** This means you NEVER need to pay any PRO, collecting society, or rights organization. No MCPT (Thailand), no PPL PRS (UK), no OneMusic (Australia) - nothing. The music is 100% royalty-free for commercial use.
 
 ---
 
 ## Soundtrack Your Brand Licensing
 
 ### What's Included
-* **100 Million tracks** — Vast library with copyrights cleared
-* **Copyright licenses included** — From record labels and publishers
+* **100+ Million tracks** — Massive library including major labels and artists
+* **Reproduction rights included** — Copyrights cleared from labels and publishers
 * **Legal Spotify synchronization** — Convert personal playlists for business use
 * **Multi-country availability** — 50+ countries supported
 
-### Additional PRO License Required
-**IMPORTANT**: With Soundtrack Your Brand, you still need to pay for Public Performance Rights to your local collecting society:
-* **Thailand**: MPC Thailand license required
+### Additional PRO License May Be Required
+**IMPORTANT**: With Soundtrack Your Brand, you typically still need to pay for Public Performance Rights to your local collecting society:
+* **Thailand**: MCPT (Music Copyright Protection Thailand) license required
 * **UK**: PPL PRS Ltd (The Music Licence) required
 * **Australia/New Zealand**: OneMusic / OneMusic NZ required
 * **EU & other countries**: Local PRO license required
@@ -521,25 +523,26 @@ Both products provide legal background music for businesses, but their licensing
 
 | Aspect | Beat Breeze | Soundtrack Your Brand |
 |--------|------------|----------------------|
-| **Track Library** | 30,000 tracks | 100 Million tracks |
-| **PRO License** | INCLUDED | Varies by country |
-| **Additional Fees** | None | May need local PRO license |
-| **Geographic Coverage** | Simplified global | 50+ countries with variations |
+| **Track Library** | 30,000 royalty-free tracks | 100+ Million licensed tracks |
+| **Music Type** | Royalty-free music | Major labels & artists |
+| **PRO License Required** | NO - Completely royalty-free | YES - In most countries |
+| **Additional Fees** | None | PRO fees in most countries |
+| **Geographic Coverage** | Works everywhere, no complications | 50+ countries with variations |
 | **Spotify Integration** | No | Yes (Unlimited plan) |
-| **Complexity** | Simple, all-inclusive | Depends on location |
+| **Licensing Complexity** | Simple - no licenses needed | Complex - varies by country |
 
 ---
 
 ## Which Product for Licensing Simplicity?
 
 ### Choose Beat Breeze if:
-* You want **all-inclusive licensing** with no additional fees
-* You operate in countries with **expensive PRO licenses**
-* You prefer **simplified billing** without regional variations
-* 30,000 tracks is sufficient for your needs
+* You want **completely royalty-free music** with no PRO fees ever
+* You operate in countries with **expensive PRO licenses** (like Thailand's MCPT)
+* You prefer **simple, one-time payment** without ongoing licensing fees
+* 30,000 royalty-free tracks is sufficient for your needs
 
 ### Choose Soundtrack Your Brand if:
-* You need **maximum music variety** (100M tracks)
+* You need **maximum music variety** (100+ million tracks including major artists)
 * You want **Spotify playlist integration**
 * You're in US/Canada where PRO is included
 * You don't mind managing regional PRO requirements
@@ -551,15 +554,15 @@ Both products provide legal background music for businesses, but their licensing
 When customers ask about licensing:
 
 ### For Beat Breeze:
-"No, you don't need any additional licenses with Beat Breeze. Everything is included - all copyrights and public performance rights. We'll provide you with a licensing certificate for your venue. You won't need to pay any collecting societies or PROs."
+"Beat Breeze uses completely royalty-free music, so you don't need ANY licenses - no PRO fees, no MCPT (Thailand), no collecting society payments ever. The music is 100% royalty-free for commercial use."
 
 ### For Soundtrack Your Brand:
-"With Soundtrack Your Brand, the copyrights are included, but you'll still need to obtain a Public Performance License from your local collecting society. For example, in Thailand that would be MPC Thailand. The cost varies by country and venue size."
+"Soundtrack Your Brand includes reproduction rights (copyrights) for over 100 million tracks from major labels. However, in most countries including Thailand, you'll still need a Public Performance License from your local PRO (MCPT in Thailand). Only in the US and Canada is the PRO license included."
 
 ### If comparing both:
-"The main difference is:
-- Beat Breeze: ALL licenses included, no additional fees
-- Soundtrack Your Brand: Copyrights included, but you pay PRO separately
+"The main licensing difference:
+- Beat Breeze: 30,000 completely royalty-free tracks - NO licenses or PRO fees needed
+- Soundtrack Your Brand: 100+ million licensed tracks - reproduction rights included but PRO license needed in most countries (like MCPT in Thailand)
 
 Would you like to know more about either option?"
 
