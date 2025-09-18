@@ -564,7 +564,7 @@ When users ask about pricing, contracts, or rates ("how much are we paying", "ou
         AI reviews and potentially enhances human replies before sending to customer
         """
         system_prompt = """You are reviewing a support team member's reply before it goes to the customer via WhatsApp.
-        
+
 Your job:
 1. Fix any grammar or spelling errors
 2. Ensure the tone is professional and friendly
@@ -579,14 +579,14 @@ IMPORTANT FORMAT RULES:
 - Keep it conversational like WhatsApp chat
 - Maximum 2-3 sentences unless complex explanation needed
 
-Return the enhanced chat message ready to send."""
+CRITICAL: Return ONLY the enhanced message. Do NOT add phrases like "Sure, here's an enhanced version" or "Here's the improved reply" or ANY meta-commentary about enhancing. Just return the actual message to send to the customer."""
         
         try:
             response = self.openai.chat.completions.create(
                 model=self.model,
                 messages=[
                     {"role": "system", "content": system_prompt},
-                    {"role": "user", "content": f"Review and enhance this reply: {reply}"}
+                    {"role": "user", "content": f"Enhance this message (return ONLY the enhanced message, no commentary): {reply}"}
                 ],
                 temperature=0.3
             )
