@@ -76,7 +76,7 @@ class AIFirstBot:
             # Key differences
             sections.append("KEY DIFFERENCE: SYB supports multiple zones per venue, Beat Breeze is one zone per location")
             sections.append("FEATURES: SYB has Spotify integration & API access, Beat Breeze is more affordable but basic")
-            sections.append("LICENSING: Both include proper commercial music licensing (cannot use consumer Spotify/YouTube)")
+            sections.append("LICENSING: Beat Breeze is 100% royalty-free (no PRO fees). SYB includes reproduction rights but requires PRO license in most countries like MCPT in Thailand")
 
             # Support escalation
             sections.append("SUPPORT: Bot handles volume/skip/pause. Humans handle playlist changes, billing, setup")
@@ -85,7 +85,7 @@ class AIFirstBot:
 
         except Exception as e:
             logger.error(f"Failed to load product info: {e}")
-            return "PRODUCT INFO: SYB ($29-39/zone/month) and Beat Breeze ($15-25/location/month) - both include commercial licensing"
+            return "PRODUCT INFO: SYB (100M+ tracks but needs PRO license) and Beat Breeze (30K royalty-free tracks, no PRO fees) - consumer Spotify/YouTube illegal for business"
     
     def process_message(self, message: str, phone: str, user_name: Optional[str] = None, platform: str = "WhatsApp") -> str:
         """
