@@ -76,10 +76,18 @@ class AIFirstBot:
             # Track counts and content
             sections.append("TRACK LIBRARY: Soundtrack Your Brand has 100+ MILLION tracks from major labels. Beat Breeze has 30,000 royalty-free tracks")
 
+            # Hardware and setup
+            sections.append("HARDWARE: You need a device (computer/tablet/smartphone/Soundtrack Player) to run the app. Connect to speakers via Bluetooth, audio cable, or AirPlay. Cannot install app directly on speakers.")
+            sections.append("SUPPORTED DEVICES: iOS 15.1+, Android 8+, Windows 8/10/11, macOS, Chrome OS. Also works with Sonos, Soundtrack Player hardware, and partner devices like AUDAC NMP40")
+            sections.append("SETUP: 1) Sign up 2) Download app on device 3) Connect device to speakers 4) Add music/playlists")
+
             # Key differences
             sections.append("KEY DIFFERENCE: SYB supports multiple zones per venue, Beat Breeze is one zone per location")
             sections.append("FEATURES: SYB has Spotify integration & API access, Beat Breeze is more affordable but basic")
             sections.append("LICENSING: Beat Breeze is 100% royalty-free (no PRO fees). SYB includes reproduction rights but requires PRO license in most countries like MCPT in Thailand")
+
+            # Demo booking
+            sections.append("DEMO BOOKING: For demos, visit https://www.bmasiamusic.com/soundtrack-your-brand/#contact-section")
 
             # Support escalation
             sections.append("SUPPORT: Bot handles volume/skip/pause. Humans handle playlist changes, billing, setup")
@@ -136,9 +144,13 @@ class AIFirstBot:
             # AI decided this needs human help
             # Include venue confidence in the analysis for escalation
             ai_analysis['venue_confidence'] = confidence
+
+            # Only pass venue if we have high confidence it's correct
+            venue_to_escalate = venue if confidence >= 0.7 else None
+
             success = self._escalate_to_team(
                 message=message,
-                venue=venue,
+                venue=venue_to_escalate,
                 phone=phone,
                 user_name=user_name,
                 department=department,
