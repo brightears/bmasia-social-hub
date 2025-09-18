@@ -110,22 +110,28 @@ class AIFirstBot:
         venue, confidence = self.venue_manager.find_venue_with_confidence(message)
         possible_venues = []
 
-        # Only use venue if high confidence
-        if confidence < 0.7:
+        # MUCH STRICTER: Only use venue if VERY high confidence (90%+)
+        # This means explicit mentions like "Rudolf from Hilton Pattaya"
+        if confidence < 0.9:
             # Get possible venues for context
             possible_venues = self.venue_manager.find_possible_venues(message, threshold=0.4)
 
-            # Don't use a low-confidence venue
-            if confidence < 0.7:
-                venue = None
+            # Don't use venue unless extremely confident
+            venue = None
+            confidence = 0.0  # Reset confidence to ensure no venue is passed
 
-                # Check previous messages for venue with high confidence
-                if context:
-                    for msg in context:
-                        if isinstance(msg, dict) and 'venue' in msg:
-                            venue = self.venue_manager.get_venue_info(msg.get('venue'))
-                            if venue:
-                                confidence = 0.9  # Trust previous context
+            # Check previous messages for venue with high confidence
+            if context:
+                for msg in context:
+                    if isinstance(msg, dict) and 'venue' in msg:
+                        # Only trust previous context if it was also high confidence
+                        prev_venue = self.venue_manager.get_venue_info(msg.get('venue'))
+                        if prev_venue:
+                            # Re-verify with current message to ensure it's still relevant
+                            _, new_confidence = self.venue_manager.find_venue_with_confidence(message)
+                            if new_confidence >= 0.9:
+                                venue = prev_venue
+                                confidence = new_confidence
                                 break
 
         # STEP 1: AI ANALYZES THE MESSAGE
@@ -144,8 +150,9 @@ class AIFirstBot:
             # Include venue confidence in the analysis for escalation
             ai_analysis['venue_confidence'] = confidence
 
-            # Only pass venue if we have high confidence it's correct
-            venue_to_escalate = venue if confidence >= 0.7 else None
+            # Only pass venue if we have VERY high confidence it's correct (90%+)
+            # This prevents random venue assignments for new customers
+            venue_to_escalate = venue if confidence >= 0.9 else None
 
             success = self._escalate_to_team(
                 message=message,
@@ -207,7 +214,7 @@ class AIFirstBot:
         
         # Build context for AI
         venue_info = ""
-        if venue and confidence >= 0.7:
+        if venue and confidence >= 0.9:
             venue_info = f"""
 Venue: {venue.get('name')} (Confidence: {confidence:.0%})
 Zones: {', '.join(venue.get('zones', []))}
