@@ -73,6 +73,9 @@ class AIFirstBot:
             if "### Pricing" in content and "Beat Breeze" in content:
                 sections.append("BEAT BREEZE PRICING: Basic $15/location/month, Pro $25/location/month")
 
+            # Track counts and content
+            sections.append("TRACK LIBRARY: Soundtrack Your Brand has 100+ MILLION tracks from major labels. Beat Breeze has 30,000 royalty-free tracks")
+
             # Key differences
             sections.append("KEY DIFFERENCE: SYB supports multiple zones per venue, Beat Breeze is one zone per location")
             sections.append("FEATURES: SYB has Spotify integration & API access, Beat Breeze is more affordable but basic")
@@ -85,7 +88,7 @@ class AIFirstBot:
 
         except Exception as e:
             logger.error(f"Failed to load product info: {e}")
-            return "PRODUCT INFO: SYB (100M+ tracks but needs PRO license) and Beat Breeze (30K royalty-free tracks, no PRO fees) - consumer Spotify/YouTube illegal for business"
+            return "PRODUCT INFO: Soundtrack Your Brand has 100+ MILLION tracks but needs PRO license. Beat Breeze has 30,000 royalty-free tracks with no PRO fees"
     
     def process_message(self, message: str, phone: str, user_name: Optional[str] = None, platform: str = "WhatsApp") -> str:
         """
