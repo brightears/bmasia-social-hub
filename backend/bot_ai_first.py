@@ -74,7 +74,7 @@ class AIFirstBot:
                 sections.append("BEAT BREEZE PRICING: Basic $15/location/month, Pro $25/location/month")
 
             # Track counts and content
-            sections.append("TRACK LIBRARY: Soundtrack Your Brand has 100+ MILLION tracks from major labels. Beat Breeze has 30,000 royalty-free tracks")
+            sections.append("TRACK LIBRARY: Soundtrack Your Brand has 100+ MILLION tracks from major labels and independent artists. Beat Breeze has 30,000 royalty-free tracks")
 
             # Hardware and setup
             sections.append("HARDWARE: You need a device (computer/tablet/smartphone/Soundtrack Player) to run the app. Connect to speakers via Bluetooth, audio cable, or AirPlay")
