@@ -1,0 +1,8 @@
+{
+  "type": "renewal",
+  "filters": {
+    "business_type": "Hotel",
+    "contract_expiring_days": 30
+  },
+  "context": "Your contract is expiring soon. Renew now for a special discount!"
+}

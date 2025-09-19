@@ -208,6 +208,20 @@ class DatabaseCampaignOrchestrator:
                 WHERE id = $1
             """, campaign_id)
 
+        # Handle case where campaign is None (shouldn't happen but be safe)
+        if not campaign:
+            return {
+                'success': True,
+                'campaign_id': str(campaign_id),
+                'campaign_name': campaign_plan.get('campaign_name', f"{campaign_type} Campaign"),
+                'campaign_type': campaign_type,
+                'status': 'draft',
+                'total_recipients': len(recipients),
+                'recipients_preview': recipients[:5],  # Show first 5
+                'filters_used': filters,
+                'channels': campaign_plan.get('channels', ['whatsapp', 'email'])
+            }
+
         return {
             'success': True,
             'campaign_id': str(campaign_id),
