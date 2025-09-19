@@ -34,6 +34,56 @@ class AICampaignManager:
             self.ai_enabled = False
             logger.warning("AI features disabled - OpenAI not configured")
 
+    def interpret_request(self, human_request: str) -> Dict[str, Any]:
+        """
+        Interpret natural language campaign request
+
+        Args:
+            human_request: Natural language description of campaign
+
+        Returns:
+            Dict with campaign_type, filters, and context
+        """
+        # For now, use simple interpretation
+        # In the future, this could use AI to parse the request
+
+        interpretation = {
+            'campaign_type': 'general',
+            'filters': {},
+            'context': human_request
+        }
+
+        # Simple keyword-based interpretation
+        request_lower = human_request.lower()
+
+        # Determine campaign type
+        if 'renewal' in request_lower or 'renew' in request_lower or 'expir' in request_lower:
+            interpretation['campaign_type'] = 'renewal'
+        elif 'christmas' in request_lower or 'holiday' in request_lower or 'season' in request_lower:
+            interpretation['campaign_type'] = 'seasonal'
+        elif 'announce' in request_lower or 'new' in request_lower:
+            interpretation['campaign_type'] = 'announcement'
+        elif 'survey' in request_lower or 'feedback' in request_lower:
+            interpretation['campaign_type'] = 'survey'
+
+        # Extract filters
+        if 'hotel' in request_lower:
+            interpretation['filters']['business_type'] = 'Hotel'
+        elif 'restaurant' in request_lower:
+            interpretation['filters']['business_type'] = 'Restaurant'
+        elif 'bar' in request_lower or 'wine' in request_lower:
+            interpretation['filters']['business_type'] = 'Wine Bar'
+
+        # Extract time-based filters
+        if '30 day' in request_lower or 'thirty day' in request_lower or 'month' in request_lower:
+            interpretation['filters']['contract_expiring_days'] = 30
+        elif '60 day' in request_lower or 'sixty day' in request_lower or '2 month' in request_lower:
+            interpretation['filters']['contract_expiring_days'] = 60
+        elif '90 day' in request_lower or 'ninety day' in request_lower or '3 month' in request_lower:
+            interpretation['filters']['contract_expiring_days'] = 90
+
+        return interpretation
+
     def create_campaign(
         self,
         campaign_type: str,
