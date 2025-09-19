@@ -1,0 +1,437 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Campaign Test - BMA Social</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+        }
+
+        .container {
+            background: white;
+            border-radius: 20px;
+            padding: 30px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+        }
+
+        h1 {
+            color: #333;
+            margin-bottom: 10px;
+        }
+
+        .subtitle {
+            color: #666;
+            margin-bottom: 30px;
+        }
+
+        .section {
+            margin-bottom: 30px;
+            padding: 20px;
+            background: #f8f9fa;
+            border-radius: 10px;
+        }
+
+        h2 {
+            color: #667eea;
+            margin-bottom: 15px;
+            font-size: 1.3rem;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: 600;
+            color: #555;
+        }
+
+        input, select, textarea {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            font-size: 14px;
+            box-sizing: border-box;
+        }
+
+        textarea {
+            min-height: 100px;
+            resize: vertical;
+        }
+
+        button {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 12px 30px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-weight: 600;
+            margin-right: 10px;
+        }
+
+        button:hover {
+            opacity: 0.9;
+        }
+
+        button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .results {
+            margin-top: 20px;
+            padding: 20px;
+            background: #f8f9fa;
+            border-radius: 10px;
+            white-space: pre-wrap;
+            font-family: 'Consolas', 'Monaco', monospace;
+            font-size: 13px;
+            max-height: 400px;
+            overflow-y: auto;
+        }
+
+        .success {
+            background: #d4edda;
+            border: 1px solid #c3e6cb;
+            color: #155724;
+        }
+
+        .error {
+            background: #f8d7da;
+            border: 1px solid #f5c6cb;
+            color: #721c24;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+
+        .stat-card {
+            background: white;
+            padding: 15px;
+            border-radius: 8px;
+            text-align: center;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+
+        .stat-value {
+            font-size: 24px;
+            font-weight: bold;
+            color: #667eea;
+        }
+
+        .stat-label {
+            font-size: 12px;
+            color: #666;
+            margin-top: 5px;
+        }
+
+        .filter-chips {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-bottom: 15px;
+        }
+
+        .chip {
+            background: #e0e0e0;
+            padding: 5px 15px;
+            border-radius: 20px;
+            font-size: 14px;
+            cursor: pointer;
+        }
+
+        .chip.active {
+            background: #667eea;
+            color: white;
+        }
+
+        .loading {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #667eea;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin-left: 10px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🚀 Campaign System Test</h1>
+        <p class="subtitle">Test the database-powered campaign system with 921 venues</p>
+
+        <!-- Statistics Section -->
+        <div class="section">
+            <h2>📊 Database Statistics</h2>
+            <div class="stats-grid" id="stats">
+                <div class="stat-card">
+                    <div class="stat-value">-</div>
+                    <div class="stat-label">Total Venues</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value">-</div>
+                    <div class="stat-label">Total Zones</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value">-</div>
+                    <div class="stat-label">Expiring in 30d</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value">-</div>
+                    <div class="stat-label">Expiring in 90d</div>
+                </div>
+            </div>
+            <button onclick="loadStatistics()">Load Statistics</button>
+        </div>
+
+        <!-- Natural Language Campaign -->
+        <div class="section">
+            <h2>🤖 AI Campaign Creator</h2>
+            <div class="form-group">
+                <label>Describe your campaign in natural language:</label>
+                <textarea id="nlRequest" placeholder="Example: Send renewal reminders to all Hilton properties expiring in the next 90 days">Send renewal reminders to all hotels expiring in the next 90 days</textarea>
+            </div>
+            <button onclick="createNLCampaign()">Create Campaign with AI</button>
+        </div>
+
+        <!-- Filter-based Campaign -->
+        <div class="section">
+            <h2>🎯 Filter-based Campaign</h2>
+
+            <div class="form-group">
+                <label>Campaign Type:</label>
+                <select id="campaignType">
+                    <option value="renewal">Renewal Reminder</option>
+                    <option value="seasonal">Seasonal Offer</option>
+                    <option value="announcement">Announcement</option>
+                    <option value="survey">Survey</option>
+                </select>
+            </div>
+
+            <div class="form-group">
+                <label>Brand Filter (optional):</label>
+                <div class="filter-chips">
+                    <span class="chip" onclick="toggleChip(this, 'brand')">Hilton</span>
+                    <span class="chip" onclick="toggleChip(this, 'brand')">Marriott</span>
+                    <span class="chip" onclick="toggleChip(this, 'brand')">Centara</span>
+                    <span class="chip" onclick="toggleChip(this, 'brand')">Anantara</span>
+                    <span class="chip" onclick="toggleChip(this, 'brand')">Novotel</span>
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label>Business Type:</label>
+                <select id="businessType">
+                    <option value="">All</option>
+                    <option value="Hotel">Hotels</option>
+                    <option value="Restaurant">Restaurants</option>
+                    <option value="Beach Club">Beach Clubs</option>
+                    <option value="Bar">Bars</option>
+                </select>
+            </div>
+
+            <div class="form-group">
+                <label>Contract Expiring Within (days):</label>
+                <input type="number" id="expiringDays" placeholder="e.g. 90" value="90">
+            </div>
+
+            <div class="form-group">
+                <label>Minimum Zones:</label>
+                <input type="number" id="minZones" placeholder="e.g. 3">
+            </div>
+
+            <div class="form-group">
+                <label>Context/Message:</label>
+                <textarea id="context" placeholder="Additional context for the campaign">Special offer for premium venues - 20% discount on renewal</textarea>
+            </div>
+
+            <button onclick="createFilteredCampaign()">Create Filtered Campaign</button>
+        </div>
+
+        <!-- Results -->
+        <div id="results" style="display: none;">
+            <h2>📋 Results</h2>
+            <div class="results" id="resultsContent"></div>
+        </div>
+    </div>
+
+    <script>
+        let selectedBrand = null;
+
+        function toggleChip(chip, type) {
+            if (type === 'brand') {
+                document.querySelectorAll('.chip').forEach(c => c.classList.remove('active'));
+                if (chip.classList.contains('active')) {
+                    chip.classList.remove('active');
+                    selectedBrand = null;
+                } else {
+                    chip.classList.add('active');
+                    selectedBrand = chip.textContent;
+                }
+            }
+        }
+
+        async function loadStatistics() {
+            try {
+                const response = await fetch('/api/campaigns/statistics');
+                const data = await response.json();
+
+                if (data.success) {
+                    const stats = data.statistics;
+                    const cards = document.querySelectorAll('.stat-card');
+
+                    cards[0].querySelector('.stat-value').textContent = stats.total_customers || '0';
+                    cards[1].querySelector('.stat-value').textContent = stats.total_zones || '0';
+                    cards[2].querySelector('.stat-value').textContent = stats.expiring_30_days || '0';
+                    cards[3].querySelector('.stat-value').textContent = stats.expiring_90_days || '0';
+
+                    showResult(`Statistics loaded successfully!
+
+Total Venues: ${stats.total_customers}
+Total Zones: ${stats.total_zones}
+Platform SYB: ${stats.platform_SYB || 0}
+Platform BMS: ${stats.platform_BMS || 0}
+Hotels: ${stats.type_Hotel || 0}
+Restaurants: ${stats.type_Restaurant || 0}`, 'success');
+                } else {
+                    showResult('Failed to load statistics: ' + (data.error || 'Unknown error'), 'error');
+                }
+            } catch (error) {
+                showResult('Error loading statistics: ' + error.message, 'error');
+            }
+        }
+
+        async function createNLCampaign() {
+            const request = document.getElementById('nlRequest').value;
+            if (!request) {
+                alert('Please describe your campaign');
+                return;
+            }
+
+            showResult('Creating AI campaign...', 'info');
+
+            try {
+                const response = await fetch('/api/campaigns/create', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ human_request: request })
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    showResult(`✅ Campaign Created Successfully!
+
+Campaign ID: ${data.campaign_id}
+Name: ${data.campaign.campaign_name || 'Campaign'}
+Type: ${data.campaign.campaign_type || 'general'}
+Total Recipients: ${data.campaign.total_recipients || 0}
+Channels: ${data.campaign.channels ? data.campaign.channels.join(', ') : 'N/A'}
+
+Filters Used:
+${JSON.stringify(data.campaign.filters_used || {}, null, 2)}
+
+Sample Recipients:
+${data.campaign.recipients_preview ?
+    data.campaign.recipients_preview.slice(0, 3).map(r =>
+        `- ${r.customer}`
+    ).join('\n') : 'No preview available'}
+
+Full Response:
+${JSON.stringify(data, null, 2)}`, 'success');
+                } else {
+                    showResult('Failed to create campaign: ' + (data.error || 'Unknown error'), 'error');
+                }
+            } catch (error) {
+                showResult('Error creating campaign: ' + error.message, 'error');
+            }
+        }
+
+        async function createFilteredCampaign() {
+            const filters = {};
+
+            if (selectedBrand) filters.brand = selectedBrand;
+
+            const businessType = document.getElementById('businessType').value;
+            if (businessType) filters.business_type = businessType;
+
+            const expiringDays = document.getElementById('expiringDays').value;
+            if (expiringDays) filters.contract_expiring_days = parseInt(expiringDays);
+
+            const minZones = document.getElementById('minZones').value;
+            if (minZones) filters.min_zones = parseInt(minZones);
+
+            const campaignType = document.getElementById('campaignType').value;
+            const context = document.getElementById('context').value;
+
+            showResult('Creating filtered campaign...', 'info');
+
+            try {
+                const response = await fetch('/api/campaigns/create', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        type: campaignType,
+                        filters: filters,
+                        context: context
+                    })
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    showResult(`✅ Campaign Created Successfully!
+
+Campaign ID: ${data.campaign_id}
+Type: ${campaignType}
+Filters: ${JSON.stringify(filters, null, 2)}
+Recipients: ${data.campaign.total_recipients || 0}
+
+Full Response:
+${JSON.stringify(data, null, 2)}`, 'success');
+                } else {
+                    showResult('Failed to create campaign: ' + (data.error || 'Unknown error'), 'error');
+                }
+            } catch (error) {
+                showResult('Error creating campaign: ' + error.message, 'error');
+            }
+        }
+
+        function showResult(message, type) {
+            const resultsDiv = document.getElementById('results');
+            const resultsContent = document.getElementById('resultsContent');
+
+            resultsDiv.style.display = 'block';
+            resultsContent.textContent = message;
+            resultsContent.className = 'results ' + type;
+        }
+
+        // Load statistics on page load
+        window.onload = () => {
+            loadStatistics();
+        };
+    </script>
+</body>
+</html>

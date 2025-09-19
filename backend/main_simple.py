@@ -615,32 +615,63 @@ logger.info("✅ Reply interface ready at /reply/{thread_key}")
 
 # Add campaign management endpoints
 try:
-    from campaigns.campaign_orchestrator import CampaignOrchestrator
-    campaign_orchestrator = CampaignOrchestrator()
-    logger.info("✅ Campaign orchestrator initialized")
+    # Use database version if available and enabled
+    if os.getenv("USE_DATABASE", "false").lower() == "true":
+        from campaigns.campaign_orchestrator_db import DatabaseCampaignOrchestrator
+        campaign_orchestrator = None  # Will be initialized async
+        logger.info("✅ Database campaign orchestrator will be initialized")
+
+        async def get_campaign_orchestrator():
+            global campaign_orchestrator
+            if not campaign_orchestrator:
+                campaign_orchestrator = DatabaseCampaignOrchestrator()
+                await campaign_orchestrator.initialize()
+            return campaign_orchestrator
+    else:
+        from campaigns.campaign_orchestrator import CampaignOrchestrator
+        campaign_orchestrator = CampaignOrchestrator()
+        logger.info("✅ File-based campaign orchestrator initialized")
+
+        async def get_campaign_orchestrator():
+            return campaign_orchestrator
 
     @app.post("/api/campaigns/create")
     async def create_campaign(request: Request):
         """Create new AI-powered campaign"""
         try:
             data = await request.json()
+            orchestrator = await get_campaign_orchestrator()
 
-            # Handle natural language request
-            if data.get('human_request'):
-                campaign = campaign_orchestrator.create_campaign(
-                    campaign_type='auto',
-                    human_request=data['human_request']
-                )
+            # Handle based on whether we're using database or file
+            if os.getenv("USE_DATABASE", "false").lower() == "true":
+                # Database version - async
+                if data.get('human_request'):
+                    campaign = await orchestrator.create_campaign_from_request(
+                        human_request=data['human_request']
+                    )
+                else:
+                    campaign = await orchestrator.create_campaign(
+                        campaign_type=data.get('type', 'general'),
+                        filters=data.get('filters', {}),
+                        context=data.get('context')
+                    )
             else:
-                campaign = campaign_orchestrator.create_campaign(
-                    campaign_type=data.get('type', 'general'),
-                    filters=data.get('filters', {}),
-                    context=data.get('context')
-                )
+                # File version - sync
+                if data.get('human_request'):
+                    campaign = orchestrator.create_campaign(
+                        campaign_type='auto',
+                        human_request=data['human_request']
+                    )
+                else:
+                    campaign = orchestrator.create_campaign(
+                        campaign_type=data.get('type', 'general'),
+                        filters=data.get('filters', {}),
+                        context=data.get('context')
+                    )
 
             return {
-                "success": True,
-                "campaign_id": campaign['id'],
+                "success": campaign.get('success', True),
+                "campaign_id": campaign.get('campaign_id', campaign.get('id')),
                 "campaign": campaign
             }
         except Exception as e:
@@ -674,8 +705,22 @@ try:
     @app.get("/api/campaigns/statistics")
     async def campaign_statistics():
         """Get campaign and customer statistics"""
-        stats = campaign_orchestrator.get_campaign_statistics()
-        return stats
+        try:
+            orchestrator = await get_campaign_orchestrator()
+
+            if os.getenv("USE_DATABASE", "false").lower() == "true":
+                # Database version - get from customer manager
+                from campaigns.customer_manager_db import get_customer_manager
+                customer_manager = await get_customer_manager()
+                stats = await customer_manager.get_statistics()
+                return {"success": True, "statistics": stats}
+            else:
+                # File version
+                stats = orchestrator.get_campaign_statistics()
+                return stats
+        except Exception as e:
+            logger.error(f"Statistics error: {e}")
+            return {"success": False, "error": str(e)}
 
     @app.get("/api/campaigns/list")
     async def list_campaigns(limit: int = 10):
