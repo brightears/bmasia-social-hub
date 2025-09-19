@@ -1,11 +1,11 @@
 # BMA Social Hub - System Documentation for Claude
 
-## Current Status (Checkpoint V6 - Stable)
+## Current Status (Checkpoint V7 - Database Migration Complete)
 **Last Updated**: 2025-01-19
-**Stable Commit**: 6575cd1 (checkpoint-v6-stable-bot)
+**Stable Commit**: (creating checkpoint-v7-database)
 
 ## System Overview
-BMA Social Hub is an AI-powered customer support system for BMA's music venue clients, integrating WhatsApp, LINE, and Google Chat for seamless support operations.
+BMA Social Hub is an AI-powered customer support system for BMA's music venue clients, integrating WhatsApp, LINE, and Google Chat for seamless support operations. Now with high-performance PostgreSQL database backend.
 
 ## Core Components
 
@@ -18,10 +18,12 @@ BMA Social Hub is an AI-powered customer support system for BMA's music venue cl
   - Check what's playing in specific zones
   - Smart escalation to human support when needed
 
-### 2. Venue Management (`backend/venue_manager.py`)
-- **Database**: `backend/venue_data.md` (923 venues, 4,342 contacts)
+### 2. Venue Management (PostgreSQL Database)
+- **Primary Storage**: PostgreSQL on Render (921 venues, 898 zones)
+- **Fallback**: `backend/venue_data.md` (when USE_DATABASE=false)
+- **Manager**: `backend/venue_manager_hybrid.py` (dual-mode support)
+- **Performance**: <10ms lookups with trigram fuzzy matching
 - **Confidence Threshold**: 90% (only explicit mentions match)
-- **Key Fix**: Renamed venue "ok" to "OK Venue Bangkok" to prevent false matches
 
 ### 3. Google Chat Integration
 - **Spaces**:
@@ -67,7 +69,8 @@ LINE_CHANNEL_SECRET=<LINE secret>
 GEMINI_API_KEY=<Google Gemini API key>
 GOOGLE_CREDENTIALS_JSON=<Google service account JSON>
 SOUNDTRACK_API_CREDENTIALS=<base64 encoded credentials>
-REDIS_URL=<Redis connection URL>
+DATABASE_URL=<PostgreSQL connection string with SSL>
+USE_DATABASE=true  # Switch to 'false' for instant rollback to file mode
 ```
 
 ## Recent Fixes Applied
@@ -82,6 +85,10 @@ REDIS_URL=<Redis connection URL>
 9. ✅ Fixed "ok" venue name causing false matches
 10. ✅ Corrected country availability (India available, Hong Kong not)
 11. ✅ Updated track library description (major + independent artists)
+12. ✅ **MAJOR: Migrated to PostgreSQL database** - solved memory overflow
+13. ✅ Implemented fuzzy venue matching with trigram indexes
+14. ✅ Added connection pooling for high-performance queries
+15. ✅ Created hybrid venue manager with instant rollback capability
 
 ## Testing Commands
 ```bash
@@ -102,19 +109,42 @@ git push origin main
 - **Demo Requests**: Forward to Sales (no direct link due to WhatsApp formatting)
 - **CSV Export**: Use `export_venues_to_csv.py` for CRM exports
 
+## Database Architecture
+- **PostgreSQL 16**: 921 venues, 898 zones, 8 product info records
+- **Connection**: Asyncpg with 20 base + 30 overflow pool
+- **Performance**: <10ms venue lookups (vs ~100ms with files)
+- **Fuzzy Search**: PostgreSQL trigram similarity for typo tolerance
+- **Feature Flag**: USE_DATABASE=true/false for instant mode switching
+- **Files**:
+  - `database_manager.py`: Async database operations
+  - `venue_manager_hybrid.py`: Dual-mode venue manager
+  - `database/schema.sql`: Complete PostgreSQL schema
+  - `DATABASE_MIGRATION_COMPLETE.md`: Full migration details
+
 ## Rollback Instructions
-If issues arise, rollback to this checkpoint:
+If issues arise:
+
+### Quick rollback (database to file mode):
 ```bash
-git reset --hard checkpoint-v6-stable-bot
+# In Render dashboard: Set USE_DATABASE=false
+# Service instantly reverts to venue_data.md
+```
+
+### Full rollback to checkpoint:
+```bash
+git reset --hard checkpoint-v7-database
 git push --force origin main
 ```
 
 Previous stable checkpoints:
+- checkpoint-v7-database (creating now)
+- checkpoint-v6-stable-bot (6575cd1)
 - checkpoint-v5-stable-bot (f697e48)
 - checkpoint-v4 (482add6)
 
 ## Next Potential Improvements
-- Add more sophisticated venue verification questions
-- Implement conversation threading for better context
-- Add support for multiple languages
-- Enhance AI's ability to handle complex multi-part questions
+- Add Redis caching layer for hot data
+- Implement conversation persistence in database
+- Add venue contact management
+- Create admin dashboard for venue updates
+- Add database backup automation

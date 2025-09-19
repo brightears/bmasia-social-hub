@@ -1,0 +1,17 @@
+# Database requirements for BMA Social Hub
+# PostgreSQL and Redis support
+
+# PostgreSQL
+psycopg2-binary==2.9.10  # Synchronous PostgreSQL adapter
+asyncpg==0.30.0          # Async PostgreSQL adapter (high-performance)
+
+# Redis/Valkey
+redis==6.4.0             # Redis client with async support
+
+# Core dependencies (if not already installed)
+python-dotenv>=1.0.0     # Environment variables
+fastapi>=0.100.0         # Web framework
+uvicorn>=0.23.0          # ASGI server
+
+# For Render deployment
+gunicorn>=21.2.0         # Production WSGI server
