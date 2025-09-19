@@ -1,8 +1,8 @@
 # BMA Social Hub - System Documentation for Claude
 
-## Current Status (Checkpoint V5 - Stable)
+## Current Status (Checkpoint V6 - Stable)
 **Last Updated**: 2025-01-19
-**Stable Commit**: f697e48 (checkpoint-v5-stable-bot)
+**Stable Commit**: 6575cd1 (checkpoint-v6-stable-bot)
 
 ## System Overview
 BMA Social Hub is an AI-powered customer support system for BMA's music venue clients, integrating WhatsApp, LINE, and Google Chat for seamless support operations.
@@ -80,6 +80,8 @@ REDIS_URL=<Redis connection URL>
 7. ✅ Fixed hardware/speaker information in responses
 8. ✅ Prevented false venue assignments (raised threshold to 90%)
 9. ✅ Fixed "ok" venue name causing false matches
+10. ✅ Corrected country availability (India available, Hong Kong not)
+11. ✅ Updated track library description (major + independent artists)
 
 ## Testing Commands
 ```bash
@@ -103,9 +105,13 @@ git push origin main
 ## Rollback Instructions
 If issues arise, rollback to this checkpoint:
 ```bash
-git reset --hard checkpoint-v5-stable-bot
+git reset --hard checkpoint-v6-stable-bot
 git push --force origin main
 ```
+
+Previous stable checkpoints:
+- checkpoint-v5-stable-bot (f697e48)
+- checkpoint-v4 (482add6)
 
 ## Next Potential Improvements
 - Add more sophisticated venue verification questions
