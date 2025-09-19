@@ -28,9 +28,10 @@ class DatabaseCampaignOrchestrator:
     Handles the complete flow from creation to analytics
     """
 
-    def __init__(self, database_url: Optional[str] = None):
+    def __init__(self, customer_manager=None, database_url: Optional[str] = None):
         self.database_url = database_url or os.getenv('DATABASE_URL')
         self.pool = None
+        self.customer_manager = customer_manager
 
         # Initialize components
         self.ai_manager = AICampaignManager()
@@ -52,8 +53,9 @@ class DatabaseCampaignOrchestrator:
             command_timeout=60
         )
 
-        # Get customer manager
-        self.customer_manager = await get_customer_manager()
+        # Get customer manager if not provided
+        if not self.customer_manager:
+            self.customer_manager = await get_customer_manager()
 
         self._initialized = True
         logger.info("Database campaign orchestrator initialized")

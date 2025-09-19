@@ -624,7 +624,9 @@ try:
         async def get_campaign_orchestrator():
             global campaign_orchestrator
             if not campaign_orchestrator:
-                campaign_orchestrator = DatabaseCampaignOrchestrator()
+                from campaigns.customer_manager_db import get_customer_manager
+                customer_manager = await get_customer_manager()
+                campaign_orchestrator = DatabaseCampaignOrchestrator(customer_manager)
                 await campaign_orchestrator.initialize()
             return campaign_orchestrator
     else:
