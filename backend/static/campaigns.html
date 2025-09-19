@@ -203,7 +203,7 @@
                     <div class="stat-label">Expiring in 90d</div>
                 </div>
             </div>
-            <button onclick="loadStatistics()">Load Statistics</button>
+            <button id="loadStatsBtn">Load Statistics</button>
         </div>
 
         <!-- Natural Language Campaign -->
@@ -213,7 +213,7 @@
                 <label>Describe your campaign in natural language:</label>
                 <textarea id="nlRequest" placeholder="Example: Send renewal reminders to all Hilton properties expiring in the next 90 days">Send renewal reminders to all hotels expiring in the next 90 days</textarea>
             </div>
-            <button onclick="createNLCampaign()">Create Campaign with AI</button>
+            <button id="createAICampaignBtn">Create Campaign with AI</button>
         </div>
 
         <!-- Filter-based Campaign -->
@@ -233,11 +233,11 @@
             <div class="form-group">
                 <label>Brand Filter (optional):</label>
                 <div class="filter-chips">
-                    <span class="chip" onclick="toggleChip(this, 'brand')">Hilton</span>
-                    <span class="chip" onclick="toggleChip(this, 'brand')">Marriott</span>
-                    <span class="chip" onclick="toggleChip(this, 'brand')">Centara</span>
-                    <span class="chip" onclick="toggleChip(this, 'brand')">Anantara</span>
-                    <span class="chip" onclick="toggleChip(this, 'brand')">Novotel</span>
+                    <span class="chip">Hilton</span>
+                    <span class="chip">Marriott</span>
+                    <span class="chip">Centara</span>
+                    <span class="chip">Anantara</span>
+                    <span class="chip">Novotel</span>
                 </div>
             </div>
 
@@ -267,7 +267,7 @@
                 <textarea id="context" placeholder="Additional context for the campaign">Special offer for premium venues - 20% discount on renewal</textarea>
             </div>
 
-            <button onclick="createFilteredCampaign()">Create Filtered Campaign</button>
+            <button id="createFilteredCampaignBtn">Create Filtered Campaign</button>
         </div>
 
         <!-- Results -->
@@ -428,9 +428,21 @@ ${JSON.stringify(data, null, 2)}`, 'success');
             resultsContent.className = 'results ' + type;
         }
 
-        // Load statistics on page load
+        // Load statistics on page load and attach event listeners
         window.onload = () => {
             loadStatistics();
+
+            // Attach event listeners to buttons
+            document.getElementById('loadStatsBtn').addEventListener('click', loadStatistics);
+            document.getElementById('createAICampaignBtn').addEventListener('click', createNLCampaign);
+            document.getElementById('createFilteredCampaignBtn').addEventListener('click', createFilteredCampaign);
+
+            // Attach event listeners to brand chips
+            document.querySelectorAll('.chip').forEach(chip => {
+                chip.addEventListener('click', function() {
+                    toggleChip(this, 'brand');
+                });
+            });
         };
     </script>
 </body>
