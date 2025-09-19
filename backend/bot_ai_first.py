@@ -81,6 +81,9 @@ class AIFirstBot:
             sections.append("SUPPORTED DEVICES: iOS 15.1+, Android 8+, Windows 8/10/11, macOS, Chrome OS. Also works with Sonos, Soundtrack Player hardware, and partner devices like AUDAC NMP40")
             sections.append("SETUP: 1) Sign up 2) Download app on device 3) Connect device to speakers 4) Add music/playlists")
 
+            # Country availability
+            sections.append("AVAILABILITY: Soundtrack Your Brand is available in 50+ countries including Thailand, Singapore, Malaysia, Indonesia, Philippines, Vietnam, US, UK, Australia, and most of Europe. NOT available in Hong Kong, China, Japan, or India yet. Beat Breeze works everywhere globally")
+
             # Key differences
             sections.append("KEY DIFFERENCE: SYB supports multiple zones per venue, Beat Breeze is one zone per location")
             sections.append("FEATURES: SYB has Spotify integration & API access, Beat Breeze is more affordable but basic")
