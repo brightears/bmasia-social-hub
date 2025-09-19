@@ -1,0 +1,398 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Campaign System - BMA Social</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+        }
+
+        .container {
+            background: white;
+            border-radius: 20px;
+            padding: 30px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+        }
+
+        h1 {
+            color: #333;
+            margin-bottom: 10px;
+        }
+
+        .subtitle {
+            color: #666;
+            margin-bottom: 30px;
+        }
+
+        .section {
+            margin-bottom: 30px;
+            padding: 20px;
+            background: #f8f9fa;
+            border-radius: 10px;
+        }
+
+        h2 {
+            color: #667eea;
+            margin-bottom: 15px;
+            font-size: 1.3rem;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: 600;
+            color: #555;
+        }
+
+        input, select, textarea {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            font-size: 14px;
+            box-sizing: border-box;
+        }
+
+        textarea {
+            min-height: 100px;
+            resize: vertical;
+        }
+
+        button {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 12px 30px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-weight: 600;
+            margin-right: 10px;
+        }
+
+        button:hover {
+            opacity: 0.9;
+        }
+
+        button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .results {
+            margin-top: 20px;
+            padding: 20px;
+            background: #f8f9fa;
+            border-radius: 10px;
+            white-space: pre-wrap;
+            font-family: 'Consolas', 'Monaco', monospace;
+            font-size: 13px;
+            max-height: 400px;
+            overflow-y: auto;
+        }
+
+        .success {
+            background: #d4edda;
+            border: 1px solid #c3e6cb;
+            color: #155724;
+        }
+
+        .error {
+            background: #f8d7da;
+            border: 1px solid #f5c6cb;
+            color: #721c24;
+        }
+
+        .info {
+            background: #d1ecf1;
+            border: 1px solid #bee5eb;
+            color: #0c5460;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+
+        .stat-card {
+            background: white;
+            padding: 15px;
+            border-radius: 8px;
+            text-align: center;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+
+        .stat-value {
+            font-size: 24px;
+            font-weight: bold;
+            color: #667eea;
+        }
+
+        .stat-label {
+            font-size: 12px;
+            color: #666;
+            margin-top: 5px;
+        }
+
+        .loading {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #667eea;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin-left: 10px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🚀 Campaign System</h1>
+        <p class="subtitle">Create and manage campaigns for 921+ venues</p>
+
+        <!-- Statistics Section -->
+        <div class="section">
+            <h2>📊 Database Statistics</h2>
+            <div class="stats-grid" id="statsGrid">
+                <div class="stat-card">
+                    <div class="stat-value" id="totalVenues">-</div>
+                    <div class="stat-label">Total Venues</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value" id="totalZones">-</div>
+                    <div class="stat-label">Total Zones</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value" id="expiring30">-</div>
+                    <div class="stat-label">Expiring in 30d</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value" id="expiring90">-</div>
+                    <div class="stat-label">Expiring in 90d</div>
+                </div>
+            </div>
+            <button type="button" id="refreshStats">Refresh Statistics</button>
+        </div>
+
+        <!-- Simple Test Section -->
+        <div class="section">
+            <h2>🧪 Quick Test</h2>
+            <p>Test if the API is working:</p>
+            <button type="button" id="testApi">Test API Connection</button>
+            <div id="testResult"></div>
+        </div>
+
+        <!-- Natural Language Campaign -->
+        <div class="section">
+            <h2>🤖 AI Campaign Creator</h2>
+            <div class="form-group">
+                <label for="campaignRequest">Describe your campaign:</label>
+                <textarea id="campaignRequest" placeholder="Example: Send renewal reminders to all hotels expiring in the next 90 days">Send Christmas music promotion to all hotels and restaurants</textarea>
+            </div>
+            <button type="button" id="createAI">Create Campaign with AI</button>
+            <div id="aiResult"></div>
+        </div>
+
+        <!-- Manual Campaign -->
+        <div class="section">
+            <h2>🎯 Manual Campaign</h2>
+            <div class="form-group">
+                <label for="businessType">Business Type:</label>
+                <select id="businessType">
+                    <option value="">All</option>
+                    <option value="Hotel">Hotels</option>
+                    <option value="Restaurant">Restaurants</option>
+                    <option value="Wine Bar">Wine Bars</option>
+                    <option value="Fitness">Fitness Centers</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label for="expiringDays">Contract Expiring Within (days):</label>
+                <input type="number" id="expiringDays" placeholder="e.g. 90" value="90">
+            </div>
+            <div class="form-group">
+                <label for="campaignMessage">Message:</label>
+                <textarea id="campaignMessage" placeholder="Your campaign message">Special renewal offer - save 20% if you renew before your contract expires!</textarea>
+            </div>
+            <button type="button" id="createManual">Create Manual Campaign</button>
+            <div id="manualResult"></div>
+        </div>
+    </div>
+
+    <script>
+        // Make everything explicit and simple
+        console.log('Campaign page loaded');
+
+        // Test API function
+        function testApi() {
+            console.log('Testing API...');
+            const resultDiv = document.getElementById('testResult');
+            resultDiv.innerHTML = '<div class="info">Testing API connection...</div>';
+
+            fetch('/api/campaigns/statistics')
+                .then(response => {
+                    console.log('Response received:', response.status);
+                    return response.json();
+                })
+                .then(data => {
+                    console.log('Data received:', data);
+                    if (data.success) {
+                        resultDiv.innerHTML = '<div class="success">✅ API is working! Found ' + data.statistics.total_customers + ' venues</div>';
+                    } else {
+                        resultDiv.innerHTML = '<div class="error">API returned an error: ' + (data.error || 'Unknown error') + '</div>';
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    resultDiv.innerHTML = '<div class="error">Failed to connect: ' + error.message + '</div>';
+                });
+        }
+
+        // Load statistics
+        function loadStats() {
+            console.log('Loading statistics...');
+            fetch('/api/campaigns/statistics')
+                .then(response => response.json())
+                .then(data => {
+                    console.log('Stats loaded:', data);
+                    if (data.success && data.statistics) {
+                        document.getElementById('totalVenues').textContent = data.statistics.total_customers || '0';
+                        document.getElementById('totalZones').textContent = data.statistics.total_zones || '0';
+                        document.getElementById('expiring30').textContent = data.statistics.expiring_30_days || '0';
+                        document.getElementById('expiring90').textContent = data.statistics.expiring_90_days || '0';
+                    }
+                })
+                .catch(error => {
+                    console.error('Stats error:', error);
+                });
+        }
+
+        // Create AI campaign
+        function createAICampaign() {
+            console.log('Creating AI campaign...');
+            const request = document.getElementById('campaignRequest').value;
+            const resultDiv = document.getElementById('aiResult');
+
+            if (!request) {
+                alert('Please describe your campaign');
+                return;
+            }
+
+            resultDiv.innerHTML = '<div class="info">Creating campaign...</div>';
+
+            fetch('/api/campaigns/create', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ human_request: request })
+            })
+            .then(response => response.json())
+            .then(data => {
+                console.log('Campaign created:', data);
+                if (data.success) {
+                    resultDiv.innerHTML = '<div class="success">✅ Campaign created! ID: ' + data.campaign_id + '</div>';
+                } else {
+                    resultDiv.innerHTML = '<div class="error">Failed: ' + (data.error || 'Unknown error') + '</div>';
+                }
+            })
+            .catch(error => {
+                console.error('Campaign error:', error);
+                resultDiv.innerHTML = '<div class="error">Error: ' + error.message + '</div>';
+            });
+        }
+
+        // Create manual campaign
+        function createManualCampaign() {
+            console.log('Creating manual campaign...');
+            const resultDiv = document.getElementById('manualResult');
+
+            const filters = {};
+            const businessType = document.getElementById('businessType').value;
+            if (businessType) filters.business_type = businessType;
+
+            const expiringDays = document.getElementById('expiringDays').value;
+            if (expiringDays) filters.contract_expiring_days = parseInt(expiringDays);
+
+            const message = document.getElementById('campaignMessage').value;
+
+            resultDiv.innerHTML = '<div class="info">Creating campaign...</div>';
+
+            fetch('/api/campaigns/create', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    type: 'renewal',
+                    filters: filters,
+                    context: message
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                console.log('Manual campaign created:', data);
+                if (data.success) {
+                    resultDiv.innerHTML = '<div class="success">✅ Campaign created! ID: ' + data.campaign_id + '</div>';
+                } else {
+                    resultDiv.innerHTML = '<div class="error">Failed: ' + (data.error || 'Unknown error') + '</div>';
+                }
+            })
+            .catch(error => {
+                console.error('Manual campaign error:', error);
+                resultDiv.innerHTML = '<div class="error">Error: ' + error.message + '</div>';
+            });
+        }
+
+        // Attach event listeners when DOM is ready
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('DOM loaded, attaching event listeners...');
+
+            // Test button
+            const testBtn = document.getElementById('testApi');
+            if (testBtn) {
+                testBtn.addEventListener('click', testApi);
+                console.log('Test button ready');
+            }
+
+            // Refresh stats button
+            const statsBtn = document.getElementById('refreshStats');
+            if (statsBtn) {
+                statsBtn.addEventListener('click', loadStats);
+                console.log('Stats button ready');
+            }
+
+            // AI campaign button
+            const aiBtn = document.getElementById('createAI');
+            if (aiBtn) {
+                aiBtn.addEventListener('click', createAICampaign);
+                console.log('AI button ready');
+            }
+
+            // Manual campaign button
+            const manualBtn = document.getElementById('createManual');
+            if (manualBtn) {
+                manualBtn.addEventListener('click', createManualCampaign);
+                console.log('Manual button ready');
+            }
+
+            // Load stats on page load
+            loadStats();
+        });
+    </script>
+</body>
+</html>
