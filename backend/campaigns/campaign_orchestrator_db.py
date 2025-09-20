@@ -210,8 +210,17 @@ class DatabaseCampaignOrchestrator:
                     ) or {}
                 else:
                     # Use simple template for faster processing
+                    # Build message based on campaign type and context
+                    if campaign_type == 'seasonal':
+                        message = f"Hi {customer.get('name', 'there')}! 🎄 Get into the festive spirit with our special Christmas music playlists! Perfect atmosphere for your venue during the holiday season."
+                    elif campaign_type == 'renewal':
+                        message = f"Hi {customer.get('name', 'there')}! Your music service contract is expiring soon. Contact us to discuss renewal options."
+                    else:
+                        # Use context if provided, otherwise generic message
+                        message = f"Hi {customer.get('name', 'there')}! {context or 'We have an exciting update for your music service.'}"
+
                     personalized = {
-                        'message': f"Hi {customer.get('name', 'there')}! {campaign_plan.get('key_message', 'We have an update for you.')}",
+                        'message': message,
                         'variables': {'customer_name': customer.get('name', 'Customer')}
                     }
 
