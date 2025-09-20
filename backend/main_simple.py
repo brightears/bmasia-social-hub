@@ -671,11 +671,17 @@ try:
                         context=data.get('context')
                     )
 
-            return {
-                "success": campaign.get('success', True),
-                "campaign_id": campaign.get('campaign_id', campaign.get('id')),
-                "campaign": campaign
-            }
+            if campaign:
+                return {
+                    "success": campaign.get('success', True),
+                    "campaign_id": campaign.get('campaign_id', campaign.get('id')),
+                    "campaign": campaign
+                }
+            else:
+                return {
+                    "success": False,
+                    "error": "Campaign creation returned no data"
+                }
         except Exception as e:
             logger.error(f"Campaign creation error: {e}")
             return {"success": False, "error": str(e)}
