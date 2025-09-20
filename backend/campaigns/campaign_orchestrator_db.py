@@ -202,10 +202,11 @@ class DatabaseCampaignOrchestrator:
                 # AI composes personalized message
                 personalized = self.ai_manager.compose_message(
                     customer, campaign_type, campaign_plan
-                )
+                ) or {}  # Ensure personalized is always a dict
 
                 # Create recipient records
-                for contact in selected_contacts or [{'email': customer.get('primary_contact', {}).get('email')}]:
+                primary_contact = customer.get('primary_contact') or {}
+                for contact in selected_contacts or [{'email': primary_contact.get('email')}]:
                     if not contact.get('email') and not contact.get('phone'):
                         continue
 
@@ -225,7 +226,7 @@ class DatabaseCampaignOrchestrator:
 
                     recipients.append({
                         'id': recipient_id,
-                        'customer': customer['name'],
+                        'customer': customer.get('name', 'Unknown'),
                         'contact': contact,
                         'message': personalized.get('message')
                     })
