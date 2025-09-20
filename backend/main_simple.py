@@ -648,9 +648,15 @@ try:
             if os.getenv("USE_DATABASE", "false").lower() == "true":
                 # Database version - async
                 if data.get('human_request'):
-                    campaign = await orchestrator.create_campaign_from_request(
-                        human_request=data['human_request']
-                    )
+                    logger.info(f"Creating campaign from request: {data['human_request']}")
+                    try:
+                        campaign = await orchestrator.create_campaign_from_request(
+                            human_request=data['human_request']
+                        )
+                        logger.info(f"Campaign result: {campaign}")
+                    except Exception as e:
+                        logger.error(f"Error in create_campaign_from_request: {e}", exc_info=True)
+                        raise
                 else:
                     campaign = await orchestrator.create_campaign(
                         campaign_type=data.get('type', 'general'),

@@ -87,14 +87,27 @@ class DatabaseCampaignOrchestrator:
         # AI interprets the request
         logger.info(f"AI interpreting request: {human_request}")
         interpretation = self.ai_manager.interpret_request(human_request)
+        logger.info(f"Interpretation: {interpretation}")
+
+        # Handle multiple business types if present
+        if 'multiple_business_types' in interpretation:
+            # For multiple business types, create campaign without business_type filter
+            # This will target all venues, then we can filter in post-processing
+            logger.info(f"Multiple business types detected: {interpretation['multiple_business_types']}")
+            # Store the types in context for message personalization
+            context = interpretation.get('context', '')
+            context += f"\nTarget business types: {', '.join(interpretation['multiple_business_types'])}"
+            interpretation['context'] = context
 
         # Create the campaign
-        return await self.create_campaign(
-            campaign_type=interpretation['campaign_type'],
-            filters=interpretation['filters'],
+        result = await self.create_campaign(
+            campaign_type=interpretation.get('campaign_type', 'general'),
+            filters=interpretation.get('filters', {}),
             context=interpretation.get('context'),
             created_by=created_by
         )
+
+        return result
 
     async def create_campaign(
         self,

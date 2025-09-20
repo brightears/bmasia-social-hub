@@ -66,13 +66,27 @@ class AICampaignManager:
         elif 'survey' in request_lower or 'feedback' in request_lower:
             interpretation['campaign_type'] = 'survey'
 
-        # Extract filters
+        # Extract filters - handle multiple business types
+        business_types = []
         if 'hotel' in request_lower:
-            interpretation['filters']['business_type'] = 'Hotel'
-        elif 'restaurant' in request_lower:
-            interpretation['filters']['business_type'] = 'Restaurant'
-        elif 'bar' in request_lower or 'wine' in request_lower:
-            interpretation['filters']['business_type'] = 'Wine Bar'
+            business_types.append('Hotel')
+        if 'restaurant' in request_lower:
+            business_types.append('Restaurant')
+        if 'bar' in request_lower or 'wine' in request_lower:
+            business_types.append('Wine Bar')
+        if 'fitness' in request_lower or 'gym' in request_lower:
+            business_types.append('Fitness')
+
+        # If we have business types, handle them
+        if business_types:
+            # For now, if multiple types, we'll process them separately
+            # In the future, we could handle OR queries
+            if len(business_types) == 1:
+                interpretation['filters']['business_type'] = business_types[0]
+            else:
+                # Store multiple types - campaign will target all
+                interpretation['multiple_business_types'] = business_types
+                # Don't set business_type filter so we get all venues
 
         # Extract time-based filters
         if '30 day' in request_lower or 'thirty day' in request_lower or 'month' in request_lower:
