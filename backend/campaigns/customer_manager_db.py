@@ -143,11 +143,19 @@ class DatabaseCustomerManager:
             params = []
             param_count = 0
 
-            # Business type filter
+            # Business type filter - single or multiple
             if filters.get('business_type'):
                 param_count += 1
                 where_clauses.append(f"v.business_type = ${param_count}")
                 params.append(filters['business_type'])
+            elif filters.get('business_types'):  # Handle multiple business types
+                # Create IN clause for multiple business types
+                placeholders = []
+                for business_type in filters['business_types']:
+                    param_count += 1
+                    placeholders.append(f"${param_count}")
+                    params.append(business_type)
+                where_clauses.append(f"v.business_type IN ({', '.join(placeholders)})")
 
             # Platform filter
             if filters.get('platform'):

@@ -91,13 +91,13 @@ class DatabaseCampaignOrchestrator:
 
         # Handle multiple business types if present
         if 'multiple_business_types' in interpretation:
-            # For multiple business types, create campaign without business_type filter
-            # This will target all venues, then we can filter in post-processing
             logger.info(f"Multiple business types detected: {interpretation['multiple_business_types']}")
             # Store the types in context for message personalization
             context = interpretation.get('context', '')
             context += f"\nTarget business types: {', '.join(interpretation['multiple_business_types'])}"
             interpretation['context'] = context
+            # Set a special filter for multiple business types
+            interpretation['filters']['business_types'] = interpretation['multiple_business_types']
 
         # Create the campaign
         result = await self.create_campaign(
@@ -131,8 +131,9 @@ class DatabaseCampaignOrchestrator:
         await self.initialize()
 
         # Get target customers from database
+        # Limit to 50 for testing/demo purposes to avoid timeouts
         customers, total_count = await self.customer_manager.filter_customers(
-            filters, limit=1000  # Reasonable limit for campaigns
+            filters, limit=50  # Limited for demo - increase for production
         )
 
         logger.info(f"Found {len(customers)} customers matching filters (total: {total_count})")
