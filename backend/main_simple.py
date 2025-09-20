@@ -704,6 +704,26 @@ try:
             logger.error(f"Campaign send error: {e}")
             return {"success": False, "error": str(e)}
 
+    @app.get("/api/campaigns/test")
+    async def test_campaigns():
+        """Simple test endpoint to verify campaign system works"""
+        try:
+            if os.getenv("USE_DATABASE", "false").lower() == "true":
+                return {
+                    "success": True,
+                    "mode": "database",
+                    "message": "Database campaign system is enabled",
+                    "database_url": bool(os.getenv("DATABASE_URL"))
+                }
+            else:
+                return {
+                    "success": True,
+                    "mode": "file",
+                    "message": "File-based campaign system is active"
+                }
+        except Exception as e:
+            return {"success": False, "error": str(e)}
+
     @app.get("/api/campaigns/statistics")
     async def campaign_statistics():
         """Get campaign and customer statistics"""

@@ -136,6 +136,17 @@ class DatabaseCampaignOrchestrator:
             campaign_type, filters, context
         )
 
+        # Ensure campaign_plan is valid
+        if not campaign_plan:
+            campaign_plan = {
+                'campaign_name': f"{campaign_type.title()} Campaign",
+                'campaign_goal': f"Execute {campaign_type} campaign",
+                'target_audience': 'Selected customers',
+                'key_message': context or f"{campaign_type} campaign message",
+                'tone': 'professional',
+                'channels': ['whatsapp', 'email']
+            }
+
         # Create campaign record in database
         async with self.pool.acquire() as conn:
             campaign_id = await conn.fetchval("""
