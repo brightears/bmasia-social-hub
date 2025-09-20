@@ -149,6 +149,11 @@ class DatabaseCampaignOrchestrator:
 
         # Create campaign record in database
         async with self.pool.acquire() as conn:
+            # Ensure values fit database constraints
+            campaign_name = campaign_plan.get('campaign_name', f"{campaign_type} Campaign")[:50]
+            campaign_type_db = campaign_type[:50] if campaign_type else 'general'
+            tone = campaign_plan.get('tone', 'professional')[:50]
+
             campaign_id = await conn.fetchval("""
                 INSERT INTO campaigns (
                     name, type, status, goal, target_audience,
@@ -157,13 +162,13 @@ class DatabaseCampaignOrchestrator:
                 ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
                 RETURNING id
             """,
-                campaign_plan.get('campaign_name', f"{campaign_type} Campaign"),
-                campaign_type,
+                campaign_name,  # Truncated to 50 chars
+                campaign_type_db,  # Truncated to 50 chars
                 'draft',
                 campaign_plan.get('campaign_goal'),
                 campaign_plan.get('target_audience'),
                 campaign_plan.get('key_message'),
-                campaign_plan.get('tone', 'professional'),
+                tone,  # Truncated to 50 chars
                 json.dumps(filters),
                 context,
                 json.dumps(campaign_plan),
