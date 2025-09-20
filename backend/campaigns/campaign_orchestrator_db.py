@@ -131,9 +131,9 @@ class DatabaseCampaignOrchestrator:
         await self.initialize()
 
         # Get target customers from database
-        # Limit to 50 for testing/demo purposes to avoid timeouts
+        # Limit to 10 for testing/demo purposes to avoid timeouts
         customers, total_count = await self.customer_manager.filter_customers(
-            filters, limit=50  # Limited for demo - increase for production
+            filters, limit=10  # Limited for demo to prevent timeouts
         )
 
         logger.info(f"Found {len(customers)} customers matching filters (total: {total_count})")
@@ -200,10 +200,20 @@ class DatabaseCampaignOrchestrator:
                     customer, campaign_type, {'campaign': campaign_plan}
                 )
 
-                # AI composes personalized message
-                personalized = self.ai_manager.compose_message(
-                    customer, campaign_type, campaign_plan
-                ) or {}  # Ensure personalized is always a dict
+                # AI composes personalized message - SKIP FOR NOW to avoid timeouts
+                # For demo, use simple template instead of AI
+                use_ai_messages = False  # Set to True to enable AI message composition
+
+                if use_ai_messages:
+                    personalized = self.ai_manager.compose_message(
+                        customer, campaign_type, campaign_plan
+                    ) or {}
+                else:
+                    # Use simple template for faster processing
+                    personalized = {
+                        'message': f"Hi {customer.get('name', 'there')}! {campaign_plan.get('key_message', 'We have an update for you.')}",
+                        'variables': {'customer_name': customer.get('name', 'Customer')}
+                    }
 
                 # Create recipient records
                 primary_contact = customer.get('primary_contact') or {}
