@@ -230,7 +230,7 @@ Return a JSON with:
         customer_name = customer.get('name', 'Customer')
         brand = customer.get('brand', '')
         venues = customer.get('zones', [])
-        contact = customer.get('primary_contact', {})
+        contact = customer.get('primary_contact') or {}  # Ensure contact is always a dict
         contract_end = customer.get('contract_end', '')
         platform = customer.get('platform', 'Soundtrack Your Brand')
 
@@ -310,7 +310,7 @@ Return JSON with:
     ) -> Dict[str, str]:
         """Get template message when AI is not available"""
         customer_name = customer.get('name', 'Customer')
-        contact = customer.get('primary_contact', {})
+        contact = customer.get('primary_contact') or {}  # Ensure contact is always a dict
 
         # Use generic greeting for multiple recipients
         if multiple_recipients:
